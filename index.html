@@ -7,9 +7,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Monster Pet Shop">
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon-192.png">
-<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="/cosmic-merge/icon-192.png">
+<link rel="icon" href="/cosmic-merge/icon-192.png">
 <title>Monster Pet Shop</title>
 <style>
   html, body {
@@ -29,44 +28,6 @@
 <body>
 <div id="game"></div>
 <div id="boot">กำลังโหลดเกม…</div>
-
-<script>
-  function load(src) {
-    return new Promise(function(ok, no) {
-      var s = document.createElement('script');
-      s.src = src; s.onload = ok; s.onerror = no;
-      document.head.appendChild(s);
-    });
-  }
-  (async function() {
-    try { await load('phaser.min.js'); } catch(e) {}
-    if (typeof Phaser === 'undefined') {
-      await load('https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js');
-    }
-    await load('ads.js');
-    await load('utils.js');
-    await load('data.js');
-    await load('MonsterRenderer.js');
-    await load('ui/Button.js');
-    await load('ui/Toast.js');
-    await load('ui/MonsterPanel.js');
-    await load('scenes/Boot.js');
-    await load('scenes/Hub.js');
-    await load('scenes/Merchant.js');
-    await load('scenes/HatchScene.js');
-    await load('scenes/BreedingLab.js');
-    await load('scenes/HabitatRoom.js');
-    await load('game.js');
-  })().catch(function() {
-    document.getElementById('boot').textContent =
-      'โหลดเกมไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วรีเฟรชอีกครั้ง';
-  });
-
-  if ('serviceWorker' in navigator) {
-    addEventListener('load', function() {
-      navigator.serviceWorker.register('sw.js').catch(function() {});
-    });
-  }
-</script>
+<script type="module" src="/src/game.ts"></script>
 </body>
 </html>
