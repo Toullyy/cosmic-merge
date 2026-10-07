@@ -46,7 +46,7 @@ export class Merchant extends Phaser.Scene {
 
   private _buildFilterTabs(W: number) {
     const filters: string[] = ['dirt', 'grass', 'aquatic'];
-    const labels: Record<string, string> = { dirt:'🪨 Dirt', grass:'🌿 Grass', aquatic:'🌊 Aqua' };
+    const labels: Record<string, string> = { dirt:'⛰ Dirt', grass:'🌿 Grass', aquatic:'🌊 Aqua' };
     const tabW = (W - 20) / 3;
     filters.forEach((f, i) => {
       const x = 10 + tabW * i;

@@ -79,7 +79,7 @@ export class Hub extends Phaser.Scene {
 
   private _buildTabs(W: number) {
     const types: HabitatType[] = ['dirt', 'grass', 'aquatic'];
-    const labels: Record<string, string> = { dirt:'🪨 Dirt', grass:'🌿 Grass', aquatic:'🌊 Aqua' };
+    const labels: Record<string, string> = { dirt:'⛰ Dirt', grass:'🌿 Grass', aquatic:'🌊 Aqua' };
     const tabW = (W - 20) / 3;
     types.forEach((type, i) => {
       const x = 10 + tabW * i;
@@ -116,7 +116,7 @@ export class Hub extends Phaser.Scene {
 
   private _updateTabs() {
     const types: HabitatType[] = ['dirt', 'grass', 'aquatic'];
-    const labels: Record<string, string> = { dirt:'🪨 Dirt', grass:'🌿 Grass', aquatic:'🌊 Aqua' };
+    const labels: Record<string, string> = { dirt:'⛰ Dirt', grass:'🌿 Grass', aquatic:'🌊 Aqua' };
     const W = this.scale.width, tabW = (W - 20) / 3;
     types.forEach((type, i) => {
       const x = 10 + tabW * i;
@@ -358,36 +358,42 @@ export class Hub extends Phaser.Scene {
 
   private _showInstantHatchOffer(eggId: string, name: string, minsLeft: number) {
     const W = this.scale.width, H = this.scale.height;
-    const overlay = this.add.graphics().setDepth(40);
+
+    const popup = this.add.container(0, 0).setDepth(40);
+
+    const overlay = this.add.graphics();
     overlay.fillStyle(0x000000, 0.65);
     overlay.fillRect(0, 0, W, H);
-    const panel = this.add.graphics().setDepth(41);
+    popup.add(overlay);
+
+    const panel = this.add.graphics();
     panel.fillStyle(0x100828, 1);
     panel.fillRoundedRect(W/2 - 150, H/2 - 100, 300, 200, 16);
     panel.lineStyle(2, 0x5040b0, 0.8);
     panel.strokeRoundedRect(W/2 - 150, H/2 - 100, 300, 200, 16);
+    popup.add(panel);
 
-    this.add.text(W/2, H/2 - 68, name + ' is hatching…', {
+    popup.add(this.add.text(W/2, H/2 - 68, name + ' is hatching…', {
       fontFamily: FONT, fontSize: '18px', fontStyle: 'bold', color: '#ffffff',
-    }).setOrigin(0.5).setDepth(42);
-    this.add.text(W/2, H/2 - 40, minsLeft + ' min remaining', {
+    }).setOrigin(0.5));
+    popup.add(this.add.text(W/2, H/2 - 40, minsLeft + ' min remaining', {
       fontFamily: FONT, fontSize: '14px', color: '#9999cc',
-    }).setOrigin(0.5).setDepth(42);
+    }).setOrigin(0.5));
 
-    const close = () => { overlay.destroy(); panel.destroy(); };
+    const close = () => { popup.destroy(); };
 
-    makeButton(this, W/2, H/2 + 10, 240, 46, '🎬 Watch ad → Hatch now!', 0x7A4A00, () => {
+    popup.add(makeButton(this, W/2, H/2 + 10, 240, 46, 'Watch ad -> Hatch now!', 0x7A4A00, () => {
       Ads.showRewarded(res => {
         close();
         if (res.rewarded) {
           const egg = Game.state!.eggs.find(e => e.id === eggId);
           if (egg) { egg.hatchEndAt = Date.now() - 1; }
           this.refreshAll();
-          showToast(this, 'Egg hatched instantly! Tap to open ✨', '#aaffaa');
+          showToast(this, 'Egg hatched instantly! Tap to open', '#aaffaa');
         }
       });
-    }, 14).setDepth(42);
-    makeButton(this, W/2, H/2 + 68, 120, 38, 'Wait', 0x2a1560, close, 13).setDepth(42);
+    }, 14));
+    popup.add(makeButton(this, W/2, H/2 + 68, 120, 38, 'Wait', 0x2a1560, close, 13));
   }
 
   private _startEggTimer() {

@@ -333,28 +333,33 @@ export class HabitatRoom extends Phaser.Scene {
     const basePrice = this._sellPrice;
     const W = this._W, H = this._H;
 
-    // popup: sell now or watch ad for 2x
-    const popBg = this.add.graphics().setDepth(50);
+    // container at (0,0) holds every popup element — destroy container = destroy all
+    const popup = this.add.container(0, 0).setDepth(50);
+
+    const popBg = this.add.graphics();
     popBg.fillStyle(0x000000, 0.72);
     popBg.fillRect(0, 0, W, H);
-    const panel = this.add.graphics().setDepth(51);
+    popup.add(popBg);
+
+    const panel = this.add.graphics();
     panel.fillStyle(0x120830, 1);
     panel.fillRoundedRect(W/2 - 155, H/2 - 120, 310, 240, 18);
     panel.lineStyle(2, 0x7050d0, 0.8);
     panel.strokeRoundedRect(W/2 - 155, H/2 - 120, 310, 240, 18);
+    popup.add(panel);
 
-    this.add.text(W/2, H/2 - 85, 'Sell ' + this._sp.name + '?', {
+    popup.add(this.add.text(W/2, H/2 - 85, 'Sell ' + this._sp.name + '?', {
       fontFamily: FONT, fontSize: '20px', fontStyle: 'bold', color: '#ffffff',
-    }).setOrigin(0.5).setDepth(52);
-    this.add.text(W/2, H/2 - 52, 'Normal: ' + basePrice + '⬡', {
+    }).setOrigin(0.5));
+    popup.add(this.add.text(W/2, H/2 - 52, 'Normal: ' + basePrice + '⬡', {
       fontFamily: FONT, fontSize: '15px', color: '#aaaacc',
-    }).setOrigin(0.5).setDepth(52);
-    this.add.text(W/2, H/2 - 28, 'Watch ad: ' + (basePrice * 2) + '⬡ 🎬', {
+    }).setOrigin(0.5));
+    popup.add(this.add.text(W/2, H/2 - 28, 'Watch ad: ' + (basePrice * 2) + '⬡', {
       fontFamily: FONT, fontSize: '15px', color: '#FFD700',
-    }).setOrigin(0.5).setDepth(52);
+    }).setOrigin(0.5));
 
     const confirmSell = (price: number) => {
-      popBg.destroy(); panel.destroy();
+      popup.destroy();
       Game.state!.coins += price;
       Game.state!.monsters = Game.state!.monsters.filter(m => m.id !== this._monster.id);
       Game.state!.stats.sold++;
@@ -366,17 +371,15 @@ export class HabitatRoom extends Phaser.Scene {
       this.time.delayedCall(950, () => { this.scene.start('Hub'); });
     };
 
-    makeButton(this, W/2, H/2 + 20, 200, 48, 'Sell  ' + basePrice + '⬡', 0x1A5030, () => {
+    popup.add(makeButton(this, W/2, H/2 + 20, 200, 48, 'Sell  ' + basePrice + '⬡', 0x1A5030, () => {
       confirmSell(basePrice);
-    }, 15).setDepth(52);
-    makeButton(this, W/2, H/2 + 80, 260, 48, '🎬 Ad → ' + (basePrice * 2) + '⬡', 0x7A4A00, () => {
-      Ads.showRewarded(res => {
-        confirmSell(res.rewarded ? basePrice * 2 : basePrice);
-      });
-    }, 15).setDepth(52);
-    makeButton(this, W/2, H/2 + 136, 120, 38, 'Cancel', 0x2a1560, () => {
-      popBg.destroy(); panel.destroy();
-    }, 13).setDepth(52);
+    }, 15));
+    popup.add(makeButton(this, W/2, H/2 + 80, 260, 48, 'Ad x2 → ' + (basePrice * 2) + '⬡', 0x7A4A00, () => {
+      Ads.showRewarded(res => { confirmSell(res.rewarded ? basePrice * 2 : basePrice); });
+    }, 15));
+    popup.add(makeButton(this, W/2, H/2 + 136, 120, 38, 'Cancel', 0x2a1560, () => {
+      popup.destroy();
+    }, 13));
   }
 
   // ── XP + LEVEL UP ─────────────────────────────────────────────────────────
