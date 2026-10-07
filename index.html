@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0b1026">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cosmic Merge">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<title>Cosmic Merge</title>
+<style>
+  html, body {
+    margin: 0; height: 100%; background: #0b1026; overflow: hidden;
+    touch-action: none; overscroll-behavior: none;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #game { position: fixed; inset: 0; }
+  #game canvas { display: block; }
+  #boot {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    color: #9fb0ff; font: 600 18px system-ui, sans-serif; text-align: center; padding: 24px;
+  }
+</style>
+</head>
+<body>
+<div id="game"></div>
+<div id="boot">กำลังโหลดเกม…</div>
+
+<script>
+  function load(src) {
+    return new Promise(function (ok, no) {
+      var s = document.createElement('script');
+      s.src = src; s.onload = ok; s.onerror = no;
+      document.head.appendChild(s);
+    });
+  }
+  (async function () {
+    // 1) ใช้ไฟล์ในโฟลเดอร์ก่อน (ถ้าวาง phaser.min.js ไว้) 2) ไม่มีก็ใช้ CDN
+    try { await load('phaser.min.js'); } catch (e) {}
+    if (typeof Phaser === 'undefined') {
+      await load('https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js');
+    }
+    await load('ads.js');
+    await load('game.js');
+  })().catch(function () {
+    document.getElementById('boot').textContent =
+      'โหลดเกมไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วรีเฟรชอีกครั้ง';
+  });
+
+  if ('serviceWorker' in navigator) {
+    addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    });
+  }
+</script>
+</body>
+</html>
