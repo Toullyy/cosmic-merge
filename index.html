@@ -3,17 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="theme-color" content="#0b1026">
+<meta name="theme-color" content="#1a0a2e">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Cosmic Merge">
+<meta name="apple-mobile-web-app-title" content="Monster Pet Shop">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
-<title>Cosmic Merge</title>
+<title>Monster Pet Shop</title>
 <style>
   html, body {
-    margin: 0; height: 100%; background: #0b1026; overflow: hidden;
+    margin: 0; height: 100%; background: #1a0a2e; overflow: hidden;
     touch-action: none; overscroll-behavior: none;
     -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
     -webkit-tap-highlight-color: transparent;
@@ -22,7 +22,7 @@
   #game canvas { display: block; }
   #boot {
     position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
-    color: #9fb0ff; font: 600 18px system-ui, sans-serif; text-align: center; padding: 24px;
+    color: #9080cc; font: 600 18px system-ui, sans-serif; text-align: center; padding: 24px;
   }
 </style>
 </head>
@@ -32,28 +32,38 @@
 
 <script>
   function load(src) {
-    return new Promise(function (ok, no) {
+    return new Promise(function(ok, no) {
       var s = document.createElement('script');
       s.src = src; s.onload = ok; s.onerror = no;
       document.head.appendChild(s);
     });
   }
-  (async function () {
-    // 1) ใช้ไฟล์ในโฟลเดอร์ก่อน (ถ้าวาง phaser.min.js ไว้) 2) ไม่มีก็ใช้ CDN
-    try { await load('phaser.min.js'); } catch (e) {}
+  (async function() {
+    try { await load('phaser.min.js'); } catch(e) {}
     if (typeof Phaser === 'undefined') {
       await load('https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js');
     }
     await load('ads.js');
+    await load('utils.js');
+    await load('data.js');
+    await load('MonsterRenderer.js');
+    await load('ui/Button.js');
+    await load('ui/Toast.js');
+    await load('ui/MonsterPanel.js');
+    await load('scenes/Boot.js');
+    await load('scenes/Hub.js');
+    await load('scenes/Merchant.js');
+    await load('scenes/HatchScene.js');
+    await load('scenes/BreedingLab.js');
     await load('game.js');
-  })().catch(function () {
+  })().catch(function() {
     document.getElementById('boot').textContent =
       'โหลดเกมไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วรีเฟรชอีกครั้ง';
   });
 
   if ('serviceWorker' in navigator) {
-    addEventListener('load', function () {
-      navigator.serviceWorker.register('sw.js').catch(function () {});
+    addEventListener('load', function() {
+      navigator.serviceWorker.register('sw.js').catch(function() {});
     });
   }
 </script>
