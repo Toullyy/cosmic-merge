@@ -25,13 +25,9 @@ export function makeButton(
   }).setOrigin(0.5);
   container.add([bg, txt]);
   container.setSize(w, h);
-  container.setInteractive(
-    new Phaser.Geom.Rectangle(-w/2, -h/2, w, h),
-    Phaser.Geom.Rectangle.Contains,
-  );
+  container.setInteractive();
   container.on('pointerdown', () => {
-    sfx.unlock();
-    scene.tweens.add({ targets: container, scaleX: 0.93, scaleY: 0.93, duration: 80, yoyo: true });
+    scene.tweens.add({ targets: container, scaleX: 0.94, scaleY: 0.94, duration: 55, yoyo: true });
     if (cb) cb();
   });
   return container;

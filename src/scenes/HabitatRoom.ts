@@ -4,6 +4,7 @@ import { SPECIES, HABITATS, FOOD_TYPES, XP_TABLE } from '../data';
 import { makeMonsterTexture, getVariantModifiers, lighten, darken } from '../MonsterRenderer';
 import { makeButton } from '../ui/Button';
 import { showToast, showFloat } from '../ui/Toast';
+import { Ads } from '../ads';
 import type { Monster, Species, HabitatType } from '../types';
 
 interface BarEntry {
@@ -329,16 +330,53 @@ export class HabitatRoom extends Phaser.Scene {
   }
 
   private _doSell() {
-    const price = this._sellPrice;
-    Game.state!.coins += price;
-    Game.state!.monsters = Game.state!.monsters.filter(m => m.id !== this._monster.id);
-    Game.state!.stats.sold++;
-    Game.state!.stats.totalEarned += price;
-    store.setJSON('mps_state', Game.state);
-    sfx.sell();
-    this._spawnParticles(this._W / 2, this._H / 2 - 80, 0xFFD700, 22);
-    showFloat(this, this._W / 2, this._H / 2 - 120, '+' + price + ' ⬡', '#ffd700');
-    this.time.delayedCall(950, () => { this.scene.start('Hub'); });
+    const basePrice = this._sellPrice;
+    const W = this._W, H = this._H;
+
+    // popup: sell now or watch ad for 2x
+    const popBg = this.add.graphics().setDepth(50);
+    popBg.fillStyle(0x000000, 0.72);
+    popBg.fillRect(0, 0, W, H);
+    const panel = this.add.graphics().setDepth(51);
+    panel.fillStyle(0x120830, 1);
+    panel.fillRoundedRect(W/2 - 155, H/2 - 120, 310, 240, 18);
+    panel.lineStyle(2, 0x7050d0, 0.8);
+    panel.strokeRoundedRect(W/2 - 155, H/2 - 120, 310, 240, 18);
+
+    this.add.text(W/2, H/2 - 85, 'Sell ' + this._sp.name + '?', {
+      fontFamily: FONT, fontSize: '20px', fontStyle: 'bold', color: '#ffffff',
+    }).setOrigin(0.5).setDepth(52);
+    this.add.text(W/2, H/2 - 52, 'Normal: ' + basePrice + '⬡', {
+      fontFamily: FONT, fontSize: '15px', color: '#aaaacc',
+    }).setOrigin(0.5).setDepth(52);
+    this.add.text(W/2, H/2 - 28, 'Watch ad: ' + (basePrice * 2) + '⬡ 🎬', {
+      fontFamily: FONT, fontSize: '15px', color: '#FFD700',
+    }).setOrigin(0.5).setDepth(52);
+
+    const confirmSell = (price: number) => {
+      popBg.destroy(); panel.destroy();
+      Game.state!.coins += price;
+      Game.state!.monsters = Game.state!.monsters.filter(m => m.id !== this._monster.id);
+      Game.state!.stats.sold++;
+      Game.state!.stats.totalEarned += price;
+      store.setJSON('mps_state', Game.state);
+      sfx.sell();
+      this._spawnParticles(W/2, H/2 - 80, 0xFFD700, 22);
+      showFloat(this, W/2, H/2 - 120, '+' + price + ' ⬡', '#ffd700');
+      this.time.delayedCall(950, () => { this.scene.start('Hub'); });
+    };
+
+    makeButton(this, W/2, H/2 + 20, 200, 48, 'Sell  ' + basePrice + '⬡', 0x1A5030, () => {
+      confirmSell(basePrice);
+    }, 15).setDepth(52);
+    makeButton(this, W/2, H/2 + 80, 260, 48, '🎬 Ad → ' + (basePrice * 2) + '⬡', 0x7A4A00, () => {
+      Ads.showRewarded(res => {
+        confirmSell(res.rewarded ? basePrice * 2 : basePrice);
+      });
+    }, 15).setDepth(52);
+    makeButton(this, W/2, H/2 + 136, 120, 38, 'Cancel', 0x2a1560, () => {
+      popBg.destroy(); panel.destroy();
+    }, 13).setDepth(52);
   }
 
   // ── XP + LEVEL UP ─────────────────────────────────────────────────────────

@@ -27,11 +27,12 @@ export const sfx = {
   muted: store.get('mps_mute', '0') === '1',
 
   unlock() {
+    if (this.ctx?.state === 'running') return;
     if (!this.ctx) {
       const AC = window.AudioContext ?? (window as any).webkitAudioContext;
       if (AC) this.ctx = new AC();
     }
-    if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+    if (this.ctx?.state === 'suspended') this.ctx.resume();
   },
 
   tone(f: number, d: number, type: OscillatorType = 'sine', v: number = 0.08, slide: number = 0) {
