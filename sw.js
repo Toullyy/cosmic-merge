@@ -1,5 +1,5 @@
 // Service worker — offline support (bump CACHE on every deploy)
-var CACHE = 'mps-v1';
+var CACHE = 'mps-v2';
 var CORE = [
   './',
   'index.html',
@@ -16,6 +16,7 @@ var CORE = [
   'scenes/Merchant.js',
   'scenes/HatchScene.js',
   'scenes/BreedingLab.js',
+  'scenes/HabitatRoom.js',
   'game.js',
   'icon-192.png',
   'icon-512.png',

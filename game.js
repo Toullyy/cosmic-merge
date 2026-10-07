@@ -12,6 +12,6 @@
       autoCenter: Phaser.Scale.CENTER_BOTH
     },
     input: { activePointers: 2 },
-    scene: [Boot, Hub, Merchant, HatchScene, BreedingLab]
+    scene: [Boot, Hub, Merchant, HatchScene, BreedingLab, HabitatRoom]
   });
 })();
