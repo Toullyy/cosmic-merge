@@ -93,6 +93,6 @@ export function newState(): GameState {
       grass:   { unlocked: false, decorations: [] },
       aquatic: { unlocked: false, decorations: [] },
     },
-    stats: { hatched: 0, sold: 0, totalEarned: 0 },
+    stats: { hatched: 0, sold: 0, totalEarned: 0, discovered: [0] },
   };
 }

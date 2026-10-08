@@ -131,17 +131,22 @@ export class Hub extends Phaser.Scene {
 
   private _buildBottomNav(W: number, H: number) {
     const btnY = H - 54;
-    makeButton(this, W/2 - 100, btnY, 180, 52, '🛒 Shop', 0x2a1560, () => {
+    const bw = 165, bh = 52;
+    makeButton(this, W / 6, btnY, bw, bh, 'Shop', 0x2a1560, () => {
       Ads.maybeInterstitial(() => { this.scene.start('Merchant'); });
-    }, 17).setDepth(10);
-    makeButton(this, W/2 + 100, btnY, 180, 52, '🧬 Breed', 0x1a3060, () => {
+    }, 16).setDepth(10);
+    const disc = Game.state!.stats.discovered.length;
+    makeButton(this, W / 2, btnY, bw, bh, 'Dex ' + disc + '/25', 0x1a2050, () => {
+      this.scene.start('PokedexScene');
+    }, 16).setDepth(10);
+    makeButton(this, W * 5 / 6, btnY, bw, bh, 'Breed', 0x1a3060, () => {
       const eligible = Game.state!.monsters.filter(m => m.level >= 4);
       if (eligible.length < 2) {
         showToast(this, 'Need 2 monsters at Level 4+', '#ff9999');
       } else {
         Ads.maybeInterstitial(() => { this.scene.start('BreedingLab'); });
       }
-    }, 17).setDepth(10);
+    }, 16).setDepth(10);
   }
 
   private _tryUnlockHabitat(type: HabitatType) {
@@ -185,9 +190,14 @@ export class Hub extends Phaser.Scene {
   }
 
   private _getSlotPositions(W: number) {
-    const col1 = W / 4, col2 = W * 3 / 4, startY = 232, spacing = 210;
+    const H = this.scale.height;
+    const col1 = W / 4, col2 = W * 3 / 4;
+    const startY = 232;
+    // Keep row-3 card bottom above the nav bar (center H-54, height 52 → top H-80)
+    const maxCY3 = H - 80 - 98 - 8;
+    const spacing = Math.min(210, Math.floor((maxCY3 - startY) / 2));
     return [
-      { x: col1, y: startY }, { x: col2, y: startY },
+      { x: col1, y: startY },           { x: col2, y: startY },
       { x: col1, y: startY + spacing }, { x: col2, y: startY + spacing },
       { x: col1, y: startY + spacing * 2 }, { x: col2, y: startY + spacing * 2 },
     ];
@@ -433,10 +443,18 @@ export class Hub extends Phaser.Scene {
 
   updateCoins() { this._updateCoinDisplay(); }
 
+  private _markDiscovered(speciesId: number) {
+    const disc = Game.state!.stats.discovered;
+    if (!disc.includes(speciesId)) {
+      disc.push(speciesId);
+    }
+  }
+
   onEggHatched(eggId: string, monster: Monster) {
     Game.state!.eggs = Game.state!.eggs.filter(e => e.id !== eggId);
     Game.state!.monsters.push(monster);
     Game.state!.stats.hatched++;
+    this._markDiscovered(monster.speciesId);
     store.setJSON('mps_state', Game.state);
     this._updateCoinDisplay();
     this.refreshAll();

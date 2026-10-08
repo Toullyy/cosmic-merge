@@ -44,6 +44,7 @@ export interface GameStats {
   hatched: number;
   sold: number;
   totalEarned: number;
+  discovered: number[];
 }
 
 export interface GameState {

@@ -11,6 +11,13 @@ export class Boot extends Phaser.Scene {
     const saved = store.getJSON<GameState>('mps_state', null);
     if (saved && saved.version === 1) {
       Game.state = saved;
+      if (!Game.state.stats.discovered) {
+        Game.state.stats.discovered = [];
+        Game.state.monsters.forEach(m => {
+          if (!Game.state!.stats.discovered.includes(m.speciesId))
+            Game.state!.stats.discovered.push(m.speciesId);
+        });
+      }
       reconcileOfflineTime(Game.state);
     } else {
       Game.state = newState();

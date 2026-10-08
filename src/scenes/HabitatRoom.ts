@@ -264,7 +264,7 @@ export class HabitatRoom extends Phaser.Scene {
   private _showFoodPicker() {
     if (this._fpItems.length > 0) { this._clearFoodPicker(); return; }
     const W = this._W, H = this._H;
-    const fpW = W - 30, fpH = 130, fpX = 15, fpY = H - 202;
+    const fpW = W - 30, fpH = 130, fpX = 15, fpY = H - 220;
 
     const fpBg = this.add.graphics().setDepth(28);
     fpBg.fillStyle(0x0a0416, 0.96);
@@ -343,18 +343,18 @@ export class HabitatRoom extends Phaser.Scene {
 
     const panel = this.add.graphics();
     panel.fillStyle(0x120830, 1);
-    panel.fillRoundedRect(W/2 - 155, H/2 - 120, 310, 240, 18);
+    panel.fillRoundedRect(W/2 - 155, H/2 - 125, 310, 270, 18);
     panel.lineStyle(2, 0x7050d0, 0.8);
-    panel.strokeRoundedRect(W/2 - 155, H/2 - 120, 310, 240, 18);
+    panel.strokeRoundedRect(W/2 - 155, H/2 - 125, 310, 270, 18);
     popup.add(panel);
 
-    popup.add(this.add.text(W/2, H/2 - 85, 'Sell ' + this._sp.name + '?', {
+    popup.add(this.add.text(W/2, H/2 - 90, 'Sell ' + this._sp.name + '?', {
       fontFamily: FONT, fontSize: '20px', fontStyle: 'bold', color: '#ffffff',
     }).setOrigin(0.5));
-    popup.add(this.add.text(W/2, H/2 - 52, 'Normal: ' + basePrice + '⬡', {
+    popup.add(this.add.text(W/2, H/2 - 58, 'Normal: ' + basePrice + '⬡', {
       fontFamily: FONT, fontSize: '15px', color: '#aaaacc',
     }).setOrigin(0.5));
-    popup.add(this.add.text(W/2, H/2 - 28, 'Watch ad: ' + (basePrice * 2) + '⬡', {
+    popup.add(this.add.text(W/2, H/2 - 34, 'Watch ad: ' + (basePrice * 2) + '⬡', {
       fontFamily: FONT, fontSize: '15px', color: '#FFD700',
     }).setOrigin(0.5));
 
@@ -371,13 +371,13 @@ export class HabitatRoom extends Phaser.Scene {
       this.time.delayedCall(950, () => { this.scene.start('Hub'); });
     };
 
-    popup.add(makeButton(this, W/2, H/2 + 20, 200, 48, 'Sell  ' + basePrice + '⬡', 0x1A5030, () => {
+    popup.add(makeButton(this, W/2, H/2 + 14, 200, 48, 'Sell ' + basePrice + '⬡', 0x1A5030, () => {
       confirmSell(basePrice);
     }, 15));
-    popup.add(makeButton(this, W/2, H/2 + 80, 260, 48, 'Ad x2 → ' + (basePrice * 2) + '⬡', 0x7A4A00, () => {
+    popup.add(makeButton(this, W/2, H/2 + 72, 260, 48, 'Ad x2 → ' + (basePrice * 2) + '⬡', 0x7A4A00, () => {
       Ads.showRewarded(res => { confirmSell(res.rewarded ? basePrice * 2 : basePrice); });
     }, 15));
-    popup.add(makeButton(this, W/2, H/2 + 136, 120, 38, 'Cancel', 0x2a1560, () => {
+    popup.add(makeButton(this, W/2, H/2 + 122, 120, 36, 'Cancel', 0x2a1560, () => {
       popup.destroy();
     }, 13));
   }
