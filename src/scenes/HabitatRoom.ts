@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { Game, FONT, store, sfx } from '../utils';
-import { SPECIES, HABITATS, FOOD_TYPES, TOY_TYPES, CLEAN_TOOLS, XP_TABLE, LISTING_DURATION_MS } from '../data';
+import { SPECIES, HABITATS, FOOD_TYPES, TOY_TYPES, CLEAN_TOOLS, XP_TABLE, getLevelName, randomBuyer, randomListingDuration } from '../data';
 import { makeMonsterTexture, getVariantModifiers, lighten, darken } from '../MonsterRenderer';
 import { makeButton, setButtonLabel, setButtonColor } from '../ui/Button';
 import { showToast, showFloat } from '../ui/Toast';
@@ -35,6 +35,8 @@ export class HabitatRoom extends Phaser.Scene {
   private _W: number = 540;
   private _H: number = 960;
   private _monY: number = 0;
+  private _nameTxt!: Phaser.GameObjects.Text;
+  private _renameInput: HTMLInputElement | null = null;
 
   constructor() { super({ key: 'HabitatRoom' }); }
 
@@ -83,30 +85,69 @@ export class HabitatRoom extends Phaser.Scene {
     const g = this.add.graphics().setDepth(0);
 
     if (habitat === 'dirt') {
-      g.fillGradientStyle(0x3D1200, 0x3D1200, 0x180600, 0x180600, 1);
+      // Deep cave gradient
+      g.fillGradientStyle(0x2E1400, 0x2E1400, 0x0D0500, 0x0D0500, 1);
       g.fillRect(0, 0, W, H);
-      const stalData = [[70,58],[160,44],[265,72],[370,52],[470,66]];
-      stalData.forEach((s, i) => {
+
+      // Cave wall texture (stone bumps)
+      [[28,220,44,24],[90,360,36,20],[185,190,52,28],[320,310,40,22],[430,440,46,25],[510,240,38,20],[75,510,42,24],[270,480,50,26]].forEach((s, i) => {
+        g.fillStyle([0x3A1E0A, 0x2E1608, 0x441E0C][i % 3], 0.38);
+        g.fillEllipse(s[0], s[1], s[2], s[3]);
+      });
+
+      // Root tendrils from ceiling
+      [[55,0],[145,0],[260,0],[380,0],[490,0]].forEach((r, i) => {
+        const dx = (i % 2 === 0 ? 18 : -18);
+        const rc = [0x5A3010, 0x4A2808, 0x6A3A14][i % 3];
+        g.lineStyle(3, rc, 0.72);
+        g.beginPath(); g.moveTo(r[0], 0); g.lineTo(r[0]+dx, 55); g.lineTo(r[0]-dx*0.5, 115); g.strokePath();
+        g.lineStyle(1.8, darken(rc, 10), 0.5);
+        g.beginPath(); g.moveTo(r[0]+dx*0.8, 60); g.lineTo(r[0]+dx*1.5, 108); g.strokePath();
+        g.lineStyle(1.2, darken(rc, 20), 0.35);
+        g.beginPath(); g.moveTo(r[0]-dx*0.3, 82); g.lineTo(r[0]-dx*1.0, 122); g.strokePath();
+      });
+
+      // Stalactites with highlights and drips
+      [[70,58],[160,44],[265,72],[370,52],[470,66]].forEach((s, i) => {
         const col = [0x5A3015, 0x4A2810, 0x6A3A1A][i % 3];
+        g.fillStyle(darken(col, 22), 0.65);
+        g.fillTriangle(s[0]-s[1]/2+3, 0, s[0]+s[1]/2+3, 0, s[0]+3, s[1]*1.6+4);
         g.fillStyle(col, 1);
-        g.fillTriangle(s[0] - s[1]/2, 0, s[0] + s[1]/2, 0, s[0], s[1] * 1.6);
-        g.fillStyle(lighten(col, 15), 0.3);
-        g.fillTriangle(s[0] - s[1]/4, 0, s[0], s[1] * 0.5, s[0] + s[1]/4, 0);
+        g.fillTriangle(s[0]-s[1]/2, 0, s[0]+s[1]/2, 0, s[0], s[1]*1.6);
+        g.fillStyle(lighten(col, 20), 0.42);
+        g.fillTriangle(s[0]-s[1]/4, 0, s[0], s[1]*0.55, s[0]+s[1]/4, 0);
+        g.fillStyle(lighten(col, 8), 0.5); g.fillEllipse(s[0], s[1]*1.6+3, 9, 13);
       });
-      g.fillStyle(0x2C1A0A, 1); g.fillRect(0, H * 0.70, W, H * 0.30);
-      g.fillStyle(0x5D3510, 1); g.fillRect(0, H * 0.70, W, 7);
-      g.fillStyle(0x3D2008, 1); g.fillRect(0, H * 0.703, W, 4);
-      const rocks = [[55,H*0.76,48,28],[165,H*0.74,38,22],[310,H*0.77,56,30],[430,H*0.75,42,26],[495,H*0.79,34,20]];
-      rocks.forEach((r, i) => {
+
+      // Ground — multi-layer earth strata
+      g.fillStyle(0x1A0900, 1); g.fillRect(0, H*0.695, W, H*0.305);
+      g.fillStyle(0x2C1606, 1); g.fillRect(0, H*0.695, W, H*0.078);
+      g.fillStyle(0x3D2008, 1); g.fillRect(0, H*0.695, W, 12);
+      g.fillStyle(0x5D3510, 1); g.fillRect(0, H*0.695, W, 5);
+      g.fillStyle(0x7A4A1A, 0.5); g.fillRect(0, H*0.695, W, 2.5);
+
+      // Rocks
+      [[55,H*0.76,48,28],[165,H*0.74,38,22],[310,H*0.77,56,30],[430,H*0.75,42,26],[495,H*0.79,34,20]].forEach((r, i) => {
         const rc = [0x4A2E10, 0x3D2408, 0x5E3C18][i % 3];
-        g.fillStyle(rc, 1); g.fillEllipse(r[0], r[1], r[2], r[3]);
-        g.fillStyle(lighten(rc, 18), 0.3); g.fillEllipse(r[0] - r[2]*0.12, r[1] - r[3]*0.25, r[2]*0.55, r[3]*0.45);
+        g.fillStyle(darken(rc, 15), 0.75); g.fillEllipse(r[0]+2, r[1]+3, r[2] as number, r[3] as number);
+        g.fillStyle(rc, 1); g.fillEllipse(r[0], r[1], r[2] as number, r[3] as number);
+        g.fillStyle(lighten(rc, 28), 0.38); g.fillEllipse(r[0]-r[2]*0.14, r[1]-r[3]*0.27, r[2]*0.52, r[3]*0.44);
       });
-      const crystals = [[28,240,0xFFD700],[108,390,0xFF8C00],[195,510,0xFF4500],[355,290,0xFFD700],[440,440,0xE0C060],[500,180,0xFF8C00]];
-      crystals.forEach(c => {
-        g.fillStyle(c[2], 0.75); g.fillCircle(c[0], c[1], 4.5);
-        g.fillStyle(c[2], 0.18); g.fillCircle(c[0], c[1], 11);
-        g.fillStyle(0xffffff, 0.4); g.fillCircle(c[0] - 1.5, c[1] - 1.5, 1.5);
+
+      // Glowing mushrooms
+      ([[48,H*0.712,0xFF6060,13],[155,H*0.718,0x44FF88,11],[338,H*0.712,0xFF55FF,12],[465,H*0.718,0x44BBFF,10]] as [number,number,number,number][]).forEach(([mx,my,mc,mr]) => {
+        g.fillStyle(mc, 0.1); g.fillCircle(mx, my-mr*1.2, mr*2.8);
+        g.fillStyle(darken(mc, 55), 1); g.fillRect(mx-3, my-mr*1.5-2, 6, mr*1.5+2);
+        g.fillStyle(mc, 1); g.fillEllipse(mx, my-mr*1.6, mr*2.4, mr*1.1);
+        g.fillStyle(lighten(mc, 60), 0.48); g.fillCircle(mx-mr*0.35, my-mr*2.0, mr*0.32);
+      });
+
+      // Crystals — enlarged with stronger glow
+      [[28,240,0xFFD700],[108,390,0xFF8C00],[195,510,0xFF4500],[355,290,0xFFD700],[440,440,0xE0C060],[500,180,0xFF8C00]].forEach(c => {
+        g.fillStyle(c[2], 0.08); g.fillCircle(c[0], c[1], 22);
+        g.fillStyle(c[2], 0.22); g.fillCircle(c[0], c[1], 13);
+        g.fillStyle(c[2], 0.9);  g.fillCircle(c[0], c[1], 6);
+        g.fillStyle(0xffffff, 0.55); g.fillCircle(c[0]-1.5, c[1]-1.5, 2);
       });
 
     } else if (habitat === 'grass') {
@@ -273,20 +314,81 @@ export class HabitatRoom extends Phaser.Scene {
   private _buildHUD(W: number, H: number, sp: Species) {
     const mods = getVariantModifiers(this._monster.variantIndex);
     makeButton(this, 56, 34, 92, 44, '← Back', 0x1a0a2e, () => { this.scene.start('Hub'); }, 15).setDepth(20);
-    this.add.text(W / 2, 24, sp.name + (mods.isGolden ? ' ★' : ''), {
+
+    const displayName = this._monster.nickname ?? sp.name;
+    this._nameTxt = this.add.text(W / 2, 19, displayName + (mods.isGolden ? ' ★' : ''), {
       fontFamily: FONT, fontSize: '22px', fontStyle: 'bold',
       color: mods.isGolden ? '#FFD700' : '#ffffff', stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0.5).setDepth(20);
-    this.add.text(W / 2, 50, 'Lv ' + this._monster.level + '  ·  ' +
+
+    const speciesHint = this.add.text(W / 2, 40, sp.name + ' ✏️', {
+      fontFamily: FONT, fontSize: '12px', color: '#7766aa',
+    }).setOrigin(0.5).setDepth(20).setInteractive({ useHandCursor: true });
+    speciesHint.on('pointerdown', () => this._renameMonster());
+
+    this.add.text(W / 2, 56, getLevelName(this._monster.level) + '  ·  ' +
       sp.habitat.charAt(0).toUpperCase() + sp.habitat.slice(1), {
-      fontFamily: FONT, fontSize: '13px', color: '#9999bb',
+      fontFamily: FONT, fontSize: '12px', color: '#9999bb',
     }).setOrigin(0.5).setDepth(20);
+
     this._sellBtn = makeButton(this, W - 72, 34, 116, 44,
       'List ' + this._sellPrice + '⬡', 0x8B6000, () => this._handleListBtn(), 13);
     this._sellBtn.setDepth(20);
+
     this._coinTxt = this.add.text(W / 2, H * 0.72 + 5, '⬡ ' + Game.state!.coins, {
       fontFamily: FONT, fontSize: '15px', color: '#FFD700',
+      stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5).setDepth(20);
+
+    this.events.once('shutdown', () => {
+      if (this._renameInput) {
+        try { document.body.removeChild(this._renameInput); } catch { /* ignore */ }
+        this._renameInput = null;
+      }
+    });
+  }
+
+  private _renameMonster() {
+    if (this._renameInput) return;
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.value = this._monster.nickname ?? this._sp.name;
+    inp.maxLength = 20;
+    inp.placeholder = 'Enter a name...';
+    inp.style.cssText = [
+      'position:fixed', 'top:50%', 'left:50%',
+      'transform:translate(-50%,-50%)',
+      'font-size:18px', 'padding:12px 16px',
+      'border-radius:12px', 'border:2px solid #9060ff',
+      'background:#1a0a3e', 'color:#fff',
+      'width:260px', 'text-align:center',
+      'z-index:9999', 'outline:none',
+    ].join(';');
+    document.body.appendChild(inp);
+    this._renameInput = inp;
+    inp.focus();
+    inp.select();
+    const save = () => {
+      const v = inp.value.trim();
+      if (v && v !== this._sp.name) {
+        this._monster.nickname = v;
+      } else if (!v) {
+        this._monster.nickname = undefined;
+      }
+      this._nameTxt.setText((this._monster.nickname ?? this._sp.name) +
+        (getVariantModifiers(this._monster.variantIndex).isGolden ? ' ★' : ''));
+      store.setJSON('mps_state', Game.state);
+      try { document.body.removeChild(inp); } catch { /* ignore */ }
+      this._renameInput = null;
+    };
+    inp.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (e.key === 'Enter') save();
+      if (e.key === 'Escape') {
+        try { document.body.removeChild(inp); } catch { /* ignore */ }
+        this._renameInput = null;
+      }
+    });
+    inp.addEventListener('blur', save);
   }
 
   // ── FOOD PICKER (6 items, 2 rows) ─────────────────────────────────────────
@@ -601,7 +703,16 @@ export class HabitatRoom extends Phaser.Scene {
 
   private _handleListBtn() {
     const listing = Game.state!.listings.find(l => l.monsterId === this._monster.id);
-    if (!listing) { this._doList(); return; }
+    if (!listing) {
+      if (this._monster.level < 5) {
+        const needed = getLevelName(5);
+        showToast(this, (this._monster.nickname ?? this._sp.name) +
+          ' needs to be ' + needed + ' (Lv 5) to sell!', '#ffaaaa');
+        return;
+      }
+      this._doList();
+      return;
+    }
     if (Date.now() >= listing.readyAt) {
       this._doCollect(listing);
     } else {
@@ -610,12 +721,16 @@ export class HabitatRoom extends Phaser.Scene {
   }
 
   private _doList() {
+    const buyer = randomBuyer();
+    const duration = randomListingDuration();
     const listing: Listing = {
       id: 'lst_' + Date.now(),
       monsterId: this._monster.id,
       price: this._sellPrice,
       listedAt: Date.now(),
-      readyAt: Date.now() + LISTING_DURATION_MS,
+      readyAt: Date.now() + duration,
+      buyerName: buyer.name,
+      buyerJob: buyer.job,
     };
     Game.state!.listings.push(listing);
     store.setJSON('mps_state', Game.state);
@@ -623,12 +738,16 @@ export class HabitatRoom extends Phaser.Scene {
     this._sellBtn.setScale(1);
     this._updateListBtnState();
     this._startListTimer();
-    showToast(this, 'Listed! Collect in 15 min', '#aaffaa');
+    const mins = Math.round(duration / 60000);
+    const waitStr = mins >= 60 ? Math.round(mins / 60) + 'h' : mins + 'm';
+    showToast(this, buyer.name + ' is interested! (~' + waitStr + ')', '#aaffaa');
   }
 
   private _doCollect(listing: Listing) {
     const basePrice = listing.price;
     const W = this._W, H = this._H;
+    const buyerName = listing.buyerName ?? 'A Collector';
+    const buyerJob  = listing.buyerJob  ?? 'Enthusiast';
 
     const popup = this.add.container(0, 0).setDepth(50);
     const popBg = this.add.graphics();
@@ -637,19 +756,27 @@ export class HabitatRoom extends Phaser.Scene {
 
     const panel = this.add.graphics();
     panel.fillStyle(0x061A10, 1);
-    panel.fillRoundedRect(W/2 - 155, H/2 - 130, 310, 275, 18);
+    panel.fillRoundedRect(W/2 - 160, H/2 - 155, 320, 315, 18);
     panel.lineStyle(2, 0x40B070, 0.85);
-    panel.strokeRoundedRect(W/2 - 155, H/2 - 130, 310, 275, 18);
+    panel.strokeRoundedRect(W/2 - 160, H/2 - 155, 320, 315, 18);
     popup.add(panel);
 
-    popup.add(this.add.text(W/2, H/2 - 96, 'Ready to Collect!', {
+    popup.add(this.add.text(W/2, H/2 - 120, 'A Buyer Arrived!', {
       fontFamily: FONT, fontSize: '21px', fontStyle: 'bold', color: '#66FF99',
     }).setOrigin(0.5));
-    popup.add(this.add.text(W/2, H/2 - 62, this._sp.name + ' sold for ' + basePrice + '⬡', {
-      fontFamily: FONT, fontSize: '14px', color: '#aaccaa',
+    popup.add(this.add.text(W/2, H/2 - 88, buyerName + ', ' + buyerJob, {
+      fontFamily: FONT, fontSize: '15px', fontStyle: 'italic', color: '#88CCFF',
     }).setOrigin(0.5));
-    popup.add(this.add.text(W/2, H/2 - 40, 'Or watch an ad to double it!', {
-      fontFamily: FONT, fontSize: '12px', color: '#FFD700',
+    popup.add(this.add.text(W/2, H/2 - 64, 'wants to buy your ' +
+      (this._monster.nickname ?? this._sp.name) + '!', {
+      fontFamily: FONT, fontSize: '13px', color: '#aaccaa',
+    }).setOrigin(0.5));
+    popup.add(this.add.text(W/2, H/2 - 40, 'Offered: ' + basePrice + ' ⬡', {
+      fontFamily: FONT, fontSize: '17px', fontStyle: 'bold', color: '#FFD700',
+      stroke: '#000000', strokeThickness: 2,
+    }).setOrigin(0.5));
+    popup.add(this.add.text(W/2, H/2 - 16, 'Watch an ad to double the offer!', {
+      fontFamily: FONT, fontSize: '11px', color: '#FFD700',
     }).setOrigin(0.5));
 
     const finalize = (price: number) => {
@@ -666,13 +793,13 @@ export class HabitatRoom extends Phaser.Scene {
       this.time.delayedCall(950, () => this.scene.start('Hub'));
     };
 
-    popup.add(makeButton(this, W/2, H/2 + 10, 210, 50, 'Collect ' + basePrice + '⬡', 0x1A5030, () => {
+    popup.add(makeButton(this, W/2, H/2 + 30, 210, 50, 'Collect ' + basePrice + '⬡', 0x1A5030, () => {
       finalize(basePrice);
     }, 15));
-    popup.add(makeButton(this, W/2, H/2 + 72, 270, 50, 'Ad x2 → ' + (basePrice * 2) + '⬡', 0x7A4A00, () => {
+    popup.add(makeButton(this, W/2, H/2 + 92, 270, 50, 'Ad x2 → ' + (basePrice * 2) + '⬡', 0x7A4A00, () => {
       Ads.showRewarded(res => { finalize(res.rewarded ? basePrice * 2 : basePrice); });
     }, 14));
-    popup.add(makeButton(this, W/2, H/2 + 128, 120, 38, 'Cancel', 0x2a1560, () => {
+    popup.add(makeButton(this, W/2, H/2 + 148, 120, 38, 'Cancel', 0x2a1560, () => {
       popup.destroy();
     }, 13));
   }
@@ -738,7 +865,8 @@ export class HabitatRoom extends Phaser.Scene {
       }
     } else {
       const mins = Math.ceil(remaining / 60000);
-      setButtonLabel(this._sellBtn, 'Listed ' + mins + 'm');
+      const timeStr = mins >= 60 ? Math.floor(mins / 60) + 'h ' + (mins % 60) + 'm' : mins + 'm';
+      setButtonLabel(this._sellBtn, 'Buyer in ' + timeStr);
       setButtonColor(this._sellBtn, 0x334466);
     }
   }

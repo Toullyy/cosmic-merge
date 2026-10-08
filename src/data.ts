@@ -69,6 +69,36 @@ export const CATALOG = SPECIES.filter(s => s.id < 15);
 export const LISTING_DURATION_MS = 15 * 60 * 1000;
 export const MERCHANT_REFRESH_MS = 30 * 60 * 1000;
 
+export const TANK_COST = 100;
+export const TANK_CAPACITY = 2;
+export const MAX_TANKS = 3;
+
+export const LEVEL_NAMES = ['', 'Hatchling', 'Hatchling', 'Young', 'Young', 'Adult', 'Adult', 'Elder', 'Elder', 'Ancient', 'Ancient'];
+export function getLevelName(level: number): string {
+  return LEVEL_NAMES[Math.min(10, Math.max(1, level))] ?? 'Ancient';
+}
+
+export const BUYER_NAMES = [
+  'Dr. Malone', 'Prof. Chen', 'Lady Ashford', 'Capt. Rex', 'Zara the Keeper',
+  'Elder Voss', 'Dr. Yuki', 'Baron Fenn', 'Ranger Moss', 'Sage Iria',
+  'Lord Brunt', 'Dame Lyra', 'Dr. Patel', 'Prof. Okeke', 'Lady Sorn',
+];
+export const BUYER_JOBS = [
+  'Scientist', 'Zookeeper', 'Collector', 'Adventurer', 'Alchemist',
+  'Explorer', 'Biologist', 'Merchant', 'Monster Trainer', 'Royal Keeper',
+];
+
+export function randomBuyer(): { name: string; job: string } {
+  return {
+    name: BUYER_NAMES[Math.floor(Math.random() * BUYER_NAMES.length)],
+    job:  BUYER_JOBS[Math.floor(Math.random() * BUYER_JOBS.length)],
+  };
+}
+
+export function randomListingDuration(): number {
+  return (15 + Math.floor(Math.random() * 106)) * 60 * 1000;
+}
+
 export function generateMerchantStock(): number[] {
   const byH: Record<HabitatType, number[]> = { dirt: [], grass: [], aquatic: [] };
   CATALOG.forEach(s => byH[s.habitat].push(s.id));
@@ -133,5 +163,7 @@ export function newState(): GameState {
     listings: [],
     merchantRefreshAt: Date.now() + MERCHANT_REFRESH_MS,
     merchantStock: generateMerchantStock(),
+    tanks: { dirt: 1, grass: 1, aquatic: 1 },
+    newDiscoveries: [],
   };
 }

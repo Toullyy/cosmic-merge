@@ -85,10 +85,19 @@ export class HatchScene extends Phaser.Scene {
     this.tweens.add({ targets: img, alpha: 1, scaleX: { from: 0.3, to: 1 }, scaleY: { from: 0.3, to: 1 }, duration: 500, ease: 'Back.Out' });
     this.tweens.add({ targets: img, y: img.y - 8, duration: 1100, ease: 'Sine.InOut', yoyo: true, repeat: -1 });
 
+    const isNewSpecies = !Game.state!.stats.discovered.includes(mon.speciesId);
+    if (isNewSpecies && Game.state!.newDiscoveries) {
+      if (!Game.state!.newDiscoveries.includes(String(mon.speciesId))) {
+        Game.state!.newDiscoveries.push(String(mon.speciesId));
+      }
+    }
+
     const mods = getVariantModifiers(mon.variantIndex);
-    this.add.text(cx, cy + 110, sp.name + (mods.isGolden ? ' ✨ GOLDEN!' : '!'), {
+    const discoveryLabel = isNewSpecies ? ' 🆕 NEW SPECIES!' : (mods.isGolden ? ' ✨ GOLDEN!' : '!');
+    this.add.text(cx, cy + 110, sp.name + discoveryLabel, {
       fontFamily: FONT, fontSize: '26px', fontStyle: 'bold',
-      color: mods.isGolden ? '#FFD700' : '#ffffff', stroke: '#000000', strokeThickness: 4,
+      color: isNewSpecies ? '#66FFCC' : (mods.isGolden ? '#FFD700' : '#ffffff'),
+      stroke: '#000000', strokeThickness: 4,
     }).setOrigin(0.5);
     this.add.text(cx, cy + 145, sp.habitat.charAt(0).toUpperCase() + sp.habitat.slice(1) + ' Monster', {
       fontFamily: FONT, fontSize: '16px', color: '#aaaacc',

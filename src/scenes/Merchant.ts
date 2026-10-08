@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { Game, FONT, store, sfx } from '../utils';
-import { CATALOG, HABITATS, newEgg, SPECIES, generateMerchantStock, MERCHANT_REFRESH_MS } from '../data';
+import { CATALOG, HABITATS, newEgg, SPECIES, generateMerchantStock, MERCHANT_REFRESH_MS, TANK_CAPACITY } from '../data';
 import { shiftHue } from '../MonsterRenderer';
 import { makeButton } from '../ui/Button';
 import { showToast } from '../ui/Toast';
@@ -210,6 +210,13 @@ export class Merchant extends Phaser.Scene {
     }
     if (state.coins < sp.price) {
       showToast(this, 'Not enough coins! Need ' + sp.price + '⬡', '#ff9999');
+      return;
+    }
+    const cap = (state.tanks?.[sp.habitat] ?? 1) * TANK_CAPACITY;
+    const usage = state.monsters.filter(m => m.habitatType === sp.habitat).length
+                + state.eggs.filter(e => e.habitatType === sp.habitat).length;
+    if (usage >= cap) {
+      showToast(this, 'Habitat full! Buy more tanks in the Hub.', '#ffaaaa');
       return;
     }
     state.coins -= sp.price;

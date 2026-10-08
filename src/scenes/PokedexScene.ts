@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { Game, FONT } from '../utils';
+import { Game, FONT, store } from '../utils';
 import { SPECIES } from '../data';
 import { makeMonsterTexture } from '../MonsterRenderer';
 import { makeButton } from '../ui/Button';
@@ -14,6 +14,7 @@ const FILTER_LABELS: Record<FilterType, string> = {
 
 export class PokedexScene extends Phaser.Scene {
   private _filter: FilterType = 'all';
+  private _newOnes = new Set<number>();
 
   constructor() { super({ key: 'PokedexScene' }); }
 
@@ -23,6 +24,12 @@ export class PokedexScene extends Phaser.Scene {
 
   create() {
     const W = this.scale.width, H = this.scale.height;
+    // capture and clear new discoveries
+    this._newOnes = new Set<number>((Game.state!.newDiscoveries ?? []).map(Number));
+    if (this._newOnes.size > 0) {
+      Game.state!.newDiscoveries = [];
+      store.setJSON('mps_state', Game.state);
+    }
     this._buildBg(W, H);
     this._buildHeader(W);
     this._buildTabs(W);
@@ -129,6 +136,15 @@ export class PokedexScene extends Phaser.Scene {
           this.add.text(cx - cellW / 2 + 12, cy - cellH / 2 + 14, '★', {
             fontFamily: FONT, fontSize: '10px', color: '#FFD700',
           }).setOrigin(0.5).setDepth(5);
+        }
+        // NEW badge
+        if (this._newOnes.has(sp.id)) {
+          const badgeBg = this.add.graphics().setDepth(5);
+          badgeBg.fillStyle(0xFF3333, 1);
+          badgeBg.fillRoundedRect(cx + cellW / 2 - 25, cy - cellH / 2 + 5, 22, 13, 4);
+          this.add.text(cx + cellW / 2 - 14, cy - cellH / 2 + 11, 'NEW', {
+            fontFamily: FONT, fontSize: '7px', fontStyle: 'bold', color: '#ffffff',
+          }).setOrigin(0.5).setDepth(6);
         }
       } else {
         this.add.text(cx, cy - 12, '?', {

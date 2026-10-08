@@ -23,6 +23,7 @@ export interface Monster {
   cleanliness: number;
   lastCaredAt: number;
   source: string;
+  nickname?: string;
 }
 
 export interface Egg {
@@ -53,6 +54,8 @@ export interface Listing {
   price: number;
   listedAt: number;
   readyAt: number;
+  buyerName?: string;
+  buyerJob?: string;
 }
 
 export interface GameState {
@@ -66,6 +69,8 @@ export interface GameState {
   listings: Listing[];
   merchantRefreshAt: number;
   merchantStock: number[];
+  tanks?: Record<HabitatType, number>;
+  newDiscoveries?: string[];
 }
 
 export interface VariantModifiers {

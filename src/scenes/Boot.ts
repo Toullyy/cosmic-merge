@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { Game, store } from '../utils';
-import { DECAY, newState, generateMerchantStock, MERCHANT_REFRESH_MS } from '../data';
+import { DECAY, newState, generateMerchantStock, MERCHANT_REFRESH_MS, TANK_CAPACITY, randomBuyer } from '../data';
 import type { GameState } from '../types';
 
 export class Boot extends Phaser.Scene {
@@ -22,6 +22,27 @@ export class Boot extends Phaser.Scene {
         Game.state.merchantStock = generateMerchantStock();
         Game.state.merchantRefreshAt = Date.now() + MERCHANT_REFRESH_MS;
       }
+      // migrate tanks: give enough tanks to cover existing monsters
+      if (!Game.state.tanks) {
+        const calcTanks = (h: string) => {
+          const cnt = Game.state!.monsters.filter(m => m.habitatType === h).length;
+          return Math.max(1, Math.ceil(cnt / TANK_CAPACITY));
+        };
+        Game.state.tanks = {
+          dirt:    calcTanks('dirt'),
+          grass:   calcTanks('grass'),
+          aquatic: calcTanks('aquatic'),
+        } as any;
+      }
+      if (!Game.state.newDiscoveries) Game.state.newDiscoveries = [];
+      // migrate existing listings — add buyer if missing
+      Game.state.listings.forEach(l => {
+        if (!l.buyerName) {
+          const b = randomBuyer();
+          l.buyerName = b.name;
+          l.buyerJob  = b.job;
+        }
+      });
       reconcileOfflineTime(Game.state);
     } else {
       Game.state = newState();

@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
 import { Game, FONT, store, sfx } from '../utils';
-import { SPECIES, HABITATS } from '../data';
+import { SPECIES, HABITATS, TANK_COST, TANK_CAPACITY, MAX_TANKS, getLevelName } from '../data';
 import { makeMonsterTexture, getVariantModifiers, shiftHue, darken, lighten } from '../MonsterRenderer';
-import { makeButton } from '../ui/Button';
+import { makeButton, setButtonLabel } from '../ui/Button';
 import { showToast } from '../ui/Toast';
 import { Ads } from '../ads';
 import type { Monster, Egg, HabitatType } from '../types';
@@ -15,6 +15,9 @@ export class Hub extends Phaser.Scene {
   private _coinTxt!: Phaser.GameObjects.Text;
   private _bgGraphics!: Phaser.GameObjects.Graphics;
   private _bobTweens: Phaser.Tweens.Tween[] = [];
+  private _dexBtn!: Phaser.GameObjects.Container;
+  private _dexDot!: Phaser.GameObjects.Graphics;
+  private _dexDotTxt!: Phaser.GameObjects.Text;
 
   constructor() { super({ key: 'Hub' }); }
 
@@ -91,19 +94,32 @@ export class Hub extends Phaser.Scene {
 
   private _buildHUD(W: number) {
     const coinBg = this.add.graphics().setDepth(10);
-    coinBg.fillStyle(0x00000077, 1);
-    coinBg.fillRoundedRect(10, 10, 166, 44, 12);
-    coinBg.lineStyle(1, 0xffd700, 0.3);
-    coinBg.strokeRoundedRect(10, 10, 166, 44, 12);
-    this.add.text(30, 32, '⬡', { fontFamily: FONT, fontSize: '22px', color: '#FFD700' }).setOrigin(0, 0.5).setDepth(11);
-    this._coinTxt = this.add.text(58, 32, String(Game.state!.coins), {
-      fontFamily: FONT, fontSize: '20px', color: '#ffffff', fontStyle: 'bold',
+    coinBg.fillStyle(0x000000, 0.93);
+    coinBg.fillRoundedRect(8, 8, 196, 52, 14);
+    coinBg.lineStyle(2, 0xFFD700, 0.7);
+    coinBg.strokeRoundedRect(8, 8, 196, 52, 14);
+    coinBg.lineStyle(4, 0xFFD700, 0.10);
+    coinBg.strokeRoundedRect(5, 5, 202, 58, 17);
+
+    this.add.text(30, 34, '⬡', {
+      fontFamily: FONT, fontSize: '26px', color: '#FFD700',
+      stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0, 0.5).setDepth(11);
 
-    const sndTxt = this.add.text(W - 16, 32, sfx.muted ? '🔇' : '🔊', {
+    this._coinTxt = this.add.text(56, 34, String(Game.state!.coins), {
+      fontFamily: FONT, fontSize: '22px', color: '#ffffff', fontStyle: 'bold',
+      stroke: '#000000', strokeThickness: 3,
+    }).setOrigin(0, 0.5).setDepth(11);
+
+    const sndTxt = this.add.text(W - 50, 34, sfx.muted ? '🔇' : '🔊', {
       fontFamily: FONT, fontSize: '22px', color: '#cccccc',
-    }).setOrigin(1, 0.5).setDepth(11).setInteractive({ useHandCursor: true });
+    }).setOrigin(0.5, 0.5).setDepth(11).setInteractive({ useHandCursor: true });
     sndTxt.on('pointerdown', () => { sfx.toggle(); sndTxt.setText(sfx.muted ? '🔇' : '🔊'); });
+
+    this.add.text(W - 16, 34, '?', {
+      fontFamily: FONT, fontSize: '22px', color: '#9060e0', fontStyle: 'bold',
+    }).setOrigin(1, 0.5).setDepth(11).setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => { this.scene.launch('HowToPlay'); });
   }
 
   private _buildTabs(W: number) {
@@ -164,10 +180,20 @@ export class Hub extends Phaser.Scene {
     makeButton(this, W / 6, btnY, bw, bh, 'Shop', 0x2a1560, () => {
       Ads.maybeInterstitial(() => { this.scene.start('Merchant'); });
     }, 16).setDepth(10);
+
     const disc = Game.state!.stats.discovered.length;
-    makeButton(this, W / 2, btnY, bw, bh, 'Dex ' + disc + '/25', 0x1a2050, () => {
+    const hasNew = (Game.state!.newDiscoveries?.length ?? 0) > 0;
+    this._dexBtn = makeButton(this, W / 2, btnY, bw, bh, 'Dex ' + disc + '/25', 0x1a2050, () => {
       this.scene.start('PokedexScene');
-    }, 16).setDepth(10);
+    }, 16);
+    this._dexBtn.setDepth(10);
+
+    this._dexDot = this.add.graphics().setDepth(12);
+    this._dexDotTxt = this.add.text(W / 2 + bw / 2 - 6, btnY - bh / 2 + 2, '!', {
+      fontFamily: FONT, fontSize: '10px', fontStyle: 'bold', color: '#ffffff',
+    }).setOrigin(0.5).setDepth(13);
+    this._updateDexDot(W, bw, btnY, bh, hasNew);
+
     makeButton(this, W * 5 / 6, btnY, bw, bh, 'Breed', 0x1a3060, () => {
       const eligible = Game.state!.monsters.filter(m => m.level >= 4);
       if (eligible.length < 2) {
@@ -176,6 +202,15 @@ export class Hub extends Phaser.Scene {
         Ads.maybeInterstitial(() => { this.scene.start('BreedingLab'); });
       }
     }, 16).setDepth(10);
+  }
+
+  private _updateDexDot(W: number, bw: number, btnY: number, bh: number, hasNew: boolean) {
+    this._dexDot.clear();
+    if (hasNew) {
+      this._dexDot.fillStyle(0xFF3333, 1);
+      this._dexDot.fillCircle(W / 2 + bw / 2 - 6, btnY - bh / 2 + 8, 9);
+    }
+    this._dexDotTxt.setVisible(hasNew);
   }
 
   private _tryUnlockHabitat(type: HabitatType) {
@@ -199,6 +234,17 @@ export class Hub extends Phaser.Scene {
     const W = this.scale.width;
     const monsters = Game.state!.monsters.filter(m => m.habitatType === this._currentHabitat);
     const eggs     = Game.state!.eggs.filter(e => e.habitatType === this._currentHabitat);
+    const capacity = (Game.state!.tanks?.[this._currentHabitat] ?? 1) * TANK_CAPACITY;
+
+    // update dex button label + dot
+    const disc = Game.state!.stats.discovered.length;
+    const hasNew = (Game.state!.newDiscoveries?.length ?? 0) > 0;
+    const H = this.scale.height;
+    const bw = 165, bh = 52, btnY = H - 54;
+    if (this._dexBtn) {
+      setButtonLabel(this._dexBtn, 'Dex ' + disc + '/25');
+    }
+    if (this._dexDot) this._updateDexDot(W, bw, btnY, bh, hasNew);
 
     if (monsters.length === 0 && eggs.length === 0) {
       const emptyTxt = this.add.text(W/2, 460, 'No monsters here yet!', {
@@ -209,13 +255,61 @@ export class Hub extends Phaser.Scene {
         Ads.maybeInterstitial(() => { this.scene.start('Merchant'); });
       }, 16).setDepth(20);
       this._displayGroup.add(shopBtn);
-      return;
     }
 
     const slots = this._getSlotPositions(W);
     let idx = 0;
     eggs.forEach(egg => { if (idx < slots.length) { this._drawEggTerrarium(slots[idx].x, slots[idx].y, egg); idx++; } });
     monsters.forEach(mon => { if (idx < slots.length) { this._drawTerrarium(slots[idx].x, slots[idx].y, mon); idx++; } });
+
+    const usage = monsters.length + eggs.length;
+    if (usage >= capacity && capacity < MAX_TANKS * TANK_CAPACITY && idx < slots.length) {
+      this._drawBuyTankCard(slots[idx].x, slots[idx].y);
+    }
+  }
+
+  private _drawBuyTankCard(cx: number, cy: number) {
+    const CW = 234, CH = 196;
+    const shadow = this.add.graphics().setDepth(19);
+    shadow.fillStyle(0x000000, 0.15);
+    shadow.fillRoundedRect(cx - CW/2 + 4, cy - CH/2 + 6, CW, CH, 16);
+    this._displayGroup.add(shadow);
+
+    const frame = this.add.graphics().setDepth(20);
+    frame.fillStyle(0x0a0820, 0.75);
+    frame.fillRoundedRect(cx - CW/2, cy - CH/2, CW, CH, 16);
+    frame.lineStyle(2, 0x5040b0, 0.55);
+    frame.strokeRoundedRect(cx - CW/2, cy - CH/2, CW, CH, 16);
+    this._displayGroup.add(frame);
+
+    this._displayGroup.add(this.add.text(cx, cy - 34, '+', {
+      fontFamily: FONT, fontSize: '44px', color: '#5040b0', fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(22));
+    this._displayGroup.add(this.add.text(cx, cy + 14, 'Buy Tank', {
+      fontFamily: FONT, fontSize: '16px', fontStyle: 'bold', color: '#9080cc',
+    }).setOrigin(0.5).setDepth(22));
+    this._displayGroup.add(this.add.text(cx, cy + 40, TANK_COST + ' ⬡', {
+      fontFamily: FONT, fontSize: '14px', color: '#FFD700',
+      stroke: '#000000', strokeThickness: 2,
+    }).setOrigin(0.5).setDepth(22));
+
+    const zone = this.add.zone(cx, cy, CW, CH).setInteractive().setDepth(25);
+    zone.on('pointerdown', () => {
+      sfx.unlock();
+      if (Game.state!.coins < TANK_COST) {
+        showToast(this, 'Need ' + TANK_COST + ' ⬡ to buy a tank!', '#ff9999');
+        return;
+      }
+      Game.state!.coins -= TANK_COST;
+      if (!Game.state!.tanks) Game.state!.tanks = { dirt: 1, grass: 1, aquatic: 1 };
+      Game.state!.tanks[this._currentHabitat] = Math.min(MAX_TANKS, (Game.state!.tanks[this._currentHabitat] ?? 1) + 1);
+      store.setJSON('mps_state', Game.state);
+      this._updateCoinDisplay();
+      sfx.buy();
+      showToast(this, 'New tank purchased! +2 slots', '#aaffaa');
+      this.refreshAll();
+    });
+    this._displayGroup.add(zone);
   }
 
   private _getSlotPositions(W: number) {
@@ -273,22 +367,24 @@ export class Hub extends Phaser.Scene {
     });
     this._bobTweens.push(tween);
 
+    const lvlLabel = getLevelName(mon.level);
     const lvlBadge = this.add.graphics().setDepth(23);
-    lvlBadge.fillStyle(0x000000, 0.75);
-    lvlBadge.fillRoundedRect(cx + CW/2 - 47, inY + 4, 40, 22, 8);
+    lvlBadge.fillStyle(0x000000, 0.78);
+    lvlBadge.fillRoundedRect(cx - CW/2 + 7, inY + 4, lvlLabel.length * 7 + 16, 20, 8);
     this._displayGroup.add(lvlBadge);
-    this._displayGroup.add(this.add.text(cx + CW/2 - 27, inY + 15, 'Lv' + mon.level, {
-      fontFamily: FONT, fontSize: '12px', color: '#ffdd55', fontStyle: 'bold',
-    }).setOrigin(0.5).setDepth(24));
+    this._displayGroup.add(this.add.text(cx - CW/2 + 15, inY + 14, lvlLabel, {
+      fontFamily: FONT, fontSize: '11px', color: '#ffdd55', fontStyle: 'bold',
+    }).setOrigin(0, 0.5).setDepth(24));
 
     if (mods.isGolden) {
-      this._displayGroup.add(this.add.text(inX + 6, inY + 6, '★', {
+      this._displayGroup.add(this.add.text(cx + CW/2 - 10, inY + 6, '★', {
         fontFamily: FONT, fontSize: '14px', color: '#FFD700',
-      }).setOrigin(0).setDepth(24));
+      }).setOrigin(1, 0).setDepth(24));
     }
 
     const btmY = cy + CH/2 - 40;
-    this._displayGroup.add(this.add.text(cx, btmY + 8, sp.name, {
+    const displayName = mon.nickname ?? sp.name;
+    this._displayGroup.add(this.add.text(cx, btmY + 8, displayName, {
       fontFamily: FONT, fontSize: '14px', fontStyle: 'bold', color: '#ffffff',
     }).setOrigin(0.5).setDepth(22));
 
@@ -398,6 +494,12 @@ export class Hub extends Phaser.Scene {
       const refreshedEgg = Game.state!.eggs.find(e => e.id === egg.id);
       if (!refreshedEgg) return;
       if (Date.now() >= refreshedEgg.hatchEndAt) {
+        const cap = (Game.state!.tanks?.[egg.habitatType] ?? 1) * TANK_CAPACITY;
+        const monCount = Game.state!.monsters.filter(m => m.habitatType === egg.habitatType).length;
+        if (monCount >= cap) {
+          showToast(this, 'Habitat full! Buy more tanks to hatch.', '#ff9999');
+          return;
+        }
         this.scene.launch('HatchScene', { eggId: refreshedEgg.id });
       } else {
         // offer instant hatch via rewarded ad
