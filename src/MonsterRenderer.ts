@@ -60,12 +60,16 @@ function drawBody(g: Phaser.GameObjects.Graphics, sp: Species, bodyColor: number
 
   switch (sp.bodyShape) {
     case 'round':
+      g.fillStyle(lighten(bodyColor, 22), 0.10); g.fillCircle(cx, cy, r + 14);
       g.fillStyle(shadow, 0.55); g.fillCircle(cx + 5, cy + 6, r);
       g.fillStyle(bodyColor, 1); g.fillCircle(cx, cy, r);
-      g.fillStyle(belly, 0.5);   g.fillCircle(cx + r*0.12, cy + r*0.2, r * 0.56);
+      g.fillStyle(belly, 0.50);  g.fillCircle(cx + r*0.12, cy + r*0.2, r * 0.56);
       g.fillStyle(spec, 0.52);   g.fillCircle(cx - r*0.34, cy - r*0.34, r * 0.22);
+      g.fillStyle(spec, 0.34);   g.fillCircle(cx - r*0.52, cy - r*0.46, r * 0.28);
+      g.lineStyle(2.5, darken(bodyColor, 58), 0.70); g.strokeCircle(cx, cy, r);
       break;
     case 'lumpy':
+      g.fillStyle(lighten(bodyColor, 22), 0.10); g.fillCircle(cx, cy, r + 14);
       g.fillStyle(shadow, 0.5);
       g.fillCircle(cx + 4, cy + 5, r * 0.82);
       g.fillCircle(cx - r*0.42 + 3, cy + r*0.18 + 4, r * 0.58);
@@ -76,8 +80,11 @@ function drawBody(g: Phaser.GameObjects.Graphics, sp: Species, bodyColor: number
       g.fillCircle(cx + r*0.38, cy + r*0.12, r * 0.52);
       g.fillStyle(belly, 0.42); g.fillCircle(cx, cy, r * 0.45);
       g.fillStyle(spec, 0.46);  g.fillCircle(cx - r*0.24, cy - r*0.3, r * 0.2);
+      g.fillStyle(spec, 0.32);  g.fillCircle(cx - r*0.52, cy - r*0.44, r * 0.26);
+      g.lineStyle(2, darken(bodyColor, 55), 0.65); g.strokeCircle(cx, cy, r * 0.82);
       break;
     case 'spiky': {
+      g.fillStyle(lighten(bodyColor, 22), 0.10); g.fillCircle(cx, cy, r + 14);
       const spikes = 5;
       const shadowPts: Phaser.Types.Math.Vector2Like[] = [];
       const pts: Phaser.Types.Math.Vector2Like[] = [];
@@ -91,19 +98,27 @@ function drawBody(g: Phaser.GameObjects.Graphics, sp: Species, bodyColor: number
       g.fillStyle(bodyColor, 1);   g.fillPoints(pts, true);
       g.fillStyle(belly, 0.38);    g.fillCircle(cx, cy + r*0.1, r * 0.42);
       g.fillStyle(spec, 0.44);     g.fillCircle(cx - r*0.2, cy - r*0.22, r * 0.18);
+      g.fillStyle(spec, 0.30);     g.fillCircle(cx - r*0.46, cy - r*0.38, r * 0.22);
+      g.lineStyle(2, darken(bodyColor, 55), 0.65); g.strokePoints(pts, true);
       break;
     }
     case 'flat':
+      g.fillStyle(lighten(bodyColor, 22), 0.10); g.fillEllipse(cx, cy, (r+14)*2.2, (r+14)*1.15);
       g.fillStyle(shadow, 0.5);    g.fillEllipse(cx + 5, cy + 5, r * 2.25, r * 1.18);
       g.fillStyle(bodyColor, 1);   g.fillEllipse(cx, cy, r * 2.2, r * 1.15);
       g.fillStyle(belly, 0.44);    g.fillEllipse(cx + r*0.1, cy + r*0.08, r * 1.1, r * 0.52);
-      g.fillStyle(spec, 0.5);      g.fillEllipse(cx - r*0.42, cy - r*0.2, r * 0.52, r * 0.26);
+      g.fillStyle(spec, 0.50);     g.fillEllipse(cx - r*0.42, cy - r*0.2, r * 0.52, r * 0.26);
+      g.fillStyle(spec, 0.32);     g.fillEllipse(cx - r*0.60, cy - r*0.14, r * 0.50, r * 0.24);
+      g.lineStyle(2, darken(bodyColor, 55), 0.65); g.strokeEllipse(cx, cy, r * 2.2, r * 1.15);
       break;
     case 'long':
+      g.fillStyle(lighten(bodyColor, 22), 0.10); g.fillEllipse(cx, cy, (r+14)*1.15, (r+14)*2.2);
       g.fillStyle(shadow, 0.5);    g.fillEllipse(cx + 4, cy + 5, r * 1.18, r * 2.25);
       g.fillStyle(bodyColor, 1);   g.fillEllipse(cx, cy, r * 1.15, r * 2.2);
       g.fillStyle(belly, 0.44);    g.fillEllipse(cx + r*0.05, cy + r*0.1, r * 0.52, r * 1.1);
-      g.fillStyle(spec, 0.5);      g.fillEllipse(cx - r*0.18, cy - r*0.45, r * 0.26, r * 0.52);
+      g.fillStyle(spec, 0.50);     g.fillEllipse(cx - r*0.18, cy - r*0.45, r * 0.26, r * 0.52);
+      g.fillStyle(spec, 0.32);     g.fillEllipse(cx - r*0.12, cy - r*0.65, r * 0.24, r * 0.48);
+      g.lineStyle(2, darken(bodyColor, 55), 0.65); g.strokeEllipse(cx, cy, r * 1.15, r * 2.2);
       break;
   }
 }
@@ -151,6 +166,8 @@ function drawFeatures(g: Phaser.GameObjects.Graphics, sp: Species, bodyColor: nu
   const eyeX = r * 0.28;
   const er = Math.max(3.5, r * 0.13);
 
+  g.fillStyle(irisColor, 0.14);
+  g.fillCircle(cx - eyeX, eyeY, er * 2.4); g.fillCircle(cx + eyeX, eyeY, er * 2.4);
   g.fillStyle(0xffffff, 1);
   g.fillCircle(cx - eyeX, eyeY, er * 1.55); g.fillCircle(cx + eyeX, eyeY, er * 1.55);
   g.fillStyle(irisColor, 1);
@@ -205,19 +222,34 @@ function drawFeatures(g: Phaser.GameObjects.Graphics, sp: Species, bodyColor: nu
   }
 
   if (Math.floor(sp.id * 7) % 3 === 1) {
-    g.fillStyle(darken(bodyColor, 30), 0.5);
-    const spr = r * 0.1;
+    g.fillStyle(darken(bodyColor, 30), 0.65);
+    const spr = r * 0.11;
     g.fillCircle(cx + r*0.22, cy + r*0.2, spr);
     g.fillCircle(cx - r*0.18, cy + r*0.3, spr * 0.75);
     g.fillCircle(cx + r*0.38, cy, spr * 0.85);
+    g.fillCircle(cx - r*0.32, cy + r*0.05, spr * 0.65);
+  }
+  if (Math.floor(sp.id * 11) % 5 === 3) {
+    g.lineStyle(Math.max(2.5, r * 0.09), darken(bodyColor, 40), 0.42);
+    g.beginPath(); g.moveTo(cx - r*0.36, cy - r*0.50); g.lineTo(cx + r*0.10, cy + r*0.44); g.strokePath();
+    g.beginPath(); g.moveTo(cx + r*0.04, cy - r*0.50); g.lineTo(cx + r*0.46, cy + r*0.34); g.strokePath();
   }
 }
 
 function drawGoldenGlow(g: Phaser.GameObjects.Graphics, cx: number, cy: number, r: number) {
-  g.fillStyle(0xFFD700, 0.07);  g.fillCircle(cx, cy, r + 16);
-  g.lineStyle(3, 0xFFD700, 0.88); g.strokeCircle(cx, cy, r + 6);
-  g.lineStyle(2, 0xFFF59D, 0.52); g.strokeCircle(cx, cy, r + 11);
+  g.fillStyle(0xFFD700, 0.06);  g.fillCircle(cx, cy, r + 20);
+  g.fillStyle(0xFFD700, 0.09);  g.fillCircle(cx, cy, r + 13);
+  g.lineStyle(4, 0xFFD700, 0.94); g.strokeCircle(cx, cy, r + 5);
+  g.lineStyle(2, 0xFFF59D, 0.55); g.strokeCircle(cx, cy, r + 10);
   g.lineStyle(1, 0xFFE082, 0.28); g.strokeCircle(cx, cy, r + 16);
+  const sparks: [number, number, number][] = [
+    [cx - r*0.72, cy - r*0.70, 3.2], [cx + r*0.68, cy - r*0.64, 2.2],
+    [cx - r*0.60, cy + r*0.68, 2.0], [cx + r*0.58, cy + r*0.52, 1.6],
+  ];
+  sparks.forEach(([sx, sy, sr]) => {
+    g.fillStyle(0xFFFFFF, 0.9); g.fillCircle(sx, sy, sr);
+    g.fillStyle(0xFFD700, 0.45); g.fillCircle(sx, sy, sr * 2.2);
+  });
 }
 
 export function makeMonsterTexture(scene: Phaser.Scene, monster: Monster): string {

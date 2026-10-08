@@ -52,6 +52,7 @@ export class HabitatRoom extends Phaser.Scene {
     this._sellPrice = this._calcSell(this._sp);
 
     this._drawBackground(W, H, this._sp.habitat);
+    this._drawVignette(W, H);
     this._buildMonsterArea(W, H, this._sp);
     this._buildStats(W, H);
     this._buildActions(W, H);
@@ -177,6 +178,16 @@ export class HabitatRoom extends Phaser.Scene {
         g.lineTo(swx + 20, swBase - 115); g.strokePath();
       }
     }
+  }
+
+  private _drawVignette(W: number, H: number) {
+    const v = this.add.graphics().setDepth(1);
+    v.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0.45, 0.45, 0, 0);
+    v.fillRect(0, 0, W, H * 0.22);
+    v.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0.28, 0, 0, 0.28);
+    v.fillRect(0, 0, W * 0.18, H * 0.72);
+    v.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0, 0.28, 0.28, 0);
+    v.fillRect(W * 0.82, 0, W * 0.18, H * 0.72);
   }
 
   // ── MONSTER AREA ──────────────────────────────────────────────────────────

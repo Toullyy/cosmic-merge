@@ -24,6 +24,8 @@ export class Hub extends Phaser.Scene {
     this._displayGroup = this.add.group();
 
     this._buildBackground(W, H);
+    this._buildTwinkleStars(W, H);
+    this._buildVignette(W, H);
     this._buildHUD(W);
     this._buildTabs(W);
     this._buildBottomNav(W, H);
@@ -40,12 +42,39 @@ export class Hub extends Phaser.Scene {
     const bg = this.add.graphics().setDepth(0);
     bg.fillGradientStyle(0x1a0a2e, 0x1a0a2e, 0x0a0420, 0x0a0420, 1);
     bg.fillRect(0, 0, W, H);
-    bg.fillStyle(0xffffff, 0.25);
-    const stars = [[42,140],[95,310],[140,520],[188,88],[220,680],[270,200],[310,450],[355,130],
-                   [400,580],[448,260],[490,380],[520,100],[55,720],[135,800],[310,750],[460,810]];
-    for (let i = 0; i < stars.length; i++) {
-      bg.fillCircle(stars[i][0], stars[i][1], i % 3 === 0 ? 1.5 : 1);
-    }
+  }
+
+  private _buildTwinkleStars(W: number, H: number) {
+    const positions = [
+      [42,140],[95,310],[140,520],[188,88],[220,680],
+      [270,200],[310,450],[355,130],[400,580],[448,260],
+      [490,380],[520,100],[55,720],[135,800],[310,750],[460,810],
+    ];
+    positions.forEach((s, i) => {
+      const star = this.add.graphics().setDepth(0);
+      star.fillStyle(0xffffff, 0.88);
+      star.fillCircle(s[0], s[1], i % 3 === 0 ? 2 : 1.2);
+      this.tweens.add({
+        targets: star,
+        alpha: 0.05 + Math.random() * 0.18,
+        duration: 700 + Math.random() * 1400,
+        yoyo: true, repeat: -1,
+        delay: i * 90 + Math.random() * 400,
+        ease: 'Sine.InOut',
+      });
+    });
+  }
+
+  private _buildVignette(W: number, H: number) {
+    const v = this.add.graphics().setDepth(2);
+    v.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0.50, 0.50, 0, 0);
+    v.fillRect(0, 0, W, H * 0.26);
+    v.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0, 0, 0.38, 0.38);
+    v.fillRect(0, H * 0.74, W, H * 0.26);
+    v.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0.32, 0, 0, 0.32);
+    v.fillRect(0, 0, W * 0.22, H);
+    v.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0, 0.32, 0.32, 0);
+    v.fillRect(W * 0.78, 0, W * 0.22, H);
   }
 
   private _buildHabitatBg(W: number, H: number) {

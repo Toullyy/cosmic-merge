@@ -14,7 +14,11 @@ export function makeButton(
   const bg = scene.add.graphics();
   bg.fillStyle(fill, 1);
   bg.fillRoundedRect(-w/2, -h/2, w, h, 10);
-  bg.lineStyle(2, 0xffffff, 0.22);
+  bg.fillStyle(0xffffff, 0.13);
+  bg.fillRoundedRect(-w/2 + 3, -h/2 + 2, w - 6, h * 0.42, { tl: 8, tr: 8, bl: 0, br: 0 });
+  bg.lineStyle(4, 0xffffff, 0.06);
+  bg.strokeRoundedRect(-w/2 - 1, -h/2 - 1, w + 2, h + 2, 11);
+  bg.lineStyle(1.5, 0xffffff, 0.28);
   bg.strokeRoundedRect(-w/2, -h/2, w, h, 10);
   const txt = scene.add.text(0, 0, label, {
     fontFamily: FONT,
@@ -45,6 +49,10 @@ export function setButtonColor(btn: Phaser.GameObjects.Container, fill: number) 
   g.clear();
   g.fillStyle(fill, 1);
   g.fillRoundedRect(-w/2, -h/2, w, h, 10);
-  g.lineStyle(2, 0xffffff, 0.22);
+  g.fillStyle(0xffffff, 0.13);
+  g.fillRoundedRect(-w/2 + 3, -h/2 + 2, w - 6, h * 0.42, { tl: 8, tr: 8, bl: 0, br: 0 });
+  g.lineStyle(4, 0xffffff, 0.06);
+  g.strokeRoundedRect(-w/2 - 1, -h/2 - 1, w + 2, h + 2, 11);
+  g.lineStyle(1.5, 0xffffff, 0.28);
   g.strokeRoundedRect(-w/2, -h/2, w, h, 10);
 }
