@@ -275,7 +275,21 @@ export class Hub extends Phaser.Scene {
     this._displayGroup.add(barBg);
     this._displayGroup.add(barFill);
 
-    const zone = this.add.zone(cx, cy, CW, CH).setInteractive().setDepth(25);
+    // listing banner
+    const listing = Game.state!.listings.find(l => l.monsterId === mon.id);
+    if (listing) {
+      const ready = Date.now() >= listing.readyAt;
+      const banner = this.add.graphics().setDepth(25);
+      banner.fillStyle(ready ? 0x1A7040 : 0x884400, 0.92);
+      banner.fillRoundedRect(cx - CW/2 + 8, cy - CH/2 + 8, CW - 16, 22, 6);
+      this._displayGroup.add(banner);
+      this._displayGroup.add(this.add.text(cx, cy - CH/2 + 19,
+        ready ? 'READY - Tap to collect' : 'For Sale', {
+        fontFamily: FONT, fontSize: '10px', color: '#ffffff', fontStyle: 'bold',
+      }).setOrigin(0.5).setDepth(26));
+    }
+
+    const zone = this.add.zone(cx, cy, CW, CH).setInteractive().setDepth(27);
     zone.on('pointerdown', () => {
       sfx.unlock();
       const freshMon = Game.state!.monsters.find(m => m.id === mon.id);

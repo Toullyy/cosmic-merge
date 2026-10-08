@@ -32,3 +32,19 @@ export function makeButton(
   });
   return container;
 }
+
+export function setButtonLabel(btn: Phaser.GameObjects.Container, label: string) {
+  const txt = btn.list.find(c => c instanceof Phaser.GameObjects.Text) as Phaser.GameObjects.Text | undefined;
+  if (txt) txt.setText(label);
+}
+
+export function setButtonColor(btn: Phaser.GameObjects.Container, fill: number) {
+  const g = btn.list[0] as Phaser.GameObjects.Graphics | undefined;
+  if (!g) return;
+  const w = btn.width, h = btn.height;
+  g.clear();
+  g.fillStyle(fill, 1);
+  g.fillRoundedRect(-w/2, -h/2, w, h, 10);
+  g.lineStyle(2, 0xffffff, 0.22);
+  g.strokeRoundedRect(-w/2, -h/2, w, h, 10);
+}

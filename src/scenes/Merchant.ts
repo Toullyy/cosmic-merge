@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { Game, FONT, store, sfx } from '../utils';
-import { CATALOG, HABITATS, newEgg, SPECIES } from '../data';
+import { CATALOG, HABITATS, newEgg, SPECIES, generateMerchantStock, MERCHANT_REFRESH_MS } from '../data';
 import { shiftHue } from '../MonsterRenderer';
 import { makeButton } from '../ui/Button';
 import { showToast } from '../ui/Toast';
@@ -10,6 +10,8 @@ export class Merchant extends Phaser.Scene {
   private _filterGroup!: Phaser.GameObjects.Group;
   private _gridGroup!: Phaser.GameObjects.Group;
   private _coinTxt!: Phaser.GameObjects.Text;
+  private _refreshTxt!: Phaser.GameObjects.Text;
+  private _refreshTimer: Phaser.Time.TimerEvent | null = null;
 
   constructor() { super({ key: 'Merchant' }); }
 
@@ -21,7 +23,7 @@ export class Merchant extends Phaser.Scene {
     bg.fillGradientStyle(0x0d0618, 0x0d0618, 0x1a0a2e, 0x1a0a2e, 1);
     bg.fillRect(0, 0, W, H);
 
-    this.add.text(W/2, 46, '🛒 Monster Egg Shop', {
+    this.add.text(W/2, 42, '🛒 Monster Egg Shop', {
       fontFamily: FONT, fontSize: '24px', color: '#ffffff', fontStyle: 'bold',
     }).setOrigin(0.5);
 
@@ -37,11 +39,47 @@ export class Merchant extends Phaser.Scene {
       this.scene.start('Hub');
     }, 15);
 
+    // ensure stock is initialised
+    if (!Game.state!.merchantStock?.length || Date.now() >= Game.state!.merchantRefreshAt) {
+      Game.state!.merchantStock = generateMerchantStock();
+      Game.state!.merchantRefreshAt = Date.now() + MERCHANT_REFRESH_MS;
+      store.setJSON('mps_state', Game.state);
+    }
+
+    this._refreshTxt = this.add.text(W/2, 66, this._refreshLabel(), {
+      fontFamily: FONT, fontSize: '12px', color: '#7777aa', align: 'center',
+    }).setOrigin(0.5);
+
     this._filter = 'dirt';
     this._filterGroup = this.add.group();
     this._buildFilterTabs(W);
     this._gridGroup = this.add.group();
     this._buildGrid(W, H);
+    this._startRefreshTimer();
+  }
+
+  private _refreshLabel(): string {
+    const remaining = Math.max(0, Game.state!.merchantRefreshAt - Date.now());
+    const mins = Math.floor(remaining / 60000);
+    const secs = Math.floor((remaining % 60000) / 1000);
+    return 'Stock refreshes in ' + mins + ':' + String(secs).padStart(2, '0');
+  }
+
+  private _startRefreshTimer() {
+    if (this._refreshTimer) this._refreshTimer.remove();
+    this._refreshTimer = this.time.addEvent({
+      delay: 1000, loop: true, callback: () => {
+        if (Date.now() >= Game.state!.merchantRefreshAt) {
+          Game.state!.merchantStock = generateMerchantStock();
+          Game.state!.merchantRefreshAt = Date.now() + MERCHANT_REFRESH_MS;
+          store.setJSON('mps_state', Game.state);
+          this._buildGrid(this.scale.width, this.scale.height);
+          this._refreshTxt.setText('New stock! Refreshes in 30:00');
+        } else {
+          this._refreshTxt.setText(this._refreshLabel());
+        }
+      },
+    });
   }
 
   private _buildFilterTabs(W: number) {
@@ -51,13 +89,13 @@ export class Merchant extends Phaser.Scene {
     filters.forEach((f, i) => {
       const x = 10 + tabW * i;
       const g = this.add.graphics();
-      const lbl = this.add.text(x + tabW/2, 90, labels[f], {
+      const lbl = this.add.text(x + tabW/2, 94, labels[f], {
         fontFamily: FONT, fontSize: '15px', color: '#aaaaaa',
       }).setOrigin(0.5);
       this._filterGroup.addMultiple([g, lbl]);
       (g as any)._filterKey = f;
       (lbl as any)._filterKey = f;
-      const zone = this.add.zone(x + tabW/2, 90, tabW - 4, 36).setInteractive();
+      const zone = this.add.zone(x + tabW/2, 94, tabW - 4, 36).setInteractive();
       zone.on('pointerdown', () => {
         this._filter = f;
         this._buildGrid(this.scale.width, this.scale.height);
@@ -81,7 +119,7 @@ export class Merchant extends Phaser.Scene {
         g.clear();
         g.fillStyle(isActive ? 0x4a2080 : 0x1e1040, isActive ? 1 : 0.6);
         const i = filters.indexOf(key);
-        g.fillRoundedRect(10 + tabW*i + 2, 74, tabW - 4, 32, 8);
+        g.fillRoundedRect(10 + tabW*i + 2, 78, tabW - 4, 32, 8);
       } else if (child.type === 'Text') {
         (child as Phaser.GameObjects.Text).setStyle({ color: isActive ? '#ffffff' : '#777777' });
       }
@@ -90,8 +128,21 @@ export class Merchant extends Phaser.Scene {
 
   private _buildGrid(W: number, H: number) {
     this._gridGroup.clear(true, true);
-    const filtered = CATALOG.filter(sp => this._filter === 'all' || sp.habitat === this._filter);
-    const cols = 2, cardW = 210, cardH = 190, gapX = (W - cols*cardW) / (cols+1), startY = 130;
+
+    const stockIds = Game.state!.merchantStock ?? [];
+    const filtered = stockIds
+      .map(id => SPECIES[id])
+      .filter(sp => sp && sp.habitat === this._filter);
+
+    if (filtered.length === 0) {
+      const noStock = this.add.text(W/2, 420, 'No ' + this._filter + ' species\nin stock right now.\nCheck back after refresh!', {
+        fontFamily: FONT, fontSize: '16px', color: '#554488', align: 'center',
+      }).setOrigin(0.5);
+      this._gridGroup.add(noStock);
+      return;
+    }
+
+    const cols = 2, cardW = 210, cardH = 190, gapX = (W - cols*cardW) / (cols+1), startY = 128;
 
     filtered.forEach((sp, idx) => {
       const col = idx % cols;

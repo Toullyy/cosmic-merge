@@ -47,6 +47,14 @@ export interface GameStats {
   discovered: number[];
 }
 
+export interface Listing {
+  id: string;
+  monsterId: string;
+  price: number;
+  listedAt: number;
+  readyAt: number;
+}
+
 export interface GameState {
   version: number;
   coins: number;
@@ -55,6 +63,9 @@ export interface GameState {
   eggs: Egg[];
   habitats: Record<HabitatType, HabitatState>;
   stats: GameStats;
+  listings: Listing[];
+  merchantRefreshAt: number;
+  merchantStock: number[];
 }
 
 export interface VariantModifiers {
@@ -73,7 +84,24 @@ export interface HabitatConfig {
 export interface FoodType {
   id: string;
   name: string;
+  tier: number;
   hungerGain: number;
   happinessGain: number;
+  cost: number;
+}
+
+export interface ToyType {
+  id: string;
+  name: string;
+  tier: number;
+  happinessGain: number;
+  cost: number;
+}
+
+export interface CleanTool {
+  id: string;
+  name: string;
+  tier: number;
+  cleanGain: number;
   cost: number;
 }

@@ -1,4 +1,4 @@
-import type { Species, FoodType, HabitatType, HabitatConfig, Monster, Egg, GameState } from './types';
+import type { Species, FoodType, ToyType, CleanTool, HabitatType, HabitatConfig, Monster, Egg, GameState } from './types';
 
 export const SPECIES: Species[] = [
   // ── Dirt (0–4) ──────────────────────────────────────────────────────────
@@ -33,9 +33,27 @@ export const SPECIES: Species[] = [
 ];
 
 export const FOOD_TYPES: FoodType[] = [
-  { id:'pasta', name:'Pasta Pellets', hungerGain:20, happinessGain:5,  cost:5  },
-  { id:'gummy', name:'Gummy Drops',   hungerGain:10, happinessGain:15, cost:8  },
-  { id:'fish',  name:'Fish Crackers', hungerGain:30, happinessGain:10, cost:10 },
+  // Tier 1
+  { id:'pellet', name:'Pellets',     tier:1, hungerGain:15, happinessGain:3,  cost:3  },
+  { id:'berry',  name:'Berries',     tier:1, hungerGain:8,  happinessGain:10, cost:4  },
+  // Tier 2
+  { id:'pasta',  name:'Pasta',       tier:2, hungerGain:25, happinessGain:8,  cost:8  },
+  { id:'gummy',  name:'Gummies',     tier:2, hungerGain:12, happinessGain:22, cost:10 },
+  // Tier 3
+  { id:'feast',  name:'Royal Feast', tier:3, hungerGain:45, happinessGain:15, cost:20 },
+  { id:'cake',   name:'Sweet Cake',  tier:3, hungerGain:20, happinessGain:38, cost:22 },
+];
+
+export const TOY_TYPES: ToyType[] = [
+  { id:'yarn',  name:'Yarn Ball', tier:1, happinessGain:15, cost:6  },
+  { id:'stick', name:'Wand',      tier:2, happinessGain:25, cost:12 },
+  { id:'gem',   name:'Gem Toy',   tier:3, happinessGain:38, cost:22 },
+];
+
+export const CLEAN_TOOLS: CleanTool[] = [
+  { id:'cloth', name:'Cloth',    tier:1, cleanGain:20, cost:4  },
+  { id:'brush', name:'Brush',    tier:2, cleanGain:35, cost:10 },
+  { id:'bath',  name:'Bath Kit', tier:3, cleanGain:55, cost:20 },
 ];
 
 export const DECAY = { happiness: -2, hunger: -5, cleanliness: -3 };
@@ -47,6 +65,24 @@ export const HABITATS: Record<HabitatType, HabitatConfig> = {
 };
 
 export const CATALOG = SPECIES.filter(s => s.id < 15);
+
+export const LISTING_DURATION_MS = 15 * 60 * 1000;
+export const MERCHANT_REFRESH_MS = 30 * 60 * 1000;
+
+export function generateMerchantStock(): number[] {
+  const byH: Record<HabitatType, number[]> = { dirt: [], grass: [], aquatic: [] };
+  CATALOG.forEach(s => byH[s.habitat].push(s.id));
+  const stock: number[] = [];
+  (['dirt', 'grass', 'aquatic'] as HabitatType[]).forEach(h => {
+    const pool = [...byH[h]];
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    stock.push(pool[0], pool[1], pool[2]); // 3 per habitat = 9 total
+  });
+  return stock;
+}
 
 export const XP_TABLE = [0, 50, 120, 210, 320, 450, 600, 780, 980, 1200];
 
@@ -94,5 +130,8 @@ export function newState(): GameState {
       aquatic: { unlocked: false, decorations: [] },
     },
     stats: { hatched: 0, sold: 0, totalEarned: 0, discovered: [0] },
+    listings: [],
+    merchantRefreshAt: Date.now() + MERCHANT_REFRESH_MS,
+    merchantStock: generateMerchantStock(),
   };
 }

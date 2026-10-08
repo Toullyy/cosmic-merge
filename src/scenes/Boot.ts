@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { Game, store } from '../utils';
-import { DECAY } from '../data';
-import { newState } from '../data';
+import { DECAY, newState, generateMerchantStock, MERCHANT_REFRESH_MS } from '../data';
 import type { GameState } from '../types';
 
 export class Boot extends Phaser.Scene {
@@ -17,6 +16,11 @@ export class Boot extends Phaser.Scene {
           if (!Game.state!.stats.discovered.includes(m.speciesId))
             Game.state!.stats.discovered.push(m.speciesId);
         });
+      }
+      if (!Game.state.listings) Game.state.listings = [];
+      if (!Game.state.merchantStock || !Game.state.merchantStock.length) {
+        Game.state.merchantStock = generateMerchantStock();
+        Game.state.merchantRefreshAt = Date.now() + MERCHANT_REFRESH_MS;
       }
       reconcileOfflineTime(Game.state);
     } else {

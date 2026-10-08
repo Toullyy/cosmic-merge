@@ -1,11 +1,11 @@
 import Phaser from 'phaser';
 import { Game, FONT, store, sfx } from '../utils';
-import { SPECIES, HABITATS, FOOD_TYPES, XP_TABLE } from '../data';
+import { SPECIES, HABITATS, FOOD_TYPES, TOY_TYPES, CLEAN_TOOLS, XP_TABLE, LISTING_DURATION_MS } from '../data';
 import { makeMonsterTexture, getVariantModifiers, lighten, darken } from '../MonsterRenderer';
-import { makeButton } from '../ui/Button';
+import { makeButton, setButtonLabel, setButtonColor } from '../ui/Button';
 import { showToast, showFloat } from '../ui/Toast';
 import { Ads } from '../ads';
-import type { Monster, Species, HabitatType } from '../types';
+import type { Monster, Species, HabitatType, Listing } from '../types';
 
 interface BarEntry {
   fill: Phaser.GameObjects.Graphics;
@@ -14,17 +14,24 @@ interface BarEntry {
   val: Phaser.GameObjects.Text;
 }
 
+const FOOD_COLORS: Record<string, number> = {
+  pellet: 0xFFB300, berry: 0xE91E63,
+  pasta: 0xFF7043, gummy: 0xE040FB,
+  feast: 0xE53935, cake: 0xFFD740,
+};
+
 export class HabitatRoom extends Phaser.Scene {
   private _monsterId: string = '';
   private _monster!: Monster;
   private _monImg!: Phaser.GameObjects.Image;
   private _walkTween!: Phaser.Tweens.Tween;
   private _bars: Record<string, BarEntry> = {};
-  private _fpItems: Phaser.GameObjects.GameObject[] = [];
+  private _pickerItems: Phaser.GameObjects.GameObject[] = [];
   private _sellPrice: number = 0;
   private _sp!: Species;
   private _coinTxt!: Phaser.GameObjects.Text;
   private _sellBtn!: Phaser.GameObjects.Container;
+  private _listTimer: Phaser.Time.TimerEvent | null = null;
   private _W: number = 540;
   private _H: number = 960;
   private _monY: number = 0;
@@ -50,6 +57,18 @@ export class HabitatRoom extends Phaser.Scene {
     this._buildActions(W, H);
     this._buildHUD(W, H, this._sp);
     this._startAmbient(W, H, this._sp.habitat);
+
+    // initialise list button state
+    const existing = Game.state!.listings.find(l => l.monsterId === this._monster.id);
+    if (existing) {
+      this._updateListBtnState();
+      this._startListTimer();
+    } else {
+      this.tweens.add({
+        targets: this._sellBtn, scaleX: 1.04, scaleY: 1.04,
+        duration: 800, yoyo: true, repeat: -1, ease: 'Sine.InOut',
+      });
+    }
   }
 
   private _calcSell(sp: Species): number {
@@ -233,9 +252,9 @@ export class HabitatRoom extends Phaser.Scene {
 
   private _buildActions(W: number, H: number) {
     const btnY = H - 58, sp = 148;
-    makeButton(this, W/2 - sp, btnY, 128, 52, '🍽 Feed',  0x8B2200, () => { this._showFoodPicker(); }, 16).setDepth(10);
-    makeButton(this, W/2,      btnY, 128, 52, '💆 Pet',   0x6A2090, () => { this._doPet(); }, 16).setDepth(10);
-    makeButton(this, W/2 + sp, btnY, 128, 52, '🧹 Clean', 0x1A5580, () => { this._doClean(); }, 16).setDepth(10);
+    makeButton(this, W/2 - sp, btnY, 128, 52, '🍽 Feed',  0x8B2200, () => this._showFoodPicker(), 16).setDepth(10);
+    makeButton(this, W/2,      btnY, 128, 52, '🎾 Play',  0x6A2090, () => this._showToyPicker(), 16).setDepth(10);
+    makeButton(this, W/2 + sp, btnY, 128, 52, '🧹 Clean', 0x1A5580, () => this._showToolPicker(), 16).setDepth(10);
   }
 
   // ── HUD ───────────────────────────────────────────────────────────────────
@@ -252,134 +271,472 @@ export class HabitatRoom extends Phaser.Scene {
       fontFamily: FONT, fontSize: '13px', color: '#9999bb',
     }).setOrigin(0.5).setDepth(20);
     this._sellBtn = makeButton(this, W - 72, 34, 116, 44,
-      '💰 ' + this._sellPrice + '⬡', 0x1A5030, () => { this._doSell(); }, 14);
+      'List ' + this._sellPrice + '⬡', 0x8B6000, () => this._handleListBtn(), 13);
     this._sellBtn.setDepth(20);
     this._coinTxt = this.add.text(W / 2, H * 0.72 + 5, '⬡ ' + Game.state!.coins, {
       fontFamily: FONT, fontSize: '15px', color: '#FFD700',
     }).setOrigin(0.5).setDepth(20);
   }
 
-  // ── FOOD PICKER ───────────────────────────────────────────────────────────
+  // ── FOOD PICKER (6 items, 2 rows) ─────────────────────────────────────────
 
   private _showFoodPicker() {
-    if (this._fpItems.length > 0) { this._clearFoodPicker(); return; }
+    if (this._pickerItems.length > 0) { this._clearPicker(); return; }
     const W = this._W, H = this._H;
-    const fpW = W - 30, fpH = 130, fpX = 15, fpY = H - 220;
+    const fpW = W - 30, fpH = 210, fpX = 15;
+    const fpY = H - 310; // bottom = H-100, buttons top ≈ H-84 → 16px gap
 
     const fpBg = this.add.graphics().setDepth(28);
     fpBg.fillStyle(0x0a0416, 0.96);
     fpBg.fillRoundedRect(fpX, fpY, fpW, fpH, 14);
     fpBg.lineStyle(1, 0x5040b0, 0.9);
     fpBg.strokeRoundedRect(fpX, fpY, fpW, fpH, 14);
-    this._fpItems.push(fpBg);
+    this._pickerItems.push(fpBg);
+
+    this._pickerItems.push(this.add.text(fpX + fpW/2, fpY + 14, '🍽 Choose food', {
+      fontFamily: FONT, fontSize: '12px', color: '#8888cc',
+    }).setOrigin(0.5).setDepth(28));
 
     const btnW = Math.floor((fpW - 24) / 3);
+    const btnH = 80;
+    const COLS = 3;
+
     FOOD_TYPES.forEach((food, i) => {
-      const bx = fpX + 12 + i * (btnW + 4) + btnW / 2;
-      const by = fpY + fpH / 2 + 4;
+      const col = i % COLS;
+      const row = Math.floor(i / COLS);
+      const bx = fpX + 12 + col * (btnW + 4) + btnW / 2;
+      const by = fpY + 28 + row * (btnH + 10) + btnH / 2;
       const canAfford = Game.state!.coins >= food.cost;
-      const lbl = food.name + '\n+' + food.hungerGain + '🍖  +' + food.happinessGain + '💛\n' + food.cost + '⬡';
-      const fbtn = makeButton(this, bx, by, btnW - 2, fpH - 20, lbl,
-        canAfford ? 0x2A4A18 : 0x1A1A2A, () => {
+      const stars = '★'.repeat(food.tier);
+      const lbl = food.name + ' ' + stars + '\n+' + food.hungerGain + '🍖 +' + food.happinessGain + '💛\n' + food.cost + '⬡';
+      const tierColors = [0x2A4A18, 0x2A4A28, 0x3A3010];
+      const fbtn = makeButton(this, bx, by, btnW - 2, btnH, lbl,
+        canAfford ? tierColors[food.tier - 1] : 0x1A1A2A, () => {
           if (Game.state!.coins < food.cost) { showToast(this, 'Not enough coins!', '#ff9999'); return; }
           Game.state!.coins -= food.cost;
           this._monster.hunger    = Math.min(100, this._monster.hunger    + food.hungerGain);
           this._monster.happiness = Math.min(100, this._monster.happiness + food.happinessGain);
           this._monster.lastCaredAt = Date.now();
-          this._gainXP(10);
+          this._gainXP(10 + food.tier * 3);
           store.setJSON('mps_state', Game.state);
           sfx.feed();
-          this._spawnParticles(this._monImg.x, this._monImg.y - 30, 0xFFAA00, 10);
-          showFloat(this, this._monImg.x, this._monImg.y - 85, '+' + food.hungerGain + ' 🍖', '#ffcc44');
+          this._playFeedAnim(food.id, food.tier);
+          showFloat(this, this._monImg.x, this._monImg.y - 85,
+            '+' + food.hungerGain + '🍖 +' + food.happinessGain + '💛', '#ffcc44');
           this._refreshStats();
           this._updateCoinDisplay();
-          this._clearFoodPicker();
-        }, 12);
+          this._clearPicker();
+        }, 10);
       fbtn.setDepth(29);
-      this._fpItems.push(fbtn);
+      if (!canAfford) fbtn.setAlpha(0.5);
+      this._pickerItems.push(fbtn);
     });
   }
 
-  private _clearFoodPicker() {
-    this._fpItems.forEach(o => { try { (o as any).destroy(); } catch { /* ignore */ } });
-    this._fpItems = [];
+  // ── TOY PICKER (3 items, 1 row) ───────────────────────────────────────────
+
+  private _showToyPicker() {
+    if (this._pickerItems.length > 0) { this._clearPicker(); return; }
+    const W = this._W, H = this._H;
+    const fpW = W - 30, fpH = 120, fpX = 15;
+    const fpY = H - 210; // bottom = H-90
+
+    const fpBg = this.add.graphics().setDepth(28);
+    fpBg.fillStyle(0x0a0416, 0.96);
+    fpBg.fillRoundedRect(fpX, fpY, fpW, fpH, 14);
+    fpBg.lineStyle(1, 0x7030b0, 0.9);
+    fpBg.strokeRoundedRect(fpX, fpY, fpW, fpH, 14);
+    this._pickerItems.push(fpBg);
+
+    this._pickerItems.push(this.add.text(fpX + fpW/2, fpY + 13, '🎾 Choose toy', {
+      fontFamily: FONT, fontSize: '12px', color: '#aa88cc',
+    }).setOrigin(0.5).setDepth(28));
+
+    const btnW = Math.floor((fpW - 24) / 3);
+    const btnH = 82;
+
+    TOY_TYPES.forEach((toy, i) => {
+      const bx = fpX + 12 + i * (btnW + 4) + btnW / 2;
+      const by = fpY + 27 + btnH / 2;
+      const canAfford = Game.state!.coins >= toy.cost;
+      const stars = '★'.repeat(toy.tier);
+      const lbl = toy.name + ' ' + stars + '\n+' + toy.happinessGain + '💛\n' + toy.cost + '⬡';
+      const fbtn = makeButton(this, bx, by, btnW - 2, btnH, lbl,
+        canAfford ? 0x2A1560 : 0x1A1A2A, () => {
+          if (Game.state!.coins < toy.cost) { showToast(this, 'Not enough coins!', '#ff9999'); return; }
+          Game.state!.coins -= toy.cost;
+          this._monster.happiness = Math.min(100, this._monster.happiness + toy.happinessGain);
+          this._monster.lastCaredAt = Date.now();
+          this._gainXP(8 + toy.tier * 3);
+          store.setJSON('mps_state', Game.state);
+          sfx.pet();
+          this._playPetAnim(toy.id);
+          showFloat(this, this._monImg.x, this._monImg.y - 85, '+' + toy.happinessGain + '💛', '#ffdd55');
+          this._refreshStats();
+          this._updateCoinDisplay();
+          this._clearPicker();
+        }, 10);
+      fbtn.setDepth(29);
+      if (!canAfford) fbtn.setAlpha(0.5);
+      this._pickerItems.push(fbtn);
+    });
   }
 
-  // ── CARE ACTIONS ──────────────────────────────────────────────────────────
+  // ── TOOL PICKER (3 items, 1 row) ──────────────────────────────────────────
 
-  private _doPet() {
-    this._monster.happiness = Math.min(100, this._monster.happiness + 8);
-    this._monster.lastCaredAt = Date.now();
-    this._gainXP(5);
+  private _showToolPicker() {
+    if (this._pickerItems.length > 0) { this._clearPicker(); return; }
+    const W = this._W, H = this._H;
+    const fpW = W - 30, fpH = 120, fpX = 15;
+    const fpY = H - 210;
+
+    const fpBg = this.add.graphics().setDepth(28);
+    fpBg.fillStyle(0x0a0416, 0.96);
+    fpBg.fillRoundedRect(fpX, fpY, fpW, fpH, 14);
+    fpBg.lineStyle(1, 0x1060b0, 0.9);
+    fpBg.strokeRoundedRect(fpX, fpY, fpW, fpH, 14);
+    this._pickerItems.push(fpBg);
+
+    this._pickerItems.push(this.add.text(fpX + fpW/2, fpY + 13, '🧹 Choose tool', {
+      fontFamily: FONT, fontSize: '12px', color: '#88aacc',
+    }).setOrigin(0.5).setDepth(28));
+
+    const btnW = Math.floor((fpW - 24) / 3);
+    const btnH = 82;
+
+    CLEAN_TOOLS.forEach((tool, i) => {
+      const bx = fpX + 12 + i * (btnW + 4) + btnW / 2;
+      const by = fpY + 27 + btnH / 2;
+      const canAfford = Game.state!.coins >= tool.cost;
+      const stars = '★'.repeat(tool.tier);
+      const lbl = tool.name + ' ' + stars + '\n+' + tool.cleanGain + '✨\n' + tool.cost + '⬡';
+      const fbtn = makeButton(this, bx, by, btnW - 2, btnH, lbl,
+        canAfford ? 0x10405A : 0x1A1A2A, () => {
+          if (Game.state!.coins < tool.cost) { showToast(this, 'Not enough coins!', '#ff9999'); return; }
+          Game.state!.coins -= tool.cost;
+          this._monster.cleanliness = Math.min(100, this._monster.cleanliness + tool.cleanGain);
+          this._monster.lastCaredAt = Date.now();
+          this._gainXP(8 + tool.tier * 3);
+          store.setJSON('mps_state', Game.state);
+          sfx.clean();
+          this._playCleanAnim(tool.id);
+          showFloat(this, this._monImg.x, this._monImg.y - 85, '+' + tool.cleanGain + '✨', '#88ccff');
+          this._refreshStats();
+          this._updateCoinDisplay();
+          this._clearPicker();
+        }, 10);
+      fbtn.setDepth(29);
+      if (!canAfford) fbtn.setAlpha(0.5);
+      this._pickerItems.push(fbtn);
+    });
+  }
+
+  private _clearPicker() {
+    this._pickerItems.forEach(o => { try { (o as any).destroy(); } catch { /* ignore */ } });
+    this._pickerItems = [];
+  }
+
+  // ── ANIMATIONS ────────────────────────────────────────────────────────────
+
+  private _playFeedAnim(foodId: string, tier: number) {
+    const mx = this._monImg.x, my = this._monImg.y;
+    const color = FOOD_COLORS[foodId] ?? 0xFFB300;
+    const r = 8 + tier * 3;
+
+    const foodG = this.add.graphics().setDepth(30);
+    foodG.fillStyle(color, 1);
+    foodG.fillCircle(0, 0, r);
+    foodG.fillStyle(0xffffff, 0.45);
+    foodG.fillCircle(-r * 0.35, -r * 0.35, r * 0.36);
+    foodG.x = mx;
+    foodG.y = my - 75;
+
+    if (tier === 3) this._spawnParticles(mx, my - 75, color, 6);
+
+    this.tweens.add({
+      targets: foodG,
+      y: my - 8,
+      duration: 340,
+      ease: 'Quad.In',
+      onComplete: () => {
+        foodG.destroy();
+        this.tweens.add({
+          targets: this._monImg,
+          scaleX: 1.22, scaleY: 0.82,
+          duration: 55, yoyo: true, repeat: 1,
+          onComplete: () => this._monImg.setScale(1),
+        });
+      },
+    });
+  }
+
+  private _playPetAnim(toyId: string) {
+    const mx = this._monImg.x, my = this._monImg.y;
+    const toy = this.add.graphics().setDepth(30);
+
+    if (toyId === 'yarn') {
+      toy.fillStyle(0xFF9800, 1);
+      toy.fillCircle(0, 0, 12);
+      toy.fillStyle(0xFFE082, 0.65);
+      toy.fillCircle(-4, -4, 5);
+      toy.fillStyle(0xffffff, 0.35);
+      toy.fillCircle(-5, -5, 2);
+      toy.x = mx + 58; toy.y = my - 12;
+      this.tweens.add({
+        targets: toy, y: toy.y - 32, duration: 210,
+        yoyo: true, repeat: 3, ease: 'Sine.InOut',
+        onComplete: () => { try { toy.destroy(); } catch { /* */ } },
+      });
+
+    } else if (toyId === 'stick') {
+      toy.fillStyle(0x8D6E63, 1);
+      toy.fillRect(-22, -4, 44, 8);
+      toy.fillStyle(0xFFEB3B, 1);
+      toy.fillCircle(22, 0, 6);
+      toy.x = mx + 58; toy.y = my - 8;
+      this.tweens.add({
+        targets: toy, angle: 35, duration: 140,
+        yoyo: true, repeat: 4, ease: 'Sine.InOut',
+        onComplete: () => { try { toy.destroy(); } catch { /* */ } },
+      });
+
+    } else { // gem
+      toy.fillStyle(0x7C4DFF, 1);
+      toy.fillTriangle(0, -16, -11, 0, 11, 0);
+      toy.fillTriangle(-11, 0, 11, 0, 0, 13);
+      toy.fillStyle(0xB39DDB, 0.55);
+      toy.fillTriangle(0, -16, -5, -5, 5, -5);
+      toy.x = mx + 55; toy.y = my - 22;
+      this.tweens.add({
+        targets: toy, angle: 360, duration: 700,
+        repeat: 1, ease: 'Linear',
+        onComplete: () => { try { toy.destroy(); } catch { /* */ } },
+      });
+    }
+
+    // monster jiggles for all toys
+    this.tweens.add({
+      targets: this._monImg, angle: 10, duration: 85,
+      yoyo: true, repeat: 4, ease: 'Sine.InOut',
+      onComplete: () => this._monImg.setAngle(0),
+    });
+  }
+
+  private _playCleanAnim(toolId: string) {
+    const W = this._W, H = this._H;
+    const groundY = H * 0.70;
+
+    if (toolId === 'bath') {
+      // Bath kit: burst of soap bubbles around monster
+      for (let i = 0; i < 14; i++) {
+        this.time.delayedCall(i * 70, () => {
+          if (!this.scene?.isActive('HabitatRoom')) return;
+          const bx = this._monImg.x + (Math.random() - 0.5) * 160;
+          const by = this._monImg.y - 20 + (Math.random() - 0.5) * 80;
+          const bg = this.add.graphics().setDepth(30);
+          bg.lineStyle(2, 0x4FC3F7, 0.85);
+          bg.strokeCircle(0, 0, 6 + Math.random() * 8);
+          bg.x = bx; bg.y = by;
+          this.tweens.add({
+            targets: bg, y: by - 55, alpha: 0, duration: 700,
+            ease: 'Sine.Out',
+            onComplete: (_tw: any, tg: any) => { try { tg[0].destroy(); } catch { /* */ } },
+          });
+        });
+      }
+      this.tweens.add({
+        targets: this._monImg, scaleX: 1.08, scaleY: 1.08,
+        duration: 180, yoyo: true, repeat: 2, ease: 'Sine.InOut',
+      });
+      return;
+    }
+
+    // Cloth / brush: sweep across ground
+    const broom = this.add.graphics().setDepth(30);
+    const baseCol = toolId === 'cloth' ? 0xB0BEC5 : 0x8D6E63;
+    // handle
+    broom.fillStyle(0x795548, 1);
+    broom.fillRect(-3, -46, 6, 46);
+    // head base
+    broom.fillStyle(baseCol, 1);
+    broom.fillRoundedRect(-22, 0, 44, 14, 4);
+    // bristles
+    broom.fillStyle(toolId === 'cloth' ? 0x78909C : 0x5D4037, 1);
+    for (let bi = 0; bi < 5; bi++) {
+      broom.fillRect(-20 + bi * 10, 14, 7, 11);
+    }
+    broom.x = -30;
+    broom.y = groundY - 2;
+    broom.setAngle(-18);
+
+    this.tweens.add({
+      targets: broom, x: W + 30, angle: 18,
+      duration: toolId === 'brush' ? 550 : 680, ease: 'Sine.InOut',
+      onComplete: () => { try { broom.destroy(); } catch { /* */ } },
+    });
+
+    // dust trail
+    const dustCol = toolId === 'cloth' ? 0xC0C0C0 : 0xBBAA88;
+    for (let di = 0; di < 7; di++) {
+      this.time.delayedCall(di * 70, () => {
+        if (!this.scene?.isActive('HabitatRoom')) return;
+        const px = 20 + di * ((W - 40) / 7);
+        this._spawnParticles(px, groundY - 6, dustCol, 3);
+      });
+    }
+  }
+
+  // ── LISTING SYSTEM ────────────────────────────────────────────────────────
+
+  private _handleListBtn() {
+    const listing = Game.state!.listings.find(l => l.monsterId === this._monster.id);
+    if (!listing) { this._doList(); return; }
+    if (Date.now() >= listing.readyAt) {
+      this._doCollect(listing);
+    } else {
+      this._showCancelListing(listing);
+    }
+  }
+
+  private _doList() {
+    const listing: Listing = {
+      id: 'lst_' + Date.now(),
+      monsterId: this._monster.id,
+      price: this._sellPrice,
+      listedAt: Date.now(),
+      readyAt: Date.now() + LISTING_DURATION_MS,
+    };
+    Game.state!.listings.push(listing);
     store.setJSON('mps_state', Game.state);
-    sfx.pet();
-    this._spawnParticles(this._monImg.x, this._monImg.y - 40, 0xFF88DD, 8);
-    showFloat(this, this._monImg.x, this._monImg.y - 85, '+8 💛', '#ffdd55');
-    this._refreshStats();
+    this.tweens.killTweensOf(this._sellBtn);
+    this._sellBtn.setScale(1);
+    this._updateListBtnState();
+    this._startListTimer();
+    showToast(this, 'Listed! Collect in 15 min', '#aaffaa');
   }
 
-  private _doClean() {
-    this._monster.cleanliness = Math.min(100, this._monster.cleanliness + 25);
-    this._monster.lastCaredAt = Date.now();
-    this._gainXP(5);
-    store.setJSON('mps_state', Game.state);
-    sfx.clean();
-    this._spawnParticles(this._monImg.x, this._monImg.y - 40, 0x88CCFF, 9);
-    showFloat(this, this._monImg.x, this._monImg.y - 85, '+25 ✨', '#88ccff');
-    this._refreshStats();
-  }
-
-  private _doSell() {
-    const basePrice = this._sellPrice;
+  private _doCollect(listing: Listing) {
+    const basePrice = listing.price;
     const W = this._W, H = this._H;
 
-    // container at (0,0) holds every popup element — destroy container = destroy all
     const popup = this.add.container(0, 0).setDepth(50);
-
     const popBg = this.add.graphics();
-    popBg.fillStyle(0x000000, 0.72);
-    popBg.fillRect(0, 0, W, H);
+    popBg.fillStyle(0, 0.72); popBg.fillRect(0, 0, W, H);
     popup.add(popBg);
 
     const panel = this.add.graphics();
-    panel.fillStyle(0x120830, 1);
-    panel.fillRoundedRect(W/2 - 155, H/2 - 125, 310, 270, 18);
-    panel.lineStyle(2, 0x7050d0, 0.8);
-    panel.strokeRoundedRect(W/2 - 155, H/2 - 125, 310, 270, 18);
+    panel.fillStyle(0x061A10, 1);
+    panel.fillRoundedRect(W/2 - 155, H/2 - 130, 310, 275, 18);
+    panel.lineStyle(2, 0x40B070, 0.85);
+    panel.strokeRoundedRect(W/2 - 155, H/2 - 130, 310, 275, 18);
     popup.add(panel);
 
-    popup.add(this.add.text(W/2, H/2 - 90, 'Sell ' + this._sp.name + '?', {
-      fontFamily: FONT, fontSize: '20px', fontStyle: 'bold', color: '#ffffff',
+    popup.add(this.add.text(W/2, H/2 - 96, 'Ready to Collect!', {
+      fontFamily: FONT, fontSize: '21px', fontStyle: 'bold', color: '#66FF99',
     }).setOrigin(0.5));
-    popup.add(this.add.text(W/2, H/2 - 58, 'Normal: ' + basePrice + '⬡', {
-      fontFamily: FONT, fontSize: '15px', color: '#aaaacc',
+    popup.add(this.add.text(W/2, H/2 - 62, this._sp.name + ' sold for ' + basePrice + '⬡', {
+      fontFamily: FONT, fontSize: '14px', color: '#aaccaa',
     }).setOrigin(0.5));
-    popup.add(this.add.text(W/2, H/2 - 34, 'Watch ad: ' + (basePrice * 2) + '⬡', {
-      fontFamily: FONT, fontSize: '15px', color: '#FFD700',
+    popup.add(this.add.text(W/2, H/2 - 40, 'Or watch an ad to double it!', {
+      fontFamily: FONT, fontSize: '12px', color: '#FFD700',
     }).setOrigin(0.5));
 
-    const confirmSell = (price: number) => {
+    const finalize = (price: number) => {
       popup.destroy();
       Game.state!.coins += price;
       Game.state!.monsters = Game.state!.monsters.filter(m => m.id !== this._monster.id);
+      Game.state!.listings = Game.state!.listings.filter(l => l.id !== listing.id);
       Game.state!.stats.sold++;
       Game.state!.stats.totalEarned += price;
       store.setJSON('mps_state', Game.state);
       sfx.sell();
-      this._spawnParticles(W/2, H/2 - 80, 0xFFD700, 22);
+      this._spawnParticles(W/2, H/2 - 80, 0xFFD700, 26);
       showFloat(this, W/2, H/2 - 120, '+' + price + ' ⬡', '#ffd700');
-      this.time.delayedCall(950, () => { this.scene.start('Hub'); });
+      this.time.delayedCall(950, () => this.scene.start('Hub'));
     };
 
-    popup.add(makeButton(this, W/2, H/2 + 14, 200, 48, 'Sell ' + basePrice + '⬡', 0x1A5030, () => {
-      confirmSell(basePrice);
+    popup.add(makeButton(this, W/2, H/2 + 10, 210, 50, 'Collect ' + basePrice + '⬡', 0x1A5030, () => {
+      finalize(basePrice);
     }, 15));
-    popup.add(makeButton(this, W/2, H/2 + 72, 260, 48, 'Ad x2 → ' + (basePrice * 2) + '⬡', 0x7A4A00, () => {
-      Ads.showRewarded(res => { confirmSell(res.rewarded ? basePrice * 2 : basePrice); });
-    }, 15));
-    popup.add(makeButton(this, W/2, H/2 + 122, 120, 36, 'Cancel', 0x2a1560, () => {
+    popup.add(makeButton(this, W/2, H/2 + 72, 270, 50, 'Ad x2 → ' + (basePrice * 2) + '⬡', 0x7A4A00, () => {
+      Ads.showRewarded(res => { finalize(res.rewarded ? basePrice * 2 : basePrice); });
+    }, 14));
+    popup.add(makeButton(this, W/2, H/2 + 128, 120, 38, 'Cancel', 0x2a1560, () => {
       popup.destroy();
     }, 13));
+  }
+
+  private _showCancelListing(listing: Listing) {
+    const W = this._W, H = this._H;
+    const popup = this.add.container(0, 0).setDepth(50);
+
+    const remaining = Math.max(0, listing.readyAt - Date.now());
+    const mins = Math.ceil(remaining / 60000);
+
+    const popBg = this.add.graphics();
+    popBg.fillStyle(0, 0.7); popBg.fillRect(0, 0, W, H);
+    popup.add(popBg);
+
+    const panel = this.add.graphics();
+    panel.fillStyle(0x100828, 1);
+    panel.fillRoundedRect(W/2 - 135, H/2 - 100, 270, 200, 16);
+    panel.lineStyle(2, 0x5040b0, 0.8);
+    panel.strokeRoundedRect(W/2 - 135, H/2 - 100, 270, 200, 16);
+    popup.add(panel);
+
+    popup.add(this.add.text(W/2, H/2 - 68, 'Listed for ' + listing.price + '⬡', {
+      fontFamily: FONT, fontSize: '18px', fontStyle: 'bold', color: '#ffffff',
+    }).setOrigin(0.5));
+    popup.add(this.add.text(W/2, H/2 - 40, 'Ready in ~' + mins + ' min', {
+      fontFamily: FONT, fontSize: '14px', color: '#9999cc',
+    }).setOrigin(0.5));
+
+    popup.add(makeButton(this, W/2, H/2 + 10, 210, 48, 'Cancel Listing', 0x6A1010, () => {
+      Game.state!.listings = Game.state!.listings.filter(l => l.id !== listing.id);
+      store.setJSON('mps_state', Game.state);
+      if (this._listTimer) { this._listTimer.remove(); this._listTimer = null; }
+      popup.destroy();
+      this._updateListBtnState();
+      this.tweens.add({
+        targets: this._sellBtn, scaleX: 1.04, scaleY: 1.04,
+        duration: 800, yoyo: true, repeat: -1, ease: 'Sine.InOut',
+      });
+      showToast(this, 'Listing cancelled', '#ffaaaa');
+    }, 14));
+    popup.add(makeButton(this, W/2, H/2 + 70, 140, 38, 'Keep Listed', 0x2a1560, () => {
+      popup.destroy();
+    }, 14));
+  }
+
+  private _updateListBtnState() {
+    const listing = Game.state!.listings.find(l => l.monsterId === this._monster.id);
+    if (!listing) {
+      setButtonLabel(this._sellBtn, 'List ' + this._sellPrice + '⬡');
+      setButtonColor(this._sellBtn, 0x8B6000);
+      return;
+    }
+    const remaining = listing.readyAt - Date.now();
+    if (remaining <= 0) {
+      setButtonLabel(this._sellBtn, 'Collect ' + listing.price + '⬡');
+      setButtonColor(this._sellBtn, 0x1A7040);
+      if (!this.tweens.isTweening(this._sellBtn)) {
+        this.tweens.add({
+          targets: this._sellBtn, scaleX: 1.07, scaleY: 1.07,
+          duration: 550, yoyo: true, repeat: -1,
+        });
+      }
+    } else {
+      const mins = Math.ceil(remaining / 60000);
+      setButtonLabel(this._sellBtn, 'Listed ' + mins + 'm');
+      setButtonColor(this._sellBtn, 0x334466);
+    }
+  }
+
+  private _startListTimer() {
+    if (this._listTimer) this._listTimer.remove();
+    this._listTimer = this.time.addEvent({
+      delay: 1000, loop: true, callback: () => this._updateListBtnState(),
+    });
   }
 
   // ── XP + LEVEL UP ─────────────────────────────────────────────────────────
