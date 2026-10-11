@@ -335,6 +335,11 @@ export class HabitatRoom extends Phaser.Scene {
       'List ' + this._sellPrice + '⬡', 0x8B6000, () => this._handleListBtn(), 13);
     this._sellBtn.setDepth(20);
 
+    const maxPrice = Math.max(10, Math.round(sp.price * (1 + 10 * 0.2) * 0.8));
+    this.add.text(W - 72, 62, 'Lv10 max: ' + maxPrice + '⬡  ·  ❤️', {
+      fontFamily: FONT, fontSize: '10px', color: '#887799',
+    }).setOrigin(0.5).setDepth(20);
+
     this._coinTxt = this.add.text(W / 2, H * 0.72 + 5, '⬡ ' + Game.state!.coins, {
       fontFamily: FONT, fontSize: '15px', color: '#FFD700',
       stroke: '#000000', strokeThickness: 2,
