@@ -25,7 +25,7 @@ const PAGES = [
   {
     title: '💰 Selling Monsters',
     lines: [
-      'Your monster must be Adult (Lv 5+) to list.',
+      'Monster must be Adult (Lv 5+) to list for sale.',
       'Tap "List" to post it for sale.',
       'A buyer arrives in 15 min – 2 hrs.',
       'Collect the sale, or watch an ad to double it!',

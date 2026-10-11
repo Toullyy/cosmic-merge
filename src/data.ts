@@ -79,7 +79,7 @@ export const DIAMOND_NEW_COLOR   = 2;
 export const AD_COINS_REWARD   = 30;
 export const AD_COOLDOWN_MS    = 30 * 60 * 1000;
 
-export const LEVEL_NAMES = ['', 'Hatchling', 'Hatchling', 'Young', 'Young', 'Adult', 'Adult', 'Elder', 'Elder', 'Ancient', 'Ancient'];
+export const LEVEL_NAMES = ['', 'Baby', 'Baby', 'Young', 'Young', 'Adult', 'Adult', 'Elder', 'Elder', 'Ancient', 'Ancient'];
 export function getLevelName(level: number): string {
   return LEVEL_NAMES[Math.min(10, Math.max(1, level))] ?? 'Ancient';
 }
