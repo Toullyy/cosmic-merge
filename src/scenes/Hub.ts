@@ -95,20 +95,20 @@ export class Hub extends Phaser.Scene {
   private _buildHUD(W: number) {
     const hud = this.add.graphics().setDepth(10);
 
-    // Coin box
-    hud.fillStyle(0x000000, 0.93);
+    // Coin box — warm dark wood tone
+    hud.fillStyle(0x3A1808, 0.92);
     hud.fillRoundedRect(8, 8, 168, 52, 14);
-    hud.lineStyle(2, 0xFFD700, 0.72);
+    hud.lineStyle(2, 0xFFD700, 0.85);
     hud.strokeRoundedRect(8, 8, 168, 52, 14);
-    hud.lineStyle(4, 0xFFD700, 0.10);
+    hud.lineStyle(4, 0xFFD700, 0.18);
     hud.strokeRoundedRect(5, 5, 174, 58, 17);
 
-    // Diamond box
-    hud.fillStyle(0x000000, 0.93);
+    // Diamond box — warm dark wood tone
+    hud.fillStyle(0x0A1E38, 0.92);
     hud.fillRoundedRect(182, 8, 120, 52, 14);
-    hud.lineStyle(2, 0x55EEFF, 0.72);
+    hud.lineStyle(2, 0x55EEFF, 0.85);
     hud.strokeRoundedRect(182, 8, 120, 52, 14);
-    hud.lineStyle(4, 0x55EEFF, 0.10);
+    hud.lineStyle(4, 0x55EEFF, 0.18);
     hud.strokeRoundedRect(179, 5, 126, 58, 17);
 
     this.add.text(26, 34, '⬡', {
@@ -131,7 +131,7 @@ export class Hub extends Phaser.Scene {
     }).setOrigin(0, 0.5).setDepth(11);
 
     // Free-coins ad button (sits between diamond box and sound icon)
-    this._adBtn = makeButton(this, 370, 34, 108, 40, this._adBtnLabel(), 0x1A3A10, () => {
+    this._adBtn = makeButton(this, 370, 34, 108, 40, this._adBtnLabel(), 0x2A7818, () => {
       this._handleAdCoins();
     }, 12).setDepth(11);
     this.time.addEvent({
@@ -329,13 +329,13 @@ export class Hub extends Phaser.Scene {
   private _buildBottomNav(W: number, H: number) {
     const btnY = H - 54;
     const bw = 165, bh = 52;
-    makeButton(this, W / 6, btnY, bw, bh, 'Shop', 0x2a1560, () => {
+    makeButton(this, W / 6, btnY, bw, bh, 'Shop', 0x6828A0, () => {
       Ads.maybeInterstitial(() => { this.scene.start('Merchant'); });
     }, 16).setDepth(10);
 
     const disc = Game.state!.stats.discovered.length;
     const hasNew = (Game.state!.newDiscoveries?.length ?? 0) > 0;
-    this._dexBtn = makeButton(this, W / 2, btnY, bw, bh, 'Dex ' + disc + '/25', 0x1a2050, () => {
+    this._dexBtn = makeButton(this, W / 2, btnY, bw, bh, 'Dex ' + disc + '/25', 0x0878A0, () => {
       this.scene.start('PokedexScene');
     }, 16);
     this._dexBtn.setDepth(10);
@@ -346,7 +346,7 @@ export class Hub extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(13);
     this._updateDexDot(W, bw, btnY, bh, hasNew);
 
-    makeButton(this, W * 5 / 6, btnY, bw, bh, 'Breed', 0x1a3060, () => {
+    makeButton(this, W * 5 / 6, btnY, bw, bh, 'Breed', 0xA02860, () => {
       const eligible = Game.state!.monsters.filter(m => m.level >= 4);
       if (eligible.length < 2) {
         showToast(this, 'Need 2 monsters at Level 4+', '#ff9999');

@@ -307,16 +307,16 @@ export class HabitatRoom extends Phaser.Scene {
 
   private _buildActions(W: number, H: number) {
     const btnY = H - 58, sp = 148;
-    makeButton(this, W/2 - sp, btnY, 128, 52, '🍽 Feed',  0x8B2200, () => this._showFoodPicker(), 16).setDepth(10);
-    makeButton(this, W/2,      btnY, 128, 52, '🎾 Play',  0x6A2090, () => this._showToyPicker(), 16).setDepth(10);
-    makeButton(this, W/2 + sp, btnY, 128, 52, '🧹 Clean', 0x1A5580, () => this._showToolPicker(), 16).setDepth(10);
+    makeButton(this, W/2 - sp, btnY, 128, 52, '🍽 Feed',  0xC83800, () => this._showFoodPicker(), 16).setDepth(10);
+    makeButton(this, W/2,      btnY, 128, 52, '🎾 Play',  0x9030C8, () => this._showToyPicker(), 16).setDepth(10);
+    makeButton(this, W/2 + sp, btnY, 128, 52, '🧹 Clean', 0x2080C0, () => this._showToolPicker(), 16).setDepth(10);
   }
 
   // ── HUD ───────────────────────────────────────────────────────────────────
 
   private _buildHUD(W: number, H: number, sp: Species) {
     const mods = getVariantModifiers(this._monster.variantIndex);
-    makeButton(this, 56, 34, 92, 44, '← Back', 0x1a0a2e, () => { this.scene.start('Hub'); }, 15).setDepth(20);
+    makeButton(this, 56, 34, 92, 44, '← Back', 0x4A2010, () => { this.scene.start('Hub'); }, 15).setDepth(20);
 
     const displayName = this._monster.nickname ?? sp.name;
     this._nameTxt = this.add.text(W / 2, 19, displayName + (mods.isGolden ? ' ★' : ''), {
@@ -806,13 +806,13 @@ export class HabitatRoom extends Phaser.Scene {
       this.time.delayedCall(950, () => this.scene.start('Hub'));
     };
 
-    popup.add(makeButton(this, W/2, H/2 + 30, 210, 50, 'Collect ' + basePrice + '⬡', 0x1A5030, () => {
+    popup.add(makeButton(this, W/2, H/2 + 30, 210, 50, 'Collect ' + basePrice + '⬡', 0x2A8840, () => {
       finalize(basePrice);
     }, 15));
     popup.add(makeButton(this, W/2, H/2 + 92, 270, 50, 'Ad x2 → ' + (basePrice * 2) + '⬡', 0x7A4A00, () => {
       Ads.showRewarded(res => { finalize(res.rewarded ? basePrice * 2 : basePrice); });
     }, 14));
-    popup.add(makeButton(this, W/2, H/2 + 148, 120, 38, 'Cancel', 0x2a1560, () => {
+    popup.add(makeButton(this, W/2, H/2 + 148, 120, 38, 'Cancel', 0x4A2890, () => {
       popup.destroy();
     }, 13));
   }
@@ -854,7 +854,7 @@ export class HabitatRoom extends Phaser.Scene {
       });
       showToast(this, 'Listing cancelled', '#ffaaaa');
     }, 14));
-    popup.add(makeButton(this, W/2, H/2 + 70, 140, 38, 'Keep Listed', 0x2a1560, () => {
+    popup.add(makeButton(this, W/2, H/2 + 70, 140, 38, 'Keep Listed', 0x4A2890, () => {
       popup.destroy();
     }, 14));
   }

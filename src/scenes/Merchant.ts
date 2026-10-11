@@ -35,7 +35,7 @@ export class Merchant extends Phaser.Scene {
       fontFamily: FONT, fontSize: '18px', color: '#ffffff', fontStyle: 'bold',
     }).setOrigin(0, 0.5);
 
-    makeButton(this, W - 70, 30, 110, 40, '← Back', 0x2a1560, () => {
+    makeButton(this, W - 70, 30, 110, 40, '← Back', 0x5828A0, () => {
       this.scene.start('Hub');
     }, 15);
 
@@ -167,21 +167,25 @@ export class Merchant extends Phaser.Scene {
         eggG.fillStyle(0xffffff, 0.22);
         eggG.fillEllipse(cx - 7, cy - 49, 14, 20);
       } else {
-        eggG.fillStyle(0x333333, 1);
+        eggG.fillStyle(sp.baseColor, 0.25);
         eggG.fillEllipse(cx, cy - 38, 46, 58);
+        eggG.lineStyle(2, sp.baseColor, 0.55);
+        eggG.strokeEllipse(cx, cy - 38, 46, 58);
+        eggG.fillStyle(0xffffff, 0.08);
+        eggG.fillEllipse(cx - 7, cy - 49, 14, 20);
       }
       this._gridGroup.add(eggG);
 
       this._gridGroup.add(this.add.text(cx, cy, unlocked ? sp.name : '???', {
         fontFamily: FONT, fontSize: '15px', fontStyle: 'bold',
-        color: unlocked ? '#ffffff' : '#555555', align: 'center',
+        color: unlocked ? '#ffffff' : '#AAAACC', align: 'center',
       }).setOrigin(0.5));
       this._gridGroup.add(this.add.text(cx, cy + 22, '⏱ ' + sp.hatchHours + 'h', {
         fontFamily: FONT, fontSize: '13px', color: unlocked ? '#BBAAFF' : '#776699',
       }).setOrigin(0.5));
 
       const btnLabel = unlocked ? ('Buy  ' + sp.price + '⬡') : (HABITATS[sp.habitat].unlockCost + '⬡ Unlock');
-      const btnCol = unlocked ? 0x2a5030 : 0x251040;
+      const btnCol = unlocked ? 0x30A040 : 0x4A1878;
       const btn = makeButton(this, cx, cy + 66, 160, 36, btnLabel, btnCol, () => {
         this._handleBuy(sp.id, unlocked);
       }, 14);

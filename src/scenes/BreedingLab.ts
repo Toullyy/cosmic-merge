@@ -39,7 +39,7 @@ export class BreedingLab extends Phaser.Scene {
       fontFamily: FONT, fontSize: '15px', color: '#BBAAFF',
     }).setOrigin(0.5);
 
-    makeButton(this, W - 70, 30, 110, 40, '← Back', 0x2a1560, () => {
+    makeButton(this, W - 70, 30, 110, 40, '← Back', 0x5828A0, () => {
       Ads.maybeInterstitial(() => { this.scene.start('Hub'); });
     }, 15);
 
@@ -50,7 +50,7 @@ export class BreedingLab extends Phaser.Scene {
     this._listGroup = this.add.group();
     this._buildMonsterList(W, H);
 
-    this._breedBtn = makeButton(this, W/2, H - 60, 220, 54, '🧬 Breed!', 0x2a0860, () => {
+    this._breedBtn = makeButton(this, W/2, H - 60, 220, 54, '🧬 Breed!', 0x7030B8, () => {
       this._doBreed();
     }, 18);
     this._breedBtn.setAlpha(0.4);
@@ -92,9 +92,9 @@ export class BreedingLab extends Phaser.Scene {
       const borderCol = isA ? 0xff8844 : (isB ? 0x44aaff : 0x2a2a4a);
 
       const cardBg = this.add.graphics();
-      cardBg.fillStyle(0x100820, 1);
+      cardBg.fillStyle(0x1E0C48, 1);
       cardBg.fillRoundedRect(cx - 58, cy - 58, 116, 126, 12);
-      cardBg.lineStyle(2, borderCol, isA || isB ? 1 : 0.4);
+      cardBg.lineStyle(2, borderCol, isA || isB ? 1 : 0.65);
       cardBg.strokeRoundedRect(cx - 58, cy - 58, 116, 126, 12);
       this._listGroup.add(cardBg);
 
