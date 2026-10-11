@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { Game, FONT, sfx } from '../utils';
 import { SPECIES, newMonster, DIAMOND_NEW_SPECIES, DIAMOND_NEW_COLOR } from '../data';
-import { shiftHue, darken, lighten, getVariantModifiers, makeMonsterTexture } from '../MonsterRenderer';
+import { shiftHue, darken, lighten, getVariantModifiers, preloadMonsterTexture } from '../MonsterRenderer';
 import { makeButton } from '../ui/Button';
 
 export class HatchScene extends Phaser.Scene {
@@ -80,10 +80,11 @@ export class HatchScene extends Phaser.Scene {
 
     const egg = Game.state!.eggs.find(e => e.id === eggId)!;
     const mon = newMonster(egg.speciesId, egg.variantIndex, egg.source);
-    const texKey = makeMonsterTexture(this, mon);
-    const img = this.add.image(cx, cy, texKey).setDisplaySize(140, 140).setAlpha(0);
-    this.tweens.add({ targets: img, alpha: 1, scaleX: { from: 0.3, to: 1 }, scaleY: { from: 0.3, to: 1 }, duration: 500, ease: 'Back.Out' });
-    this.tweens.add({ targets: img, y: img.y - 8, duration: 1100, ease: 'Sine.InOut', yoyo: true, repeat: -1 });
+    preloadMonsterTexture(this, mon).then(texKey => {
+      const img = this.add.image(cx, cy, texKey).setDisplaySize(140, 140).setAlpha(0);
+      this.tweens.add({ targets: img, alpha: 1, scaleX: { from: 0.3, to: 1 }, scaleY: { from: 0.3, to: 1 }, duration: 500, ease: 'Back.Out' });
+      this.tweens.add({ targets: img, y: img.y - 8, duration: 1100, ease: 'Sine.InOut', yoyo: true, repeat: -1 });
+    });
 
     const mods = getVariantModifiers(mon.variantIndex);
     const isNewSpecies = !Game.state!.stats.discovered.includes(mon.speciesId);

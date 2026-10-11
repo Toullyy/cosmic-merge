@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { Game, FONT, store } from '../utils';
 import { SPECIES } from '../data';
-import { makeMonsterTexture } from '../MonsterRenderer';
+import { makeMonsterTexture, preloadMonsterTexture } from '../MonsterRenderer';
 import { makeButton } from '../ui/Button';
 import type { HabitatType, Monster } from '../types';
 
@@ -33,7 +33,19 @@ export class PokedexScene extends Phaser.Scene {
     this._buildBg(W, H);
     this._buildHeader(W);
     this._buildTabs(W);
-    this._buildGrid(W);
+
+    // Preload SVG textures for discovered species, then build grid
+    const discovered = Game.state!.stats.discovered;
+    const preloads = discovered.map(sid => {
+      const sp = SPECIES[sid];
+      const dummy: Monster = {
+        id: 'dex_' + sid, speciesId: sid, variantIndex: 0,
+        habitatType: sp.habitat, level: 1, xp: 0,
+        happiness: 80, hunger: 70, cleanliness: 90, lastCaredAt: 0, source: 'dex',
+      };
+      return preloadMonsterTexture(this, dummy);
+    });
+    Promise.all(preloads).then(() => { this._buildGrid(W); });
   }
 
   private _buildBg(W: number, H: number) {

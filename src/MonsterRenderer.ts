@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { SPECIES } from './data';
+import { buildMonsterSVG } from './monsterSprites';
 import type { Monster, Species, VariantModifiers } from './types';
 
 export function shiftHue(baseColorInt: number, degrees: number): number {
@@ -277,7 +278,30 @@ function drawGoldenGlow(g: Phaser.GameObjects.Graphics, cx: number, cy: number, 
   });
 }
 
-export function makeMonsterTexture(scene: Phaser.Scene, monster: Monster): string {
+// ── SVG-based async texture loader ────────────────────────────────────────────
+
+export function preloadMonsterTexture(scene: Phaser.Scene, monster: Monster): Promise<string> {
+  const key = 'mon_' + monster.speciesId + '_' + monster.variantIndex;
+  if (scene.textures.exists(key)) return Promise.resolve(key);
+
+  const sp     = SPECIES[monster.speciesId];
+  const mods   = getVariantModifiers(monster.variantIndex);
+  const bc     = shiftHue(sp.baseColor, mods.hueShift);
+  const sc     = darken(bc, 50);
+  const lc     = lighten(bc, 48);
+  const ec     = shiftHue(bc, 150);
+  const svgStr = buildMonsterSVG(sp.bodyShape, bc, sc, lc, ec, sp.habitat, mods.isGolden);
+
+  return new Promise<string>(resolve => {
+    const img = new window.Image(256, 256);
+    img.onload  = () => { scene.textures.addImage(key, img); resolve(key); };
+    img.onerror = () => { resolve(makeMonsterTextureFallback(scene, monster)); };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
+  });
+}
+
+// Synchronous fallback (Graphics-based) used when SVG hasn't been pre-loaded.
+function makeMonsterTextureFallback(scene: Phaser.Scene, monster: Monster): string {
   const key = 'mon_' + monster.speciesId + '_' + monster.variantIndex;
   if (scene.textures.exists(key)) return key;
   const sp = SPECIES[monster.speciesId];
@@ -294,4 +318,10 @@ export function makeMonsterTexture(scene: Phaser.Scene, monster: Monster): strin
   g.generateTexture(key, SIZE, SIZE);
   g.destroy();
   return key;
+}
+
+export function makeMonsterTexture(scene: Phaser.Scene, monster: Monster): string {
+  const key = 'mon_' + monster.speciesId + '_' + monster.variantIndex;
+  if (scene.textures.exists(key)) return key;
+  return makeMonsterTextureFallback(scene, monster);
 }

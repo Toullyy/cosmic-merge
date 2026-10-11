@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { Game, store } from '../utils';
 import { DECAY, newState, generateMerchantStock, MERCHANT_REFRESH_MS, TANK_CAPACITY, randomBuyer } from '../data';
+import { preloadMonsterTexture } from '../MonsterRenderer';
 import type { GameState } from '../types';
 
 export class Boot extends Phaser.Scene {
@@ -51,7 +52,16 @@ export class Boot extends Phaser.Scene {
       store.setJSON('mps_state', Game.state);
     }
     registerVisibilityHandler();
-    this.scene.start('Hub');
+
+    // Preload all monster SVG textures before showing Hub
+    const monsters = Game.state!.monsters;
+    if (monsters.length === 0) {
+      this.scene.start('Hub');
+    } else {
+      Promise.all(monsters.map(m => preloadMonsterTexture(this, m))).then(() => {
+        this.scene.start('Hub');
+      });
+    }
   }
 }
 
