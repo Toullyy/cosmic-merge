@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { Game, FONT, store, sfx } from '../utils';
-import { SPECIES, HABITATS, TANK_COST, TANK_CAPACITY, MAX_TANKS, getLevelName } from '../data';
+import { SPECIES, HABITATS, TANK_COST, TANK_CAPACITY, MAX_TANKS, getLevelName, AD_COINS_REWARD, AD_COOLDOWN_MS } from '../data';
 import { makeMonsterTexture, getVariantModifiers, shiftHue, darken, lighten } from '../MonsterRenderer';
 import { makeButton, setButtonLabel } from '../ui/Button';
 import { showToast } from '../ui/Toast';
@@ -19,6 +19,7 @@ export class Hub extends Phaser.Scene {
   private _dexDot!: Phaser.GameObjects.Graphics;
   private _dexDotTxt!: Phaser.GameObjects.Text;
   private _diamondTxt!: Phaser.GameObjects.Text;
+  private _adBtn!: Phaser.GameObjects.Container;
 
   constructor() { super({ key: 'Hub' }); }
 
@@ -131,6 +132,15 @@ export class Hub extends Phaser.Scene {
       stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0, 0.5).setDepth(11);
 
+    // Free-coins ad button (sits between diamond box and sound icon)
+    this._adBtn = makeButton(this, 370, 34, 108, 40, this._adBtnLabel(), 0x1A3A10, () => {
+      this._handleAdCoins();
+    }, 12).setDepth(11);
+    this.time.addEvent({
+      delay: 1000, loop: true,
+      callback: () => { if (this._adBtn) setButtonLabel(this._adBtn, this._adBtnLabel()); },
+    });
+
     const sndTxt = this.add.text(W - 50, 34, sfx.muted ? '🔇' : '🔊', {
       fontFamily: FONT, fontSize: '22px', color: '#cccccc',
     }).setOrigin(0.5, 0.5).setDepth(11).setInteractive({ useHandCursor: true });
@@ -140,6 +150,36 @@ export class Hub extends Phaser.Scene {
       fontFamily: FONT, fontSize: '22px', color: '#9060e0', fontStyle: 'bold',
     }).setOrigin(1, 0.5).setDepth(11).setInteractive({ useHandCursor: true })
       .on('pointerdown', () => { this.scene.launch('HowToPlay'); });
+  }
+
+  private _adCooldownRemaining(): number {
+    return Math.max(0, (Game.state!.adCooldownAt ?? 0) - Date.now());
+  }
+
+  private _adBtnLabel(): string {
+    const r = this._adCooldownRemaining();
+    if (r <= 0) return '📺 +' + AD_COINS_REWARD + '⬡';
+    const mins = Math.ceil(r / 60000);
+    return '📺 ' + (mins >= 60 ? Math.floor(mins / 60) + 'h' : mins + 'm');
+  }
+
+  private _handleAdCoins() {
+    const r = this._adCooldownRemaining();
+    if (r > 0) {
+      const mins = Math.ceil(r / 60000);
+      showToast(this, 'Next free coins in ' + mins + ' min', '#ffaaaa');
+      return;
+    }
+    Ads.showRewarded((res: { rewarded: boolean }) => {
+      if (res.rewarded) {
+        Game.state!.coins += AD_COINS_REWARD;
+        Game.state!.adCooldownAt = Date.now() + AD_COOLDOWN_MS;
+        store.setJSON('mps_state', Game.state);
+        this._updateCoinDisplay();
+        sfx.buy();
+        showToast(this, '+' + AD_COINS_REWARD + ' ⬡ free coins!', '#aaffaa');
+      }
+    });
   }
 
   private _buildTabs(W: number) {

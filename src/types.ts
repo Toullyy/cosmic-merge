@@ -73,6 +73,7 @@ export interface GameState {
   tanks?: Record<HabitatType, number>;
   newDiscoveries?: string[];
   diamonds?: number;
+  adCooldownAt?: number;
 }
 
 export interface VariantModifiers {
