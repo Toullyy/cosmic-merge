@@ -159,37 +159,62 @@ function drawTail(g: Phaser.GameObjects.Graphics, sp: Species, bodyColor: number
   }
 }
 
+function drawLegs(g: Phaser.GameObjects.Graphics, sp: Species, bodyColor: number, cx: number, cy: number, r: number) {
+  const legCol = darken(bodyColor, 22);
+  if (sp.bodyShape === 'round') {
+    g.lineStyle(2.5, legCol, 0.88);
+    const pairs = [{ dy: -r*0.08, ext: 0.22 }, { dy: r*0.14, ext: 0.28 }, { dy: r*0.34, ext: 0.18 }];
+    pairs.forEach(lp => {
+      g.beginPath(); g.moveTo(cx - r*0.84, cy + lp.dy); g.lineTo(cx - r*1.22, cy + lp.dy + r*lp.ext); g.strokePath();
+      g.beginPath(); g.moveTo(cx + r*0.84, cy + lp.dy); g.lineTo(cx + r*1.22, cy + lp.dy + r*lp.ext); g.strokePath();
+    });
+  } else if (sp.bodyShape === 'spiky') {
+    g.lineStyle(3.2, legCol, 0.9);
+    g.beginPath(); g.moveTo(cx - r*0.52, cy + r*0.18); g.lineTo(cx - r*0.82, cy + r*0.54); g.lineTo(cx - r*1.02, cy + r*0.46); g.strokePath();
+    g.beginPath(); g.moveTo(cx + r*0.52, cy + r*0.18); g.lineTo(cx + r*0.82, cy + r*0.54); g.lineTo(cx + r*1.02, cy + r*0.46); g.strokePath();
+    g.beginPath(); g.moveTo(cx - r*0.26, cy + r*0.34); g.lineTo(cx - r*0.58, cy + r*0.68); g.lineTo(cx - r*0.78, cy + r*0.58); g.strokePath();
+    g.beginPath(); g.moveTo(cx + r*0.26, cy + r*0.34); g.lineTo(cx + r*0.58, cy + r*0.68); g.lineTo(cx + r*0.78, cy + r*0.58); g.strokePath();
+  } else if (sp.bodyShape === 'flat') {
+    g.lineStyle(3.5, legCol, 0.9);
+    g.beginPath(); g.moveTo(cx - r*0.76, cy - r*0.02); g.lineTo(cx - r*1.08, cy + r*0.30); g.lineTo(cx - r*1.26, cy + r*0.20); g.strokePath();
+    g.beginPath(); g.moveTo(cx + r*0.76, cy - r*0.02); g.lineTo(cx + r*1.08, cy + r*0.30); g.lineTo(cx + r*1.26, cy + r*0.20); g.strokePath();
+    g.beginPath(); g.moveTo(cx - r*0.56, cy + r*0.22); g.lineTo(cx - r*0.98, cy + r*0.50); g.lineTo(cx - r*1.18, cy + r*0.38); g.strokePath();
+    g.beginPath(); g.moveTo(cx + r*0.56, cy + r*0.22); g.lineTo(cx + r*0.98, cy + r*0.50); g.lineTo(cx + r*1.18, cy + r*0.38); g.strokePath();
+  }
+}
+
 function drawFeatures(g: Phaser.GameObjects.Graphics, sp: Species, bodyColor: number, cx: number, cy: number, r: number) {
   const irisColor = shiftHue(bodyColor, 150);
-  const eyeOffY = sp.bodyShape === 'flat' ? 0.16 : sp.bodyShape === 'long' ? 0.28 : 0.1;
+  const eyeOffY = sp.bodyShape === 'flat' ? 0.14 : sp.bodyShape === 'long' ? 0.26 : 0.08;
   const eyeY = cy - r * eyeOffY;
-  const eyeX = r * 0.28;
-  const er = Math.max(3.5, r * 0.13);
+  const eyeX = r * 0.26;
+  const er = Math.max(5.0, r * 0.18);
 
-  g.fillStyle(irisColor, 0.14);
-  g.fillCircle(cx - eyeX, eyeY, er * 2.4); g.fillCircle(cx + eyeX, eyeY, er * 2.4);
+  g.fillStyle(irisColor, 0.12);
+  g.fillCircle(cx - eyeX, eyeY, er * 2.6); g.fillCircle(cx + eyeX, eyeY, er * 2.6);
   g.fillStyle(0xffffff, 1);
-  g.fillCircle(cx - eyeX, eyeY, er * 1.55); g.fillCircle(cx + eyeX, eyeY, er * 1.55);
+  g.fillCircle(cx - eyeX, eyeY, er * 1.75); g.fillCircle(cx + eyeX, eyeY, er * 1.75);
   g.fillStyle(irisColor, 1);
-  g.fillCircle(cx - eyeX, eyeY + 0.6, er * 1.15); g.fillCircle(cx + eyeX, eyeY + 0.6, er * 1.15);
+  g.fillCircle(cx - eyeX, eyeY + 0.6, er * 1.28); g.fillCircle(cx + eyeX, eyeY + 0.6, er * 1.28);
   g.fillStyle(0x080015, 1);
-  g.fillCircle(cx - eyeX + 1, eyeY + 1, er * 0.7); g.fillCircle(cx + eyeX + 1, eyeY + 1, er * 0.7);
+  g.fillCircle(cx - eyeX + 1, eyeY + 1, er * 0.72); g.fillCircle(cx + eyeX + 1, eyeY + 1, er * 0.72);
   g.fillStyle(0xffffff, 1);
-  g.fillCircle(cx - eyeX + er*0.45, eyeY - er*0.42, er * 0.44);
-  g.fillCircle(cx + eyeX + er*0.45, eyeY - er*0.42, er * 0.44);
-  g.fillStyle(0xffffff, 0.6);
-  g.fillCircle(cx - eyeX - er*0.28, eyeY + er*0.32, er * 0.22);
-  g.fillCircle(cx + eyeX - er*0.28, eyeY + er*0.32, er * 0.22);
+  g.fillCircle(cx - eyeX + er*0.42, eyeY - er*0.40, er * 0.45);
+  g.fillCircle(cx + eyeX + er*0.42, eyeY - er*0.40, er * 0.45);
+  g.fillStyle(0xffffff, 0.55);
+  g.fillCircle(cx - eyeX - er*0.30, eyeY + er*0.30, er * 0.23);
+  g.fillCircle(cx + eyeX - er*0.30, eyeY + er*0.30, er * 0.23);
 
-  g.fillStyle(lighten(bodyColor, 50), 0.28);
-  g.fillEllipse(cx - eyeX - er*0.5, eyeY + er*0.9, er*2.0, er*0.85);
-  g.fillEllipse(cx + eyeX + er*0.5, eyeY + er*0.9, er*2.0, er*0.85);
+  // Blush marks
+  g.fillStyle(0xFF6688, 0.20);
+  g.fillEllipse(cx - eyeX - er*1.0, eyeY + er*1.35, er*2.8, er*0.95);
+  g.fillEllipse(cx + eyeX + er*1.0, eyeY + er*1.35, er*2.8, er*0.95);
 
-  const mouthR = r * (sp.bodyShape === 'flat' ? 0.21 : 0.2);
-  const mouthY = eyeY + r * (sp.bodyShape === 'flat' ? 0.27 : 0.31);
-  g.lineStyle(Math.max(2, r * 0.07), darken(bodyColor, 35), 1);
+  const mouthR = r * (sp.bodyShape === 'flat' ? 0.23 : 0.22);
+  const mouthY = eyeY + r * (sp.bodyShape === 'flat' ? 0.30 : 0.35);
+  g.lineStyle(Math.max(2.5, r * 0.08), darken(bodyColor, 30), 1);
   g.beginPath();
-  g.arc(cx, mouthY, mouthR, 0.15 * Math.PI, 0.85 * Math.PI, false);
+  g.arc(cx, mouthY, mouthR, 0.1 * Math.PI, 0.9 * Math.PI, false);
   g.strokePath();
 
   if (sp.habitat === 'dirt') {
@@ -261,6 +286,7 @@ export function makeMonsterTexture(scene: Phaser.Scene, monster: Monster): strin
   const SIZE = 128, cx = 64, cy = 64;
   const r = sp.bodyShape === 'flat' ? 36 : sp.bodyShape === 'long' ? 32 : 42;
   const g = scene.make.graphics({ x: 0, y: 0, add: false } as any);
+  drawLegs(g, sp, bodyColor, cx, cy, r);
   drawTail(g, sp, bodyColor, cx, cy, r);
   drawBody(g, sp, bodyColor, cx, cy, r);
   drawFeatures(g, sp, bodyColor, cx, cy, r);

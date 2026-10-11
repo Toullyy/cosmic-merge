@@ -29,7 +29,6 @@ export class Hub extends Phaser.Scene {
     this._displayGroup = this.add.group();
 
     this._buildBackground(W, H);
-    this._buildTwinkleStars(W, H);
     this._buildVignette(W, H);
     this._buildHUD(W);
     this._buildTabs(W);
@@ -45,53 +44,52 @@ export class Hub extends Phaser.Scene {
 
   private _buildBackground(W: number, H: number) {
     const bg = this.add.graphics().setDepth(0);
-    bg.fillGradientStyle(0x1a0a2e, 0x1a0a2e, 0x0a0420, 0x0a0420, 1);
+    // Warm wood-panel shop wall
+    bg.fillGradientStyle(0x3A2010, 0x3A2010, 0x5C3020, 0x5C3020, 1);
     bg.fillRect(0, 0, W, H);
-  }
-
-  private _buildTwinkleStars(W: number, H: number) {
-    const positions = [
-      [42,140],[95,310],[140,520],[188,88],[220,680],
-      [270,200],[310,450],[355,130],[400,580],[448,260],
-      [490,380],[520,100],[55,720],[135,800],[310,750],[460,810],
-    ];
-    positions.forEach((s, i) => {
-      const star = this.add.graphics().setDepth(0);
-      star.fillStyle(0xffffff, 0.88);
-      star.fillCircle(s[0], s[1], i % 3 === 0 ? 2 : 1.2);
-      this.tweens.add({
-        targets: star,
-        alpha: 0.05 + Math.random() * 0.18,
-        duration: 700 + Math.random() * 1400,
-        yoyo: true, repeat: -1,
-        delay: i * 90 + Math.random() * 400,
-        ease: 'Sine.InOut',
-      });
-    });
+    // Horizontal plank seams
+    bg.lineStyle(1.5, 0x251208, 0.42);
+    for (let py = 64; py < H * 0.84; py += 52) {
+      bg.beginPath(); bg.moveTo(0, py); bg.lineTo(W, py); bg.strokePath();
+    }
+    // Subtle wood grain
+    bg.lineStyle(1, 0x5C3820, 0.14);
+    for (let py = 4; py < H; py += 16) {
+      bg.beginPath(); bg.moveTo(0, py); bg.lineTo(W, py); bg.strokePath();
+    }
+    // Wooden floor at bottom
+    bg.fillStyle(0x3A2212, 1);
+    bg.fillRect(0, H * 0.84, W, H * 0.16);
+    bg.lineStyle(2, 0x221008, 0.65);
+    for (let fx = 20; fx < W; fx += 76) {
+      bg.beginPath(); bg.moveTo(fx, H * 0.84); bg.lineTo(fx, H); bg.strokePath();
+    }
+    bg.lineStyle(2, 0x221008, 0.5);
+    bg.beginPath(); bg.moveTo(0, H * 0.84); bg.lineTo(W, H * 0.84); bg.strokePath();
+    // Shelf ledge under HUD
+    bg.fillStyle(0x5C3820, 0.6);
+    bg.fillRect(0, 68, W, 6);
+    bg.fillStyle(0x1E0C04, 0.35);
+    bg.fillRect(0, 74, W, 2);
   }
 
   private _buildVignette(W: number, H: number) {
     const v = this.add.graphics().setDepth(2);
-    v.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0.50, 0.50, 0, 0);
-    v.fillRect(0, 0, W, H * 0.26);
-    v.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0, 0, 0.38, 0.38);
-    v.fillRect(0, H * 0.74, W, H * 0.26);
-    v.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0.32, 0, 0, 0.32);
-    v.fillRect(0, 0, W * 0.22, H);
-    v.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0, 0.32, 0.32, 0);
-    v.fillRect(W * 0.78, 0, W * 0.22, H);
+    v.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0.35, 0.35, 0, 0);
+    v.fillRect(0, 0, W, H * 0.14);
+    v.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0.22, 0, 0, 0.22);
+    v.fillRect(0, 0, W * 0.10, H);
+    v.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0, 0.22, 0.22, 0);
+    v.fillRect(W * 0.90, 0, W * 0.10, H);
   }
 
   private _buildHabitatBg(W: number, H: number) {
     const g = this._bgGraphics;
     g.clear();
-    const hCfg = HABITATS[this._currentHabitat];
-    g.fillStyle(hCfg.wallColor, 0.08);
-    g.fillRoundedRect(6, 128, W - 12, H - 230, 18);
-    g.fillStyle(hCfg.bgColor, 0.5);
-    g.fillRoundedRect(10, 132, W - 20, H - 238, 14);
-    g.lineStyle(2, hCfg.wallColor, 0.65);
-    g.strokeRoundedRect(10, 132, W - 20, H - 238, 14);
+    g.fillStyle(0x1E0C04, 0.20);
+    g.fillRoundedRect(6, 128, W - 12, H - 230, 12);
+    g.lineStyle(1.5, 0x6B4A2A, 0.30);
+    g.strokeRoundedRect(6, 128, W - 12, H - 230, 12);
   }
 
   private _buildHUD(W: number) {
@@ -195,7 +193,7 @@ export class Hub extends Phaser.Scene {
       const lbl = unlocked ? labels[type] : (labels[type] + ' 🔒');
       const tabTxt = this.add.text(x + tabW/2, 101, lbl, {
         fontFamily: FONT, fontSize: '15px',
-        color: isActive ? '#ffffff' : (unlocked ? '#aaaaaa' : '#555555'),
+        color: isActive ? '#FFE0B0' : (unlocked ? '#AA8860' : '#554433'),
       }).setOrigin(0.5).setDepth(6);
       this._tabBtns[type] = { bg: tabBg, txt: tabTxt };
       const zone = this.add.zone(x + tabW/2, 101, tabW - 4, 46).setInteractive().setDepth(7);
@@ -211,10 +209,18 @@ export class Hub extends Phaser.Scene {
 
   private _drawTab(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number, active: boolean, unlocked: boolean) {
     g.clear();
-    g.fillStyle(active ? 0x4a2080 : (unlocked ? 0x1e1040 : 0x110825), active ? 1 : 0.7);
+    const woodCol = active ? 0x7A4A22 : (unlocked ? 0x5A3515 : 0x3A2210);
+    g.fillStyle(woodCol, active ? 1 : 0.8);
     g.fillRoundedRect(x + 2, y, w - 4, h, { tl: 10, tr: 10, bl: 0, br: 0 });
+    g.lineStyle(1, 0xA87050, 0.18);
+    for (let gy = 4; gy < h - 2; gy += 8) {
+      g.beginPath(); g.moveTo(x + 4, y + gy); g.lineTo(x + w - 4, y + gy); g.strokePath();
+    }
     if (active) {
-      g.lineStyle(2, 0x9060ff, 1);
+      g.lineStyle(2, 0xC09060, 0.85);
+      g.strokeRoundedRect(x + 2, y, w - 4, h, { tl: 10, tr: 10, bl: 0, br: 0 });
+    } else {
+      g.lineStyle(1.5, 0x3A2010, 0.65);
       g.strokeRoundedRect(x + 2, y, w - 4, h, { tl: 10, tr: 10, bl: 0, br: 0 });
     }
   }
@@ -229,9 +235,82 @@ export class Hub extends Phaser.Scene {
       const isActive = type === this._currentHabitat;
       const unlocked = Game.state!.habitats[type].unlocked;
       this._drawTab(btn.bg, x, 76, tabW, 50, isActive, unlocked);
-      btn.txt.setStyle({ color: isActive ? '#ffffff' : (unlocked ? '#aaaaaa' : '#555555') });
+      btn.txt.setStyle({ color: isActive ? '#FFE0B0' : (unlocked ? '#AA8860' : '#554433') });
       btn.txt.setText(unlocked ? labels[type] : (labels[type] + ' 🔒'));
     });
+  }
+
+  // ── WOODEN CABINET HELPERS ────────────────────────────────────────────────
+
+  private _drawWoodFrame(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number) {
+    const woodMain = 0x8B5E3C, woodDark = 0x4A2E14, woodLight = 0xA87050;
+    g.fillStyle(0x000000, 0.28); g.fillRoundedRect(x + 4, y + 5, w, h, 8);
+    g.fillStyle(woodMain, 1);    g.fillRoundedRect(x, y, w, h, 8);
+    g.lineStyle(1, woodLight, 0.22);
+    for (let gy = 5; gy < h - 2; gy += 9) {
+      g.beginPath(); g.moveTo(x + 4, y + gy); g.lineTo(x + w - 4, y + gy); g.strokePath();
+    }
+    g.lineStyle(2.5, woodDark, 0.90); g.strokeRoundedRect(x, y, w, h, 8);
+    g.lineStyle(1.2, woodLight, 0.42); g.strokeRoundedRect(x + 2, y + 2, w - 4, h - 4, 6);
+  }
+
+  private _drawHinge(g: Phaser.GameObjects.Graphics, x: number, y: number) {
+    g.fillStyle(0x5A5A6A, 1); g.fillRoundedRect(x - 5, y - 9, 10, 18, 2);
+    g.fillStyle(0x7A7A8A, 0.55); g.fillRoundedRect(x - 4, y - 8, 8, 8, 1);
+    g.fillStyle(0x3A3A4A, 1); g.fillCircle(x, y - 5.5, 2.2); g.fillCircle(x, y + 5.5, 2.2);
+    g.fillStyle(0xBBBBCC, 0.45); g.fillCircle(x - 1.5, y - 6.5, 1.2);
+  }
+
+  private _drawScrew(g: Phaser.GameObjects.Graphics, x: number, y: number) {
+    g.fillStyle(0x888899, 1); g.fillCircle(x, y, 4);
+    g.fillStyle(0xBBBBCC, 0.55); g.fillCircle(x - 1, y - 1, 2);
+    g.lineStyle(1, 0x3A3A4A, 0.85);
+    g.beginPath(); g.moveTo(x - 2.8, y); g.lineTo(x + 2.8, y); g.strokePath();
+  }
+
+  private _drawMiniHabitatBg(g: Phaser.GameObjects.Graphics, habitat: HabitatType, x: number, y: number, w: number, h: number) {
+    if (habitat === 'dirt') {
+      g.fillGradientStyle(0x2A1000, 0x2A1000, 0x0D0500, 0x0D0500, 1); g.fillRect(x, y, w, h);
+      g.fillStyle(0x3D2008, 1); g.fillRect(x, y + h * 0.70, w, h * 0.30);
+      g.fillStyle(0x5D3010, 1); g.fillRect(x, y + h * 0.70, w, 5);
+      // Stalactites
+      [[0.28, 0.22], [0.65, 0.17], [0.48, 0.25]].forEach(s => {
+        g.fillStyle(0x4A2810, 1);
+        const bw = w * 0.10;
+        g.fillTriangle(x + w*s[0] - bw, y, x + w*s[0] + bw, y, x + w*s[0], y + h*s[1]);
+      });
+      // Crystals
+      [[0.10, 0.73, 0xFFAA00], [0.85, 0.75, 0xFF8800], [0.52, 0.71, 0xFFD700]].forEach(c => {
+        g.fillStyle(c[2] as number, 0.18); g.fillCircle(x + w*(c[0] as number), y + h*(c[1] as number), 9);
+        g.fillStyle(c[2] as number, 0.75); g.fillCircle(x + w*(c[0] as number), y + h*(c[1] as number), 4);
+      });
+    } else if (habitat === 'grass') {
+      g.fillGradientStyle(0x163808, 0x163808, 0x2A6A18, 0x2A6A18, 1); g.fillRect(x, y, w, h);
+      g.fillStyle(0x38A024, 1); g.fillRect(x, y + h * 0.72, w, h * 0.28);
+      g.fillStyle(0x4CAF50, 1); g.fillRect(x, y + h * 0.72, w, 4);
+      [[0.12, 0.50], [0.84, 0.46]].forEach(t => {
+        const tx = x + w*t[0], ty = y + h*t[1];
+        g.fillStyle(0x245C14, 1);
+        g.fillRect(tx - 3, ty + 10, 6, h*0.28);
+        g.fillCircle(tx, ty, 18); g.fillCircle(tx - 10, ty + 10, 13); g.fillCircle(tx + 10, ty + 8, 12);
+      });
+      [[0.32, 0.80, 0xFFEB3B], [0.62, 0.82, 0xFF5722]].forEach(fl => {
+        g.fillStyle(fl[2] as number, 1);
+        for (let pi = 0; pi < 5; pi++) { const pa = (pi/5)*Math.PI*2; g.fillCircle(x + w*(fl[0] as number) + Math.cos(pa)*4, y + h*(fl[1] as number) + Math.sin(pa)*4, 3); }
+        g.fillStyle(0xFFFDE7, 1); g.fillCircle(x + w*(fl[0] as number), y + h*(fl[1] as number), 2.5);
+      });
+    } else {
+      g.fillGradientStyle(0x004A70, 0x004A70, 0x001E40, 0x001E40, 1); g.fillRect(x, y, w, h);
+      g.fillStyle(0x55AADD, 0.05); g.fillTriangle(x + w*0.2, y, x + w*0.32, y, x + w*0.55, y + h); g.fillTriangle(x + w*0.6, y, x + w*0.72, y, x + w*0.30, y + h);
+      g.fillStyle(0xC2A05C, 1); g.fillRect(x, y + h*0.74, w, h*0.26);
+      g.fillStyle(0xD4B483, 1); g.fillRect(x, y + h*0.74, w, 4);
+      [[0.15, 0.74], [0.72, 0.74]].forEach(sw => {
+        g.lineStyle(3, 0x2E7D32, 0.88);
+        g.beginPath(); g.moveTo(x + w*sw[0], y + h*sw[1]); g.lineTo(x + w*sw[0] + 7, y + h*sw[1] - h*0.30); g.lineTo(x + w*sw[0] - 4, y + h*sw[1] - h*0.58); g.strokePath();
+      });
+      g.fillStyle(0x88DDFF, 0.28);
+      g.fillCircle(x + w*0.36, y + h*0.32, 5); g.fillCircle(x + w*0.64, y + h*0.52, 4); g.fillCircle(x + w*0.52, y + h*0.18, 3);
+    }
   }
 
   private _buildBottomNav(W: number, H: number) {
@@ -329,27 +408,47 @@ export class Hub extends Phaser.Scene {
   }
 
   private _drawBuyTankCard(cx: number, cy: number) {
-    const CW = 234, CH = 196;
-    const shadow = this.add.graphics().setDepth(19);
-    shadow.fillStyle(0x000000, 0.15);
-    shadow.fillRoundedRect(cx - CW/2 + 4, cy - CH/2 + 6, CW, CH, 16);
-    this._displayGroup.add(shadow);
+    const CW = 234, CH = 200;
+    const vpPad = 7, nameH = 40;
+    const vpX = cx - CW/2 + vpPad, vpY = cy - CH/2 + vpPad;
+    const vpW = CW - vpPad*2, vpH = CH - nameH - vpPad*2;
 
     const frame = this.add.graphics().setDepth(20);
-    frame.fillStyle(0x0a0820, 0.75);
-    frame.fillRoundedRect(cx - CW/2, cy - CH/2, CW, CH, 16);
-    frame.lineStyle(2, 0x5040b0, 0.55);
-    frame.strokeRoundedRect(cx - CW/2, cy - CH/2, CW, CH, 16);
+    this._drawWoodFrame(frame, cx - CW/2, cy - CH/2, CW, CH);
     this._displayGroup.add(frame);
 
-    this._displayGroup.add(this.add.text(cx, cy - 34, '+', {
-      fontFamily: FONT, fontSize: '44px', color: '#5040b0', fontStyle: 'bold',
+    const interior = this.add.graphics().setDepth(21);
+    interior.fillStyle(0x1A0E06, 0.88); interior.fillRect(vpX, vpY, vpW, vpH);
+    interior.lineStyle(2, 0x3A2010, 0.65); interior.strokeRect(vpX, vpY, vpW, vpH);
+    this._displayGroup.add(interior);
+
+    const hingeG = this.add.graphics().setDepth(26);
+    this._drawHinge(hingeG, cx - CW/2 + 6, cy - CH/2 + 22);
+    this._drawHinge(hingeG, cx - CW/2 + 6, cy + CH/2 - 22);
+    this._drawHinge(hingeG, cx + CW/2 - 6, cy - CH/2 + 22);
+    this._drawHinge(hingeG, cx + CW/2 - 6, cy + CH/2 - 22);
+    this._displayGroup.add(hingeG);
+
+    const plateY = cy - CH/2 + vpPad + vpH + 2;
+    const plateH = nameH - 4;
+    const plateG = this.add.graphics().setDepth(22);
+    plateG.fillStyle(0x5C3418, 1); plateG.fillRoundedRect(vpX, plateY, vpW, plateH, 4);
+    plateG.lineStyle(1.5, 0x3A2010, 0.85); plateG.strokeRoundedRect(vpX, plateY, vpW, plateH, 4);
+    this._displayGroup.add(plateG);
+    const screwG = this.add.graphics().setDepth(23);
+    this._drawScrew(screwG, vpX + 10, plateY + plateH/2); this._drawScrew(screwG, vpX + vpW - 10, plateY + plateH/2);
+    this._displayGroup.add(screwG);
+    this._displayGroup.add(this.add.text(cx, plateY + plateH/2, 'BUY TANK', {
+      fontFamily: FONT, fontSize: '12px', fontStyle: 'bold', color: '#E8C896',
+      stroke: '#2A1008', strokeThickness: 2,
+    }).setOrigin(0.5).setDepth(23));
+
+    const vpCY = vpY + vpH/2;
+    this._displayGroup.add(this.add.text(cx, vpCY - 18, '+', {
+      fontFamily: FONT, fontSize: '52px', color: '#8B6040', fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(22));
-    this._displayGroup.add(this.add.text(cx, cy + 14, 'Buy Tank', {
-      fontFamily: FONT, fontSize: '16px', fontStyle: 'bold', color: '#9080cc',
-    }).setOrigin(0.5).setDepth(22));
-    this._displayGroup.add(this.add.text(cx, cy + 40, TANK_COST + ' ⬡', {
-      fontFamily: FONT, fontSize: '14px', color: '#FFD700',
+    this._displayGroup.add(this.add.text(cx, vpCY + 28, TANK_COST + ' ⬡', {
+      fontFamily: FONT, fontSize: '16px', color: '#FFD700',
       stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5).setDepth(22));
 
@@ -387,89 +486,84 @@ export class Hub extends Phaser.Scene {
   }
 
   private _drawTerrarium(cx: number, cy: number, mon: Monster) {
-    const CW = 234, CH = 196, innerH = CH - 50;
+    const CW = 234, CH = 200;
     const sp = SPECIES[mon.speciesId];
-    const hCfg = HABITATS[sp.habitat];
     const mods = getVariantModifiers(mon.variantIndex);
-
-    const shadow = this.add.graphics().setDepth(19);
-    shadow.fillStyle(0x000000, 0.22);
-    shadow.fillRoundedRect(cx - CW/2 + 4, cy - CH/2 + 6, CW, CH, 16);
-    this._displayGroup.add(shadow);
+    const vpPad = 7, nameH = 40;
+    const vpX = cx - CW/2 + vpPad, vpY = cy - CH/2 + vpPad;
+    const vpW = CW - vpPad*2, vpH = CH - nameH - vpPad*2;
 
     const frame = this.add.graphics().setDepth(20);
-    frame.fillStyle(darken(hCfg.wallColor, 30), 0.55);
-    frame.fillRoundedRect(cx - CW/2, cy - CH/2, CW, CH, 16);
-    frame.lineStyle(2, hCfg.wallColor, 0.85);
-    frame.strokeRoundedRect(cx - CW/2, cy - CH/2, CW, CH, 16);
+    this._drawWoodFrame(frame, cx - CW/2, cy - CH/2, CW, CH);
     this._displayGroup.add(frame);
 
-    const inX = cx - CW/2 + 7, inY = cy - CH/2 + 7, inW = CW - 14;
     const innerBg = this.add.graphics().setDepth(21);
-    innerBg.fillStyle(hCfg.bgColor, 0.65);
-    innerBg.fillRoundedRect(inX, inY, inW, innerH, 11);
+    this._drawMiniHabitatBg(innerBg, sp.habitat, vpX, vpY, vpW, vpH);
     this._displayGroup.add(innerBg);
 
-    const glass = this.add.graphics().setDepth(24);
-    glass.fillStyle(0xffffff, 0.09);
-    glass.fillRoundedRect(inX, inY, inW / 2.6, innerH / 2.8, 9);
-    glass.lineStyle(1, 0xffffff, 0.14);
-    glass.strokeRoundedRect(inX, inY, inW / 2.6, innerH / 2.8, 9);
-    this._displayGroup.add(glass);
+    const viewBorder = this.add.graphics().setDepth(22);
+    viewBorder.lineStyle(2, 0x3A2010, 0.65); viewBorder.strokeRect(vpX, vpY, vpW, vpH);
+    viewBorder.lineStyle(1, 0xA87050, 0.28); viewBorder.strokeRect(vpX + 1, vpY + 1, vpW - 2, vpH - 2);
+    this._displayGroup.add(viewBorder);
 
-    const innerCY = inY + innerH / 2;
-    const texKey = makeMonsterTexture(this, mon);
-    const img = this.add.image(cx, innerCY + 3, texKey).setDisplaySize(86, 86).setDepth(22);
-    this._displayGroup.add(img);
-    const tween = this.tweens.add({
-      targets: img, y: img.y - 5,
-      duration: 1100 + Math.random() * 400, ease: 'Sine.InOut', yoyo: true, repeat: -1,
-    });
-    this._bobTweens.push(tween);
+    const hingeG = this.add.graphics().setDepth(26);
+    this._drawHinge(hingeG, cx - CW/2 + 6, cy - CH/2 + 22);
+    this._drawHinge(hingeG, cx - CW/2 + 6, cy + CH/2 - 22);
+    this._drawHinge(hingeG, cx + CW/2 - 6, cy - CH/2 + 22);
+    this._drawHinge(hingeG, cx + CW/2 - 6, cy + CH/2 - 22);
+    this._displayGroup.add(hingeG);
 
+    const plateY = cy - CH/2 + vpPad + vpH + 2;
+    const plateH = nameH - 4;
+    const plateG = this.add.graphics().setDepth(22);
+    plateG.fillStyle(0x5C3418, 1); plateG.fillRoundedRect(vpX, plateY, vpW, plateH, 4);
+    plateG.lineStyle(1.5, 0x3A2010, 0.85); plateG.strokeRoundedRect(vpX, plateY, vpW, plateH, 4);
+    plateG.lineStyle(1, 0x8B5E3C, 0.38); plateG.strokeRoundedRect(vpX + 2, plateY + 2, vpW - 4, plateH - 4, 3);
+    this._displayGroup.add(plateG);
+
+    const screwG = this.add.graphics().setDepth(23);
+    const plateCY = plateY + plateH/2;
+    this._drawScrew(screwG, vpX + 10, plateCY); this._drawScrew(screwG, vpX + vpW - 10, plateCY);
+    this._displayGroup.add(screwG);
+
+    const displayName = (mon.nickname ?? sp.name).toUpperCase();
+    this._displayGroup.add(this.add.text(cx, plateCY, displayName, {
+      fontFamily: FONT, fontSize: '12px', fontStyle: 'bold', color: '#E8C896',
+      stroke: '#2A1008', strokeThickness: 2,
+    }).setOrigin(0.5).setDepth(23));
+
+    // Level badge top-left
     const lvlLabel = getLevelName(mon.level);
-    const lvlBadge = this.add.graphics().setDepth(23);
-    lvlBadge.fillStyle(0x000000, 0.78);
-    lvlBadge.fillRoundedRect(cx - CW/2 + 7, inY + 4, lvlLabel.length * 7 + 16, 20, 8);
-    this._displayGroup.add(lvlBadge);
-    this._displayGroup.add(this.add.text(cx - CW/2 + 15, inY + 14, lvlLabel, {
-      fontFamily: FONT, fontSize: '11px', color: '#ffdd55', fontStyle: 'bold',
+    const lvlBg = this.add.graphics().setDepth(23);
+    lvlBg.fillStyle(0x000000, 0.72); lvlBg.fillRoundedRect(vpX + 3, vpY + 3, lvlLabel.length*6.5 + 12, 18, 5);
+    this._displayGroup.add(lvlBg);
+    this._displayGroup.add(this.add.text(vpX + 7, vpY + 12, lvlLabel, {
+      fontFamily: FONT, fontSize: '10px', color: '#FFE066', fontStyle: 'bold',
     }).setOrigin(0, 0.5).setDepth(24));
 
     if (mods.isGolden) {
-      this._displayGroup.add(this.add.text(cx + CW/2 - 10, inY + 6, '★', {
-        fontFamily: FONT, fontSize: '14px', color: '#FFD700',
+      this._displayGroup.add(this.add.text(vpX + vpW - 5, vpY + 5, '★', {
+        fontFamily: FONT, fontSize: '13px', color: '#FFD700',
+        stroke: '#000000', strokeThickness: 2,
       }).setOrigin(1, 0).setDepth(24));
     }
 
-    const btmY = cy + CH/2 - 40;
-    const displayName = mon.nickname ?? sp.name;
-    this._displayGroup.add(this.add.text(cx, btmY + 8, displayName, {
-      fontFamily: FONT, fontSize: '14px', fontStyle: 'bold', color: '#ffffff',
-    }).setOrigin(0.5).setDepth(22));
+    const vpCY = vpY + vpH/2 + 2;
+    const texKey = makeMonsterTexture(this, mon);
+    const img = this.add.image(cx, vpCY, texKey).setDisplaySize(96, 96).setDepth(22);
+    this._displayGroup.add(img);
+    this._bobTweens.push(this.tweens.add({
+      targets: img, y: img.y - 5, duration: 1100 + Math.random()*400, ease: 'Sine.InOut', yoyo: true, repeat: -1,
+    }));
 
-    const pct = Math.max(0, Math.min(1, mon.happiness / 100));
-    const barColor = mon.happiness > 66 ? 0x44cc88 : mon.happiness > 33 ? 0xffcc44 : 0xff5555;
-    const barW = CW - 32;
-    const barBg = this.add.graphics().setDepth(22);
-    barBg.fillStyle(0x00000055, 1);
-    barBg.fillRoundedRect(cx - barW/2, btmY + 25, barW, 8, 4);
-    const barFill = this.add.graphics().setDepth(23);
-    barFill.fillStyle(barColor, 1);
-    barFill.fillRoundedRect(cx - barW/2, btmY + 25, Math.max(8, barW * pct), 8, 4);
-    this._displayGroup.add(barBg);
-    this._displayGroup.add(barFill);
-
-    // listing banner
     const listing = Game.state!.listings.find(l => l.monsterId === mon.id);
     if (listing) {
       const ready = Date.now() >= listing.readyAt;
       const banner = this.add.graphics().setDepth(25);
       banner.fillStyle(ready ? 0x1A7040 : 0x884400, 0.92);
-      banner.fillRoundedRect(cx - CW/2 + 8, cy - CH/2 + 8, CW - 16, 22, 6);
+      banner.fillRect(vpX, vpY, vpW, 22);
       this._displayGroup.add(banner);
-      this._displayGroup.add(this.add.text(cx, cy - CH/2 + 19,
-        ready ? 'READY - Tap to collect' : 'For Sale', {
+      this._displayGroup.add(this.add.text(cx, vpY + 11, ready ? '✓ READY - Tap to collect' : '🏷 For Sale', {
         fontFamily: FONT, fontSize: '10px', color: '#ffffff', fontStyle: 'bold',
       }).setOrigin(0.5).setDepth(26));
     }
@@ -484,85 +578,99 @@ export class Hub extends Phaser.Scene {
   }
 
   private _drawEggTerrarium(cx: number, cy: number, egg: Egg) {
-    const CW = 234, CH = 196, innerH = CH - 50;
+    const CW = 234, CH = 200;
     const sp = SPECIES[egg.speciesId];
-    const hCfg = HABITATS[sp.habitat];
     const mods = getVariantModifiers(egg.variantIndex);
     const now = Date.now();
     const isReady = now >= egg.hatchEndAt;
     const eggColor = shiftHue(sp.baseColor, mods.hueShift);
+    const vpPad = 7, nameH = 40;
+    const vpX = cx - CW/2 + vpPad, vpY = cy - CH/2 + vpPad;
+    const vpW = CW - vpPad*2, vpH = CH - nameH - vpPad*2;
 
-    const shadow = this.add.graphics().setDepth(19);
-    shadow.fillStyle(0x000000, 0.22);
-    shadow.fillRoundedRect(cx - CW/2 + 4, cy - CH/2 + 6, CW, CH, 16);
-    this._displayGroup.add(shadow);
-
-    const frameColor = isReady ? 0x88ff88 : hCfg.wallColor;
     const frame = this.add.graphics().setDepth(20);
-    frame.fillStyle(darken(frameColor, 30), 0.5);
-    frame.fillRoundedRect(cx - CW/2, cy - CH/2, CW, CH, 16);
-    frame.lineStyle(isReady ? 3 : 2, frameColor, isReady ? 1 : 0.75);
-    frame.strokeRoundedRect(cx - CW/2, cy - CH/2, CW, CH, 16);
+    if (isReady) {
+      // Golden glow frame when ready
+      frame.fillStyle(0x000000, 0.28); frame.fillRoundedRect(cx - CW/2 + 4, cy - CH/2 + 5, CW, CH, 8);
+      frame.fillStyle(0x8B5E3C, 1);    frame.fillRoundedRect(cx - CW/2, cy - CH/2, CW, CH, 8);
+      frame.lineStyle(1, 0xA87050, 0.22);
+      for (let gy = 5; gy < CH - 2; gy += 9) { frame.beginPath(); frame.moveTo(cx - CW/2 + 4, cy - CH/2 + gy); frame.lineTo(cx + CW/2 - 4, cy - CH/2 + gy); frame.strokePath(); }
+      frame.lineStyle(3, 0xFFD700, 1); frame.strokeRoundedRect(cx - CW/2, cy - CH/2, CW, CH, 8);
+      frame.lineStyle(1.5, 0xFFE880, 0.55); frame.strokeRoundedRect(cx - CW/2 + 2, cy - CH/2 + 2, CW - 4, CH - 4, 6);
+    } else {
+      this._drawWoodFrame(frame, cx - CW/2, cy - CH/2, CW, CH);
+    }
     this._displayGroup.add(frame);
 
-    const inX = cx - CW/2 + 7, inY = cy - CH/2 + 7, inW = CW - 14;
     const innerBg = this.add.graphics().setDepth(21);
-    innerBg.fillStyle(hCfg.bgColor, 0.55);
-    innerBg.fillRoundedRect(inX, inY, inW, innerH, 11);
+    this._drawMiniHabitatBg(innerBg, sp.habitat, vpX, vpY, vpW, vpH);
     this._displayGroup.add(innerBg);
 
-    const glass = this.add.graphics().setDepth(24);
-    glass.fillStyle(0xffffff, 0.08);
-    glass.fillRoundedRect(inX, inY, inW / 2.6, innerH / 2.8, 9);
-    this._displayGroup.add(glass);
+    const hingeG = this.add.graphics().setDepth(26);
+    this._drawHinge(hingeG, cx - CW/2 + 6, cy - CH/2 + 22);
+    this._drawHinge(hingeG, cx - CW/2 + 6, cy + CH/2 - 22);
+    this._drawHinge(hingeG, cx + CW/2 - 6, cy - CH/2 + 22);
+    this._drawHinge(hingeG, cx + CW/2 - 6, cy + CH/2 - 22);
+    this._displayGroup.add(hingeG);
 
-    const innerCY = inY + innerH / 2;
+    const plateY = cy - CH/2 + vpPad + vpH + 2;
+    const plateH = nameH - 4;
+    const plateG = this.add.graphics().setDepth(22);
+    plateG.fillStyle(0x5C3418, 1); plateG.fillRoundedRect(vpX, plateY, vpW, plateH, 4);
+    plateG.lineStyle(1.5, 0x3A2010, 0.85); plateG.strokeRoundedRect(vpX, plateY, vpW, plateH, 4);
+    this._displayGroup.add(plateG);
+
+    const plateCY = plateY + plateH/2;
+    const screwG = this.add.graphics().setDepth(23);
+    this._drawScrew(screwG, vpX + 10, plateCY); this._drawScrew(screwG, vpX + vpW - 10, plateCY);
+    this._displayGroup.add(screwG);
+
+    this._displayGroup.add(this.add.text(cx, plateCY, isReady ? '🥚 READY!' : sp.name.toUpperCase() + ' EGG', {
+      fontFamily: FONT, fontSize: '12px', fontStyle: 'bold',
+      color: isReady ? '#FFE066' : '#E8C896', stroke: '#2A1008', strokeThickness: 2,
+    }).setOrigin(0.5).setDepth(23));
+
+    const vpCY = vpY + vpH / 2;
     const eggG = this.add.graphics().setDepth(22);
-    eggG.fillStyle(darken(eggColor, 18), 1); eggG.fillEllipse(cx + 2, innerCY + 4, 50, 62);
-    eggG.fillStyle(eggColor, 1);             eggG.fillEllipse(cx, innerCY, 50, 62);
-    eggG.fillStyle(lighten(eggColor, 40), 0.4); eggG.fillEllipse(cx - 8, innerCY - 14, 16, 24);
+    eggG.fillStyle(darken(eggColor, 22), 1); eggG.fillEllipse(cx + 2, vpCY + 3, 54, 68);
+    eggG.fillStyle(eggColor, 1);              eggG.fillEllipse(cx, vpCY, 54, 68);
+    eggG.fillStyle(lighten(eggColor, 50), 0.38); eggG.fillEllipse(cx - 10, vpCY - 15, 18, 26);
     if (isReady) {
-      eggG.lineStyle(2, darken(eggColor, 80), 1);
-      eggG.beginPath(); eggG.moveTo(cx - 4, innerCY - 20); eggG.lineTo(cx + 5, innerCY - 5);
-      eggG.lineTo(cx - 2, innerCY + 7); eggG.strokePath();
-      eggG.beginPath(); eggG.moveTo(cx + 6, innerCY - 16); eggG.lineTo(cx - 2, innerCY - 8); eggG.strokePath();
+      eggG.lineStyle(2.5, darken(eggColor, 70), 1);
+      eggG.beginPath(); eggG.moveTo(cx - 5, vpCY - 22); eggG.lineTo(cx + 6, vpCY - 6); eggG.lineTo(cx - 3, vpCY + 8); eggG.strokePath();
+      eggG.beginPath(); eggG.moveTo(cx + 8, vpCY - 18); eggG.lineTo(cx - 2, vpCY - 9); eggG.strokePath();
+      eggG.lineStyle(3, 0xFFD700, 0.7); eggG.strokeEllipse(cx, vpCY, 62, 76);
     }
     this._displayGroup.add(eggG);
-    const bobTween = this.tweens.add({
-      targets: eggG, y: isReady ? -4 : -3,
-      duration: isReady ? 550 : 1400, ease: 'Sine.InOut', yoyo: true, repeat: -1,
-    });
-    this._bobTweens.push(bobTween);
+    this._bobTweens.push(this.tweens.add({
+      targets: eggG, y: isReady ? -5 : -3,
+      duration: isReady ? 520 : 1400, ease: 'Sine.InOut', yoyo: true, repeat: -1,
+    }));
 
-    const btmY = cy + CH/2 - 40;
-    this._displayGroup.add(this.add.text(cx, btmY + 6, sp.name, {
-      fontFamily: FONT, fontSize: '14px', fontStyle: 'bold',
-      color: isReady ? '#aaffaa' : '#ccccdd',
-    }).setOrigin(0.5).setDepth(22));
+    if (!isReady) {
+      this._displayGroup.add(this.add.text(vpX + 7, vpY + 7, sp.habitat.charAt(0).toUpperCase() + sp.habitat.slice(1), {
+        fontFamily: FONT, fontSize: '10px', color: '#CCBBAA',
+      }).setOrigin(0, 0).setDepth(24));
+    }
 
     const remaining = Math.max(0, egg.hatchEndAt - now);
-    const timerTxt = this.add.text(cx, btmY + 24,
-      isReady ? '✨ Tap to hatch!' : this._formatMs(remaining), {
+    const timerTxt = this.add.text(cx, vpY + vpH - 14, isReady ? '✨ Tap to hatch!' : this._formatMs(remaining), {
       fontFamily: FONT, fontSize: '12px',
-      color: isReady ? '#aaffaa' : '#9999cc', align: 'center',
-    }).setOrigin(0.5).setDepth(22);
+      color: isReady ? '#FFD700' : '#DDDDCC', stroke: '#000000', strokeThickness: 2,
+    }).setOrigin(0.5).setDepth(24);
     (timerTxt as any)._eggId = egg.id;
     this._displayGroup.add(timerTxt);
 
-    const zone = this.add.zone(cx, cy, CW, CH).setInteractive().setDepth(25);
+    const zone = this.add.zone(cx, cy, CW, CH).setInteractive().setDepth(27);
     zone.on('pointerdown', () => {
       const refreshedEgg = Game.state!.eggs.find(e => e.id === egg.id);
       if (!refreshedEgg) return;
       if (Date.now() >= refreshedEgg.hatchEndAt) {
         const cap = (Game.state!.tanks?.[egg.habitatType] ?? 1) * TANK_CAPACITY;
         const monCount = Game.state!.monsters.filter(m => m.habitatType === egg.habitatType).length;
-        if (monCount >= cap) {
-          showToast(this, 'Habitat full! Buy more tanks to hatch.', '#ff9999');
-          return;
-        }
+        if (monCount >= cap) { showToast(this, 'Habitat full! Buy more tanks to hatch.', '#ff9999'); return; }
         this.scene.launch('HatchScene', { eggId: refreshedEgg.id });
       } else {
-        // offer instant hatch via rewarded ad
         const remaining = Math.max(0, refreshedEgg.hatchEndAt - Date.now());
         const mins = Math.ceil(remaining / 60000);
         this._showInstantHatchOffer(refreshedEgg.id, sp.name, mins);
