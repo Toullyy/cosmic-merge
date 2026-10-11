@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { Game, FONT, sfx } from '../utils';
-import { SPECIES, newMonster } from '../data';
+import { SPECIES, newMonster, DIAMOND_NEW_SPECIES, DIAMOND_NEW_COLOR } from '../data';
 import { shiftHue, darken, lighten, getVariantModifiers, makeMonsterTexture } from '../MonsterRenderer';
 import { makeButton } from '../ui/Button';
 
@@ -85,21 +85,49 @@ export class HatchScene extends Phaser.Scene {
     this.tweens.add({ targets: img, alpha: 1, scaleX: { from: 0.3, to: 1 }, scaleY: { from: 0.3, to: 1 }, duration: 500, ease: 'Back.Out' });
     this.tweens.add({ targets: img, y: img.y - 8, duration: 1100, ease: 'Sine.InOut', yoyo: true, repeat: -1 });
 
+    const mods = getVariantModifiers(mon.variantIndex);
     const isNewSpecies = !Game.state!.stats.discovered.includes(mon.speciesId);
-    if (isNewSpecies && Game.state!.newDiscoveries) {
-      if (!Game.state!.newDiscoveries.includes(String(mon.speciesId))) {
+    const goldenList = Game.state!.stats.goldenDiscovered ?? [];
+    const isNewGolden = mods.isGolden && !goldenList.includes(mon.speciesId);
+
+    let diamondReward = 0;
+    let discoveryLabel = mods.isGolden ? ' ✨ GOLDEN!' : '!';
+
+    if (isNewSpecies) {
+      if (Game.state!.newDiscoveries && !Game.state!.newDiscoveries.includes(String(mon.speciesId))) {
         Game.state!.newDiscoveries.push(String(mon.speciesId));
       }
+      diamondReward = DIAMOND_NEW_SPECIES;
+      discoveryLabel = ' 🆕 NEW SPECIES!';
+    } else if (isNewGolden) {
+      goldenList.push(mon.speciesId);
+      Game.state!.stats.goldenDiscovered = goldenList;
+      if (Game.state!.newDiscoveries && !Game.state!.newDiscoveries.includes(String(mon.speciesId))) {
+        Game.state!.newDiscoveries.push(String(mon.speciesId));
+      }
+      diamondReward = DIAMOND_NEW_COLOR;
+      discoveryLabel = ' ✨ NEW COLOR!';
     }
 
-    const mods = getVariantModifiers(mon.variantIndex);
-    const discoveryLabel = isNewSpecies ? ' 🆕 NEW SPECIES!' : (mods.isGolden ? ' ✨ GOLDEN!' : '!');
+    if (diamondReward > 0) {
+      if (Game.state!.diamonds === undefined) Game.state!.diamonds = 0;
+      Game.state!.diamonds += diamondReward;
+    }
+
     this.add.text(cx, cy + 110, sp.name + discoveryLabel, {
       fontFamily: FONT, fontSize: '26px', fontStyle: 'bold',
-      color: isNewSpecies ? '#66FFCC' : (mods.isGolden ? '#FFD700' : '#ffffff'),
+      color: isNewSpecies ? '#66FFCC' : (isNewGolden ? '#88EEFF' : (mods.isGolden ? '#FFD700' : '#ffffff')),
       stroke: '#000000', strokeThickness: 4,
     }).setOrigin(0.5);
-    this.add.text(cx, cy + 145, sp.habitat.charAt(0).toUpperCase() + sp.habitat.slice(1) + ' Monster', {
+
+    if (diamondReward > 0) {
+      this.add.text(cx, cy + 148, '+' + diamondReward + ' 💎 Diamonds!', {
+        fontFamily: FONT, fontSize: '18px', fontStyle: 'bold', color: '#88EEFF',
+        stroke: '#000000', strokeThickness: 3,
+      }).setOrigin(0.5);
+    }
+    const habitatLabelY = diamondReward > 0 ? cy + 170 : cy + 145;
+    this.add.text(cx, habitatLabelY, sp.habitat.charAt(0).toUpperCase() + sp.habitat.slice(1) + ' Monster', {
       fontFamily: FONT, fontSize: '16px', color: '#aaaacc',
     }).setOrigin(0.5);
 

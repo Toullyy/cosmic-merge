@@ -35,6 +35,8 @@ export class Boot extends Phaser.Scene {
         } as any;
       }
       if (!Game.state.newDiscoveries) Game.state.newDiscoveries = [];
+      if (Game.state.diamonds === undefined) Game.state.diamonds = 0;
+      if (!Game.state.stats.goldenDiscovered) Game.state.stats.goldenDiscovered = [];
       // migrate existing listings — add buyer if missing
       Game.state.listings.forEach(l => {
         if (!l.buyerName) {

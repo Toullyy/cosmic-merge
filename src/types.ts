@@ -46,6 +46,7 @@ export interface GameStats {
   sold: number;
   totalEarned: number;
   discovered: number[];
+  goldenDiscovered?: number[];
 }
 
 export interface Listing {
@@ -71,6 +72,7 @@ export interface GameState {
   merchantStock: number[];
   tanks?: Record<HabitatType, number>;
   newDiscoveries?: string[];
+  diamonds?: number;
 }
 
 export interface VariantModifiers {

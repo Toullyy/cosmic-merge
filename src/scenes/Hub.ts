@@ -18,6 +18,7 @@ export class Hub extends Phaser.Scene {
   private _dexBtn!: Phaser.GameObjects.Container;
   private _dexDot!: Phaser.GameObjects.Graphics;
   private _dexDotTxt!: Phaser.GameObjects.Text;
+  private _diamondTxt!: Phaser.GameObjects.Text;
 
   constructor() { super({ key: 'Hub' }); }
 
@@ -93,21 +94,40 @@ export class Hub extends Phaser.Scene {
   }
 
   private _buildHUD(W: number) {
-    const coinBg = this.add.graphics().setDepth(10);
-    coinBg.fillStyle(0x000000, 0.93);
-    coinBg.fillRoundedRect(8, 8, 196, 52, 14);
-    coinBg.lineStyle(2, 0xFFD700, 0.7);
-    coinBg.strokeRoundedRect(8, 8, 196, 52, 14);
-    coinBg.lineStyle(4, 0xFFD700, 0.10);
-    coinBg.strokeRoundedRect(5, 5, 202, 58, 17);
+    const hud = this.add.graphics().setDepth(10);
 
-    this.add.text(30, 34, '⬡', {
+    // Coin box
+    hud.fillStyle(0x000000, 0.93);
+    hud.fillRoundedRect(8, 8, 168, 52, 14);
+    hud.lineStyle(2, 0xFFD700, 0.72);
+    hud.strokeRoundedRect(8, 8, 168, 52, 14);
+    hud.lineStyle(4, 0xFFD700, 0.10);
+    hud.strokeRoundedRect(5, 5, 174, 58, 17);
+
+    // Diamond box
+    hud.fillStyle(0x000000, 0.93);
+    hud.fillRoundedRect(182, 8, 120, 52, 14);
+    hud.lineStyle(2, 0x55EEFF, 0.72);
+    hud.strokeRoundedRect(182, 8, 120, 52, 14);
+    hud.lineStyle(4, 0x55EEFF, 0.10);
+    hud.strokeRoundedRect(179, 5, 126, 58, 17);
+
+    this.add.text(26, 34, '⬡', {
       fontFamily: FONT, fontSize: '26px', color: '#FFD700',
       stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0, 0.5).setDepth(11);
 
-    this._coinTxt = this.add.text(56, 34, String(Game.state!.coins), {
-      fontFamily: FONT, fontSize: '22px', color: '#ffffff', fontStyle: 'bold',
+    this._coinTxt = this.add.text(52, 34, String(Game.state!.coins), {
+      fontFamily: FONT, fontSize: '21px', color: '#ffffff', fontStyle: 'bold',
+      stroke: '#000000', strokeThickness: 3,
+    }).setOrigin(0, 0.5).setDepth(11);
+
+    this.add.text(192, 34, '💎', {
+      fontFamily: FONT, fontSize: '20px',
+    }).setOrigin(0, 0.5).setDepth(11);
+
+    this._diamondTxt = this.add.text(218, 34, String(Game.state!.diamonds ?? 0), {
+      fontFamily: FONT, fontSize: '21px', color: '#88EEFF', fontStyle: 'bold',
       stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0, 0.5).setDepth(11);
 
@@ -584,6 +604,7 @@ export class Hub extends Phaser.Scene {
 
   private _updateCoinDisplay() {
     if (this._coinTxt) this._coinTxt.setText(String(Game.state!.coins));
+    if (this._diamondTxt) this._diamondTxt.setText(String(Game.state!.diamonds ?? 0));
   }
 
   updateCoins() { this._updateCoinDisplay(); }

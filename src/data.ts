@@ -73,6 +73,9 @@ export const TANK_COST = 100;
 export const TANK_CAPACITY = 2;
 export const MAX_TANKS = 3;
 
+export const DIAMOND_NEW_SPECIES = 5;
+export const DIAMOND_NEW_COLOR   = 2;
+
 export const LEVEL_NAMES = ['', 'Hatchling', 'Hatchling', 'Young', 'Young', 'Adult', 'Adult', 'Elder', 'Elder', 'Ancient', 'Ancient'];
 export function getLevelName(level: number): string {
   return LEVEL_NAMES[Math.min(10, Math.max(1, level))] ?? 'Ancient';
@@ -159,11 +162,12 @@ export function newState(): GameState {
       grass:   { unlocked: false, decorations: [] },
       aquatic: { unlocked: false, decorations: [] },
     },
-    stats: { hatched: 0, sold: 0, totalEarned: 0, discovered: [0] },
+    stats: { hatched: 0, sold: 0, totalEarned: 0, discovered: [0], goldenDiscovered: [] },
     listings: [],
     merchantRefreshAt: Date.now() + MERCHANT_REFRESH_MS,
     merchantStock: generateMerchantStock(),
     tanks: { dirt: 1, grass: 1, aquatic: 1 },
     newDiscoveries: [],
+    diamonds: 0,
   };
 }
