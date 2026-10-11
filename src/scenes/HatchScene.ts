@@ -129,17 +129,58 @@ export class HatchScene extends Phaser.Scene {
     }
     const habitatLabelY = diamondReward > 0 ? cy + 170 : cy + 145;
     this.add.text(cx, habitatLabelY, sp.habitat.charAt(0).toUpperCase() + sp.habitat.slice(1) + ' Monster', {
-      fontFamily: FONT, fontSize: '16px', color: '#aaaacc',
+      fontFamily: FONT, fontSize: '16px', color: '#DDDDFF',
     }).setOrigin(0.5);
 
     this.time.addEvent({ delay: 900, callback: () => { this._showContinueBtn(cx, eggId, mon); } });
   }
 
   private _showContinueBtn(cx: number, eggId: string, mon: any) {
-    makeButton(this, cx, this.scale.height / 2 + 220, 200, 50, '✅ Continue', 0x2a5030, () => {
+    const W = this.scale.width, H = this.scale.height;
+    const sp = SPECIES[mon.speciesId];
+
+    this.add.text(cx, H / 2 + 170, 'Name your monster!', {
+      fontFamily: FONT, fontSize: '16px', color: '#ccccff',
+      stroke: '#000000', strokeThickness: 2,
+    }).setOrigin(0.5);
+
+    const canvas = this.game.canvas;
+    const rect = canvas.getBoundingClientRect();
+    const scaleY = rect.height / H;
+    const inputTop = rect.top + (H / 2 + 196) * scaleY;
+
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.placeholder = sp.name;
+    inp.maxLength = 20;
+    inp.style.cssText = [
+      'position:fixed',
+      'left:50%', 'top:' + inputTop + 'px',
+      'transform:translateX(-50%)',
+      'font-size:17px', 'padding:10px 14px',
+      'border-radius:12px', 'border:2px solid #9060ff',
+      'background:#1a0a3e', 'color:#fff',
+      'width:220px', 'text-align:center',
+      'z-index:9999', 'outline:none',
+    ].join(';');
+    document.body.appendChild(inp);
+    inp.focus();
+
+    const confirm = () => {
+      const v = inp.value.trim();
+      if (v && v !== sp.name) mon.nickname = v;
+      try { document.body.removeChild(inp); } catch { /* ignore */ }
       const hub = this.game.scene.getScene('Hub') as any;
       if (hub) hub.onEggHatched(eggId, mon);
       this.scene.stop();
-    }, 18);
+    };
+
+    inp.addEventListener('keydown', (e: KeyboardEvent) => { if (e.key === 'Enter') confirm(); });
+
+    makeButton(this, cx, H / 2 + 270, 220, 50, '✅ Let\'s go!', 0x2a5030, confirm, 18);
+
+    this.events.once('shutdown', () => {
+      try { document.body.removeChild(inp); } catch { /* ignore */ }
+    });
   }
 }

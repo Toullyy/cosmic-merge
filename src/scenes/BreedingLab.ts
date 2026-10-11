@@ -29,14 +29,14 @@ export class BreedingLab extends Phaser.Scene {
     const W = this.scale.width, H = this.scale.height;
 
     const bg = this.add.graphics();
-    bg.fillGradientStyle(0x060312, 0x060312, 0x1a0a2e, 0x1a0a2e, 1);
+    bg.fillGradientStyle(0x0A2060, 0x0A2060, 0x301878, 0x301878, 1);
     bg.fillRect(0, 0, W, H);
 
     this.add.text(W/2, 46, '🧬 Breeding Lab', {
       fontFamily: FONT, fontSize: '24px', color: '#ffffff', fontStyle: 'bold',
     }).setOrigin(0.5);
     this.add.text(W/2, 76, 'Select 2 monsters (Level 4+) to breed', {
-      fontFamily: FONT, fontSize: '15px', color: '#8888cc',
+      fontFamily: FONT, fontSize: '15px', color: '#BBAAFF',
     }).setOrigin(0.5);
 
     makeButton(this, W - 70, 30, 110, 40, '← Back', 0x2a1560, () => {
@@ -58,12 +58,12 @@ export class BreedingLab extends Phaser.Scene {
 
   private _buildParentSlot(x: number, y: number, label: string): Slot {
     const g = this.add.graphics();
-    g.lineStyle(2, 0x4030a0, 0.8);
+    g.lineStyle(2, 0x7060C0, 0.9);
     g.strokeRoundedRect(x - 60, y - 70, 120, 130, 12);
-    g.fillStyle(0x0d0618, 0.8);
+    g.fillStyle(0x1E0C48, 0.9);
     g.fillRoundedRect(x - 60, y - 70, 120, 130, 12);
-    this.add.text(x, y + 48, label, { fontFamily: FONT, fontSize: '13px', color: '#6655aa' }).setOrigin(0.5);
-    const labelTxt = this.add.text(x, y, '?', { fontFamily: FONT, fontSize: '28px', color: '#3a2a60' }).setOrigin(0.5);
+    this.add.text(x, y + 48, label, { fontFamily: FONT, fontSize: '13px', color: '#9988CC' }).setOrigin(0.5);
+    const labelTxt = this.add.text(x, y, '?', { fontFamily: FONT, fontSize: '28px', color: '#7766BB' }).setOrigin(0.5);
     return { x, y, graphics: g, img: null, labelTxt };
   }
 
@@ -75,7 +75,7 @@ export class BreedingLab extends Phaser.Scene {
     if (eligible.length === 0) {
       this._listGroup.add(this.add.text(W/2, scrollY + 40,
         'No monsters at Level 4+ yet.\nRaise your monsters to breed!', {
-        fontFamily: FONT, fontSize: '16px', color: '#6655aa', align: 'center', lineSpacing: 8,
+        fontFamily: FONT, fontSize: '16px', color: '#9988CC', align: 'center', lineSpacing: 8,
       }).setOrigin(0.5));
       return;
     }
@@ -145,7 +145,7 @@ export class BreedingLab extends Phaser.Scene {
       }).setOrigin(0.5);
     } else {
       slot.labelTxt = this.add.text(slot.x, slot.y, '?', {
-        fontFamily: FONT, fontSize: '28px', color: '#3a2a60',
+        fontFamily: FONT, fontSize: '28px', color: '#7766BB',
       }).setOrigin(0.5);
     }
   }

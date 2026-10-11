@@ -50,7 +50,7 @@ export class PokedexScene extends Phaser.Scene {
 
   private _buildBg(W: number, H: number) {
     const bg = this.add.graphics();
-    bg.fillGradientStyle(0x0a1020, 0x0a1020, 0x1a0a2e, 0x1a0a2e, 1);
+    bg.fillGradientStyle(0x200868, 0x200868, 0x3C1088, 0x3C1088, 1);
     bg.fillRect(0, 0, W, H);
     bg.fillStyle(0xffffff, 0.18);
     [[48, 180], [130, 310], [255, 72], [375, 230], [488, 108], [70, 540], [315, 470], [465, 610]].forEach(s => {
@@ -71,7 +71,7 @@ export class PokedexScene extends Phaser.Scene {
     const found = (Game.state!.stats.discovered ?? []).length;
     const pct = Math.round((found / total) * 100);
     this.add.text(W / 2, 52, found + ' / ' + total + ' found  (' + pct + '%)', {
-      fontFamily: FONT, fontSize: '14px', color: '#9999bb',
+      fontFamily: FONT, fontSize: '14px', color: '#CCDDFF',
     }).setOrigin(0.5).setDepth(10);
 
     // progress bar
@@ -90,14 +90,14 @@ export class PokedexScene extends Phaser.Scene {
       const tx = tabW * i;
       const isActive = f === this._filter;
       const tabBg = this.add.graphics().setDepth(5);
-      tabBg.fillStyle(isActive ? 0x4a2080 : 0x14082a, isActive ? 1 : 0.9);
+      tabBg.fillStyle(isActive ? 0x6830A8 : 0x2A1060, isActive ? 1 : 0.8);
       tabBg.fillRect(tx + 1, 74, tabW - 2, 28);
       if (isActive) {
-        tabBg.lineStyle(1, 0x8050e0, 1);
+        tabBg.lineStyle(1, 0xAA70FF, 1);
         tabBg.strokeRect(tx + 1, 74, tabW - 2, 28);
       }
       this.add.text(tx + tabW / 2, 88, FILTER_LABELS[f], {
-        fontFamily: FONT, fontSize: '12px', color: isActive ? '#ffffff' : '#605590',
+        fontFamily: FONT, fontSize: '12px', color: isActive ? '#ffffff' : '#9988CC',
       }).setOrigin(0.5).setDepth(6);
       if (!isActive) {
         const zone = this.add.zone(tx + tabW / 2, 88, tabW - 2, 28).setInteractive().setDepth(7);
@@ -123,10 +123,10 @@ export class PokedexScene extends Phaser.Scene {
       const isFound = discovered.has(sp.id);
 
       const card = this.add.graphics().setDepth(3);
-      card.fillStyle(isFound ? 0x1e1040 : 0x0c0818, 1);
+      card.fillStyle(isFound ? 0x2C1458 : 0x180838, 1);
       card.fillRoundedRect(cx - cellW / 2 + 4, cy - cellH / 2 + 4, cellW - 8, cellH - 8, 10);
       if (isFound) {
-        card.lineStyle(1, 0x4a2080, 0.7);
+        card.lineStyle(1, 0x7840C0, 0.8);
         card.strokeRoundedRect(cx - cellW / 2 + 4, cy - cellH / 2 + 4, cellW - 8, cellH - 8, 10);
       }
 

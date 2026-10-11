@@ -44,42 +44,42 @@ export class Hub extends Phaser.Scene {
 
   private _buildBackground(W: number, H: number) {
     const bg = this.add.graphics().setDepth(0);
-    // Warm wood-panel shop wall
-    bg.fillGradientStyle(0x3A2010, 0x3A2010, 0x5C3020, 0x5C3020, 1);
+    // Warm wood-panel shop wall — bright honey tones
+    bg.fillGradientStyle(0xB87830, 0xB87830, 0xD4A050, 0xD4A050, 1);
     bg.fillRect(0, 0, W, H);
     // Horizontal plank seams
-    bg.lineStyle(1.5, 0x251208, 0.42);
+    bg.lineStyle(1.5, 0x8A5018, 0.35);
     for (let py = 64; py < H * 0.84; py += 52) {
       bg.beginPath(); bg.moveTo(0, py); bg.lineTo(W, py); bg.strokePath();
     }
     // Subtle wood grain
-    bg.lineStyle(1, 0x5C3820, 0.14);
+    bg.lineStyle(1, 0xCC9040, 0.18);
     for (let py = 4; py < H; py += 16) {
       bg.beginPath(); bg.moveTo(0, py); bg.lineTo(W, py); bg.strokePath();
     }
     // Wooden floor at bottom
-    bg.fillStyle(0x3A2212, 1);
+    bg.fillStyle(0xA06828, 1);
     bg.fillRect(0, H * 0.84, W, H * 0.16);
-    bg.lineStyle(2, 0x221008, 0.65);
+    bg.lineStyle(2, 0x7A4E18, 0.55);
     for (let fx = 20; fx < W; fx += 76) {
       bg.beginPath(); bg.moveTo(fx, H * 0.84); bg.lineTo(fx, H); bg.strokePath();
     }
-    bg.lineStyle(2, 0x221008, 0.5);
+    bg.lineStyle(2, 0x7A4E18, 0.45);
     bg.beginPath(); bg.moveTo(0, H * 0.84); bg.lineTo(W, H * 0.84); bg.strokePath();
     // Shelf ledge under HUD
-    bg.fillStyle(0x5C3820, 0.6);
+    bg.fillStyle(0xD4A050, 0.7);
     bg.fillRect(0, 68, W, 6);
-    bg.fillStyle(0x1E0C04, 0.35);
+    bg.fillStyle(0x8A5018, 0.3);
     bg.fillRect(0, 74, W, 2);
   }
 
   private _buildVignette(W: number, H: number) {
     const v = this.add.graphics().setDepth(2);
-    v.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0.35, 0.35, 0, 0);
+    v.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0.12, 0.12, 0, 0);
     v.fillRect(0, 0, W, H * 0.14);
-    v.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0.22, 0, 0, 0.22);
+    v.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0.08, 0, 0, 0.08);
     v.fillRect(0, 0, W * 0.10, H);
-    v.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0, 0.22, 0.22, 0);
+    v.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0, 0.08, 0.08, 0);
     v.fillRect(W * 0.90, 0, W * 0.10, H);
   }
 
@@ -189,11 +189,12 @@ export class Hub extends Phaser.Scene {
       const unlocked = Game.state!.habitats[type].unlocked;
       const isActive = type === this._currentHabitat;
       const tabBg = this.add.graphics().setDepth(5);
-      this._drawTab(tabBg, x, 76, tabW, 50, isActive, unlocked);
+      this._drawTab(tabBg, x, 76, tabW, 50, isActive, unlocked, type);
       const lbl = unlocked ? labels[type] : (labels[type] + ' 🔒');
+      const textColors: Record<string, string> = { dirt:'#FFD8A8', grass:'#C8FF88', aquatic:'#88EEFF' };
       const tabTxt = this.add.text(x + tabW/2, 101, lbl, {
-        fontFamily: FONT, fontSize: '15px',
-        color: isActive ? '#FFE0B0' : (unlocked ? '#AA8860' : '#554433'),
+        fontFamily: FONT, fontSize: '15px', fontStyle: isActive ? 'bold' : 'normal',
+        color: isActive ? textColors[type] : (unlocked ? '#CCBBAA' : '#887766'),
       }).setOrigin(0.5).setDepth(6);
       this._tabBtns[type] = { bg: tabBg, txt: tabTxt };
       const zone = this.add.zone(x + tabW/2, 101, tabW - 4, 46).setInteractive().setDepth(7);
@@ -207,20 +208,25 @@ export class Hub extends Phaser.Scene {
     });
   }
 
-  private _drawTab(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number, active: boolean, unlocked: boolean) {
+  private _drawTab(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number, active: boolean, unlocked: boolean, habitat?: HabitatType) {
     g.clear();
-    const woodCol = active ? 0x7A4A22 : (unlocked ? 0x5A3515 : 0x3A2210);
-    g.fillStyle(woodCol, active ? 1 : 0.8);
+    const baseColors: Record<string, [number, number, number]> = {
+      dirt:    [0xC8682A, 0x8B4820, 0xFFBB80],
+      grass:   [0x38A020, 0x246414, 0x88EE44],
+      aquatic: [0x0878B8, 0x045688, 0x44CCFF],
+    };
+    const [activeCol, inactiveCol, borderCol] = baseColors[habitat ?? 'dirt'];
+    const fillCol = active ? activeCol : (unlocked ? inactiveCol : 0x5A3A20);
+    g.fillStyle(fillCol, active ? 1 : (unlocked ? 0.85 : 0.5));
     g.fillRoundedRect(x + 2, y, w - 4, h, { tl: 10, tr: 10, bl: 0, br: 0 });
-    g.lineStyle(1, 0xA87050, 0.18);
-    for (let gy = 4; gy < h - 2; gy += 8) {
-      g.beginPath(); g.moveTo(x + 4, y + gy); g.lineTo(x + w - 4, y + gy); g.strokePath();
-    }
     if (active) {
-      g.lineStyle(2, 0xC09060, 0.85);
+      g.lineStyle(2.5, borderCol, 1);
       g.strokeRoundedRect(x + 2, y, w - 4, h, { tl: 10, tr: 10, bl: 0, br: 0 });
+      // glow strip at top
+      g.fillStyle(borderCol, 0.55);
+      g.fillRoundedRect(x + 6, y + 2, w - 12, 4, 2);
     } else {
-      g.lineStyle(1.5, 0x3A2010, 0.65);
+      g.lineStyle(1.5, unlocked ? borderCol : 0x6A4820, unlocked ? 0.45 : 0.35);
       g.strokeRoundedRect(x + 2, y, w - 4, h, { tl: 10, tr: 10, bl: 0, br: 0 });
     }
   }
@@ -229,13 +235,17 @@ export class Hub extends Phaser.Scene {
     const types: HabitatType[] = ['dirt', 'grass', 'aquatic'];
     const labels: Record<string, string> = { dirt:'⛰ Dirt', grass:'🌿 Grass', aquatic:'🌊 Aqua' };
     const W = this.scale.width, tabW = (W - 20) / 3;
+    const textColors: Record<string, string> = { dirt:'#FFD8A8', grass:'#C8FF88', aquatic:'#88EEFF' };
     types.forEach((type, i) => {
       const x = 10 + tabW * i;
       const btn = this._tabBtns[type];
       const isActive = type === this._currentHabitat;
       const unlocked = Game.state!.habitats[type].unlocked;
-      this._drawTab(btn.bg, x, 76, tabW, 50, isActive, unlocked);
-      btn.txt.setStyle({ color: isActive ? '#FFE0B0' : (unlocked ? '#AA8860' : '#554433') });
+      this._drawTab(btn.bg, x, 76, tabW, 50, isActive, unlocked, type);
+      btn.txt.setStyle({
+        color: isActive ? textColors[type] : (unlocked ? '#CCBBAA' : '#887766'),
+        fontStyle: isActive ? 'bold' : 'normal',
+      });
       btn.txt.setText(unlocked ? labels[type] : (labels[type] + ' 🔒'));
     });
   }
@@ -270,27 +280,29 @@ export class Hub extends Phaser.Scene {
 
   private _drawMiniHabitatBg(g: Phaser.GameObjects.Graphics, habitat: HabitatType, x: number, y: number, w: number, h: number) {
     if (habitat === 'dirt') {
-      g.fillGradientStyle(0x2A1000, 0x2A1000, 0x0D0500, 0x0D0500, 1); g.fillRect(x, y, w, h);
-      g.fillStyle(0x3D2008, 1); g.fillRect(x, y + h * 0.70, w, h * 0.30);
-      g.fillStyle(0x5D3010, 1); g.fillRect(x, y + h * 0.70, w, 5);
+      // Warm terracotta cave
+      g.fillGradientStyle(0x9B4520, 0x9B4520, 0x6B2E10, 0x6B2E10, 1); g.fillRect(x, y, w, h);
+      g.fillStyle(0x7A3A14, 1); g.fillRect(x, y + h * 0.70, w, h * 0.30);
+      g.fillStyle(0xAA5828, 1); g.fillRect(x, y + h * 0.70, w, 5);
       // Stalactites
       [[0.28, 0.22], [0.65, 0.17], [0.48, 0.25]].forEach(s => {
-        g.fillStyle(0x4A2810, 1);
+        g.fillStyle(0x8A4820, 1);
         const bw = w * 0.10;
         g.fillTriangle(x + w*s[0] - bw, y, x + w*s[0] + bw, y, x + w*s[0], y + h*s[1]);
       });
       // Crystals
       [[0.10, 0.73, 0xFFAA00], [0.85, 0.75, 0xFF8800], [0.52, 0.71, 0xFFD700]].forEach(c => {
-        g.fillStyle(c[2] as number, 0.18); g.fillCircle(x + w*(c[0] as number), y + h*(c[1] as number), 9);
-        g.fillStyle(c[2] as number, 0.75); g.fillCircle(x + w*(c[0] as number), y + h*(c[1] as number), 4);
+        g.fillStyle(c[2] as number, 0.28); g.fillCircle(x + w*(c[0] as number), y + h*(c[1] as number), 9);
+        g.fillStyle(c[2] as number, 0.90); g.fillCircle(x + w*(c[0] as number), y + h*(c[1] as number), 4);
       });
     } else if (habitat === 'grass') {
-      g.fillGradientStyle(0x163808, 0x163808, 0x2A6A18, 0x2A6A18, 1); g.fillRect(x, y, w, h);
-      g.fillStyle(0x38A024, 1); g.fillRect(x, y + h * 0.72, w, h * 0.28);
-      g.fillStyle(0x4CAF50, 1); g.fillRect(x, y + h * 0.72, w, 4);
+      // Bright vibrant forest
+      g.fillGradientStyle(0x2E8818, 0x2E8818, 0x48C030, 0x48C030, 1); g.fillRect(x, y, w, h);
+      g.fillStyle(0x3AA828, 1); g.fillRect(x, y + h * 0.72, w, h * 0.28);
+      g.fillStyle(0x66CC44, 1); g.fillRect(x, y + h * 0.72, w, 4);
       [[0.12, 0.50], [0.84, 0.46]].forEach(t => {
         const tx = x + w*t[0], ty = y + h*t[1];
-        g.fillStyle(0x245C14, 1);
+        g.fillStyle(0x2A7018, 1);
         g.fillRect(tx - 3, ty + 10, 6, h*0.28);
         g.fillCircle(tx, ty, 18); g.fillCircle(tx - 10, ty + 10, 13); g.fillCircle(tx + 10, ty + 8, 12);
       });
@@ -300,15 +312,16 @@ export class Hub extends Phaser.Scene {
         g.fillStyle(0xFFFDE7, 1); g.fillCircle(x + w*(fl[0] as number), y + h*(fl[1] as number), 2.5);
       });
     } else {
-      g.fillGradientStyle(0x004A70, 0x004A70, 0x001E40, 0x001E40, 1); g.fillRect(x, y, w, h);
-      g.fillStyle(0x55AADD, 0.05); g.fillTriangle(x + w*0.2, y, x + w*0.32, y, x + w*0.55, y + h); g.fillTriangle(x + w*0.6, y, x + w*0.72, y, x + w*0.30, y + h);
-      g.fillStyle(0xC2A05C, 1); g.fillRect(x, y + h*0.74, w, h*0.26);
-      g.fillStyle(0xD4B483, 1); g.fillRect(x, y + h*0.74, w, 4);
+      // Bright tropical ocean
+      g.fillGradientStyle(0x0898D8, 0x0898D8, 0x0468A8, 0x0468A8, 1); g.fillRect(x, y, w, h);
+      g.fillStyle(0x7AD4F8, 0.10); g.fillTriangle(x + w*0.2, y, x + w*0.32, y, x + w*0.55, y + h); g.fillTriangle(x + w*0.6, y, x + w*0.72, y, x + w*0.30, y + h);
+      g.fillStyle(0xD4B483, 1); g.fillRect(x, y + h*0.74, w, h*0.26);
+      g.fillStyle(0xE8C89A, 1); g.fillRect(x, y + h*0.74, w, 4);
       [[0.15, 0.74], [0.72, 0.74]].forEach(sw => {
-        g.lineStyle(3, 0x2E7D32, 0.88);
+        g.lineStyle(3, 0x3EA040, 0.88);
         g.beginPath(); g.moveTo(x + w*sw[0], y + h*sw[1]); g.lineTo(x + w*sw[0] + 7, y + h*sw[1] - h*0.30); g.lineTo(x + w*sw[0] - 4, y + h*sw[1] - h*0.58); g.strokePath();
       });
-      g.fillStyle(0x88DDFF, 0.28);
+      g.fillStyle(0xBBEEFF, 0.40);
       g.fillCircle(x + w*0.36, y + h*0.32, 5); g.fillCircle(x + w*0.64, y + h*0.52, 4); g.fillCircle(x + w*0.52, y + h*0.18, 3);
     }
   }
@@ -700,7 +713,7 @@ export class Hub extends Phaser.Scene {
       fontFamily: FONT, fontSize: '18px', fontStyle: 'bold', color: '#ffffff',
     }).setOrigin(0.5));
     popup.add(this.add.text(W/2, H/2 - 40, minsLeft + ' min remaining', {
-      fontFamily: FONT, fontSize: '14px', color: '#9999cc',
+      fontFamily: FONT, fontSize: '14px', color: '#BBCCFF',
     }).setOrigin(0.5));
 
     const close = () => { popup.destroy(); };
@@ -735,7 +748,7 @@ export class Hub extends Phaser.Scene {
       if (!egg) return;
       const remaining = Math.max(0, egg.hatchEndAt - now);
       (child as Phaser.GameObjects.Text).setText(remaining <= 0 ? '✨ Ready!' : this._formatMs(remaining));
-      (child as Phaser.GameObjects.Text).setStyle({ color: remaining <= 0 ? '#aaffaa' : '#9999cc' });
+      (child as Phaser.GameObjects.Text).setStyle({ color: remaining <= 0 ? '#aaffaa' : '#BBCCFF' });
     });
   }
 

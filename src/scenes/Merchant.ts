@@ -20,7 +20,7 @@ export class Merchant extends Phaser.Scene {
     const W = this.scale.width, H = this.scale.height;
 
     const bg = this.add.graphics();
-    bg.fillGradientStyle(0x0d0618, 0x0d0618, 0x1a0a2e, 0x1a0a2e, 1);
+    bg.fillGradientStyle(0x3A1070, 0x3A1070, 0x5A1A98, 0x5A1A98, 1);
     bg.fillRect(0, 0, W, H);
 
     this.add.text(W/2, 42, '🛒 Monster Egg Shop', {
@@ -47,7 +47,7 @@ export class Merchant extends Phaser.Scene {
     }
 
     this._refreshTxt = this.add.text(W/2, 66, this._refreshLabel(), {
-      fontFamily: FONT, fontSize: '12px', color: '#7777aa', align: 'center',
+      fontFamily: FONT, fontSize: '12px', color: '#BBBBEE', align: 'center',
     }).setOrigin(0.5);
 
     this._filter = 'dirt';
@@ -117,11 +117,11 @@ export class Merchant extends Phaser.Scene {
       if (child.type === 'Graphics') {
         const g = child as Phaser.GameObjects.Graphics;
         g.clear();
-        g.fillStyle(isActive ? 0x4a2080 : 0x1e1040, isActive ? 1 : 0.6);
+        g.fillStyle(isActive ? 0x6830A8 : 0x2A1060, isActive ? 1 : 0.7);
         const i = filters.indexOf(key);
         g.fillRoundedRect(10 + tabW*i + 2, 78, tabW - 4, 32, 8);
       } else if (child.type === 'Text') {
-        (child as Phaser.GameObjects.Text).setStyle({ color: isActive ? '#ffffff' : '#777777' });
+        (child as Phaser.GameObjects.Text).setStyle({ color: isActive ? '#ffffff' : '#CCBBEE' });
       }
     });
   }
@@ -136,7 +136,7 @@ export class Merchant extends Phaser.Scene {
 
     if (filtered.length === 0) {
       const noStock = this.add.text(W/2, 420, 'No ' + this._filter + ' species\nin stock right now.\nCheck back after refresh!', {
-        fontFamily: FONT, fontSize: '16px', color: '#554488', align: 'center',
+        fontFamily: FONT, fontSize: '16px', color: '#9988CC', align: 'center',
       }).setOrigin(0.5);
       this._gridGroup.add(noStock);
       return;
@@ -152,7 +152,7 @@ export class Merchant extends Phaser.Scene {
       const unlocked = Game.state!.habitats[sp.habitat].unlocked;
 
       const cardBg = this.add.graphics();
-      cardBg.fillStyle(unlocked ? 0x1a0f30 : 0x0d0820, 1);
+      cardBg.fillStyle(unlocked ? 0x2E1458 : 0x1A0840, 1);
       cardBg.fillRoundedRect(cx - cardW/2, cy - cardH/2, cardW, cardH, 14);
       cardBg.lineStyle(2, HABITATS[sp.habitat].wallColor, unlocked ? 0.7 : 0.25);
       cardBg.strokeRoundedRect(cx - cardW/2, cy - cardH/2, cardW, cardH, 14);
@@ -177,7 +177,7 @@ export class Merchant extends Phaser.Scene {
         color: unlocked ? '#ffffff' : '#555555', align: 'center',
       }).setOrigin(0.5));
       this._gridGroup.add(this.add.text(cx, cy + 22, '⏱ ' + sp.hatchHours + 'h', {
-        fontFamily: FONT, fontSize: '13px', color: unlocked ? '#8888cc' : '#333355',
+        fontFamily: FONT, fontSize: '13px', color: unlocked ? '#BBAAFF' : '#776699',
       }).setOrigin(0.5));
 
       const btnLabel = unlocked ? ('Buy  ' + sp.price + '⬡') : (HABITATS[sp.habitat].unlockCost + '⬡ Unlock');

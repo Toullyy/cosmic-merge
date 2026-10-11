@@ -76,7 +76,8 @@ export class HabitatRoom extends Phaser.Scene {
 
   private _calcSell(sp: Species): number {
     const m = this._monster;
-    return Math.max(10, Math.round(sp.price * (1 + m.level * 0.2) * (m.happiness / 100) * 0.8));
+    const golden = getVariantModifiers(m.variantIndex).isGolden ? 1.5 : 1;
+    return Math.max(10, Math.round(sp.price * (1 + m.level * 0.2) * (m.happiness / 100) * 0.8 * golden));
   }
 
   // ── BACKGROUND ────────────────────────────────────────────────────────────
@@ -85,8 +86,8 @@ export class HabitatRoom extends Phaser.Scene {
     const g = this.add.graphics().setDepth(0);
 
     if (habitat === 'dirt') {
-      // Deep cave gradient
-      g.fillGradientStyle(0x2E1400, 0x2E1400, 0x0D0500, 0x0D0500, 1);
+      // Warm terracotta cave
+      g.fillGradientStyle(0xA84E28, 0xA84E28, 0x7A3418, 0x7A3418, 1);
       g.fillRect(0, 0, W, H);
 
       // Cave wall texture (stone bumps)
@@ -119,12 +120,12 @@ export class HabitatRoom extends Phaser.Scene {
         g.fillStyle(lighten(col, 8), 0.5); g.fillEllipse(s[0], s[1]*1.6+3, 9, 13);
       });
 
-      // Ground — multi-layer earth strata
-      g.fillStyle(0x1A0900, 1); g.fillRect(0, H*0.695, W, H*0.305);
-      g.fillStyle(0x2C1606, 1); g.fillRect(0, H*0.695, W, H*0.078);
-      g.fillStyle(0x3D2008, 1); g.fillRect(0, H*0.695, W, 12);
-      g.fillStyle(0x5D3510, 1); g.fillRect(0, H*0.695, W, 5);
-      g.fillStyle(0x7A4A1A, 0.5); g.fillRect(0, H*0.695, W, 2.5);
+      // Ground — warm earth strata
+      g.fillStyle(0x5E2C10, 1); g.fillRect(0, H*0.695, W, H*0.305);
+      g.fillStyle(0x7A3E18, 1); g.fillRect(0, H*0.695, W, H*0.078);
+      g.fillStyle(0x9A5220, 1); g.fillRect(0, H*0.695, W, 12);
+      g.fillStyle(0xBB6A2C, 1); g.fillRect(0, H*0.695, W, 5);
+      g.fillStyle(0xD48040, 0.5); g.fillRect(0, H*0.695, W, 2.5);
 
       // Rocks
       [[55,H*0.76,48,28],[165,H*0.74,38,22],[310,H*0.77,56,30],[430,H*0.75,42,26],[495,H*0.79,34,20]].forEach((r, i) => {
@@ -151,22 +152,23 @@ export class HabitatRoom extends Phaser.Scene {
       });
 
     } else if (habitat === 'grass') {
-      g.fillGradientStyle(0x082800, 0x082800, 0x194D1E, 0x194D1E, 1);
+      // Bright sunlit forest
+      g.fillGradientStyle(0x2A9820, 0x2A9820, 0x48CC30, 0x48CC30, 1);
       g.fillRect(0, 0, W, H * 0.5);
-      g.fillGradientStyle(0x194D1E, 0x194D1E, 0x2A7030, 0x2A7030, 1);
+      g.fillGradientStyle(0x48CC30, 0x48CC30, 0x3AAA28, 0x3AAA28, 1);
       g.fillRect(0, H * 0.5, W, H * 0.5);
       const farTrees = [[38,H*0.54,58],[155,H*0.50,68],[318,H*0.52,63],[435,H*0.53,55],[515,H*0.55,48]];
       farTrees.forEach(t => {
-        g.fillStyle(0x0C3810, 1);
+        g.fillStyle(0x1A6018, 1);
         g.fillRect(t[0] - 5, t[1] + 10, 10, H - t[1]);
-        g.fillStyle(0x0C3810, 0.85);
+        g.fillStyle(0x1E7020, 0.85);
         g.fillCircle(t[0], t[1], t[2] * 0.48);
         g.fillCircle(t[0] - t[2]*0.26, t[1] + t[2]*0.26, t[2]*0.38);
         g.fillCircle(t[0] + t[2]*0.22, t[1] + t[2]*0.18, t[2]*0.36);
       });
-      g.fillStyle(0x2A7030, 1); g.fillRect(0, H * 0.70, W, H * 0.30);
-      g.fillStyle(0x3D9045, 1); g.fillRect(0, H * 0.70, W, 8);
-      g.fillStyle(0x4CAF50, 0.4); g.fillRect(0, H * 0.703, W, 4);
+      g.fillStyle(0x40B830, 1); g.fillRect(0, H * 0.70, W, H * 0.30);
+      g.fillStyle(0x5ACC40, 1); g.fillRect(0, H * 0.70, W, 8);
+      g.fillStyle(0x80E060, 0.4); g.fillRect(0, H * 0.703, W, 4);
       for (let gi = 0; gi < 9; gi++) {
         const gx = 28 + gi * 58, gy = H * 0.702;
         g.fillStyle(0x4CAF50, 1);
@@ -186,7 +188,8 @@ export class HabitatRoom extends Phaser.Scene {
       });
 
     } else { // aquatic
-      g.fillGradientStyle(0x00537A, 0x00537A, 0x001833, 0x001833, 1);
+      // Bright tropical ocean
+      g.fillGradientStyle(0x0898D8, 0x0898D8, 0x0568B0, 0x0568B0, 1);
       g.fillRect(0, 0, W, H);
       for (let ri = 0; ri < 7; ri++) {
         const rx = 20 + ri * 78;
@@ -223,11 +226,11 @@ export class HabitatRoom extends Phaser.Scene {
 
   private _drawVignette(W: number, H: number) {
     const v = this.add.graphics().setDepth(1);
-    v.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0.45, 0.45, 0, 0);
+    v.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0.20, 0.20, 0, 0);
     v.fillRect(0, 0, W, H * 0.22);
-    v.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0.28, 0, 0, 0.28);
+    v.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0.12, 0, 0, 0.12);
     v.fillRect(0, 0, W * 0.18, H * 0.72);
-    v.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0, 0.28, 0.28, 0);
+    v.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0, 0.12, 0.12, 0);
     v.fillRect(W * 0.82, 0, W * 0.18, H * 0.72);
   }
 
@@ -328,16 +331,21 @@ export class HabitatRoom extends Phaser.Scene {
 
     this.add.text(W / 2, 56, getLevelName(this._monster.level) + '  ·  ' +
       sp.habitat.charAt(0).toUpperCase() + sp.habitat.slice(1), {
-      fontFamily: FONT, fontSize: '12px', color: '#9999bb',
+      fontFamily: FONT, fontSize: '12px', color: '#CCDDFF',
     }).setOrigin(0.5).setDepth(20);
 
     this._sellBtn = makeButton(this, W - 72, 34, 116, 44,
       'List ' + this._sellPrice + '⬡', 0x8B6000, () => this._handleListBtn(), 13);
     this._sellBtn.setDepth(20);
 
-    const maxPrice = Math.max(10, Math.round(sp.price * (1 + 10 * 0.2) * 0.8));
-    this.add.text(W - 72, 62, 'Lv10 max: ' + maxPrice + '⬡  ·  ❤️', {
-      fontFamily: FONT, fontSize: '10px', color: '#887799',
+    const isGoldenMon = getVariantModifiers(this._monster.variantIndex).isGolden;
+    const goldenMult = isGoldenMon ? 1.5 : 1;
+    const maxPrice = Math.max(10, Math.round(sp.price * (1 + 10 * 0.2) * 0.8 * goldenMult));
+    const hintLabel = isGoldenMon
+      ? '✨ Golden +50%  ·  max: ' + maxPrice + '⬡'
+      : 'Lv10 max: ' + maxPrice + '⬡  ·  ❤️';
+    this.add.text(W - 72, 62, hintLabel, {
+      fontFamily: FONT, fontSize: '10px', color: isGoldenMon ? '#FFD700' : '#BBAACC',
     }).setOrigin(0.5).setDepth(20);
 
     this._coinTxt = this.add.text(W / 2, H * 0.72 + 5, '⬡ ' + Game.state!.coins, {
@@ -412,7 +420,7 @@ export class HabitatRoom extends Phaser.Scene {
     this._pickerItems.push(fpBg);
 
     this._pickerItems.push(this.add.text(fpX + fpW/2, fpY + 14, '🍽 Choose food', {
-      fontFamily: FONT, fontSize: '12px', color: '#8888cc',
+      fontFamily: FONT, fontSize: '12px', color: '#BBAAFF',
     }).setOrigin(0.5).setDepth(28));
 
     const btnW = Math.floor((fpW - 24) / 3);
@@ -831,7 +839,7 @@ export class HabitatRoom extends Phaser.Scene {
       fontFamily: FONT, fontSize: '18px', fontStyle: 'bold', color: '#ffffff',
     }).setOrigin(0.5));
     popup.add(this.add.text(W/2, H/2 - 40, 'Ready in ~' + mins + ' min', {
-      fontFamily: FONT, fontSize: '14px', color: '#9999cc',
+      fontFamily: FONT, fontSize: '14px', color: '#BBCCFF',
     }).setOrigin(0.5));
 
     popup.add(makeButton(this, W/2, H/2 + 10, 210, 48, 'Cancel Listing', 0x6A1010, () => {
