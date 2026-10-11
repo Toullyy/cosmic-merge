@@ -484,13 +484,9 @@ export class HabitatRoom extends Phaser.Scene {
     TOY_TYPES.forEach((toy, i) => {
       const bx = fpX + 12 + i * (btnW + 4) + btnW / 2;
       const by = fpY + 27 + btnH / 2;
-      const canAfford = Game.state!.coins >= toy.cost;
       const stars = '★'.repeat(toy.tier);
-      const lbl = toy.name + ' ' + stars + '\n+' + toy.happinessGain + '💛\n' + toy.cost + '⬡';
-      const fbtn = makeButton(this, bx, by, btnW - 2, btnH, lbl,
-        canAfford ? 0x2A1560 : 0x1A1A2A, () => {
-          if (Game.state!.coins < toy.cost) { showToast(this, 'Not enough coins!', '#ff9999'); return; }
-          Game.state!.coins -= toy.cost;
+      const lbl = toy.name + ' ' + stars + '\n+' + toy.happinessGain + '💛\nFREE';
+      const fbtn = makeButton(this, bx, by, btnW - 2, btnH, lbl, 0x6030A0, () => {
           this._monster.happiness = Math.min(100, this._monster.happiness + toy.happinessGain);
           this._monster.lastCaredAt = Date.now();
           this._gainXP(8 + toy.tier * 3);
@@ -499,11 +495,9 @@ export class HabitatRoom extends Phaser.Scene {
           this._playPetAnim(toy.id);
           showFloat(this, this._monImg.x, this._monImg.y - 85, '+' + toy.happinessGain + '💛', '#ffdd55');
           this._refreshStats();
-          this._updateCoinDisplay();
           this._clearPicker();
         }, 10);
       fbtn.setDepth(29);
-      if (!canAfford) fbtn.setAlpha(0.5);
       this._pickerItems.push(fbtn);
     });
   }
@@ -533,13 +527,9 @@ export class HabitatRoom extends Phaser.Scene {
     CLEAN_TOOLS.forEach((tool, i) => {
       const bx = fpX + 12 + i * (btnW + 4) + btnW / 2;
       const by = fpY + 27 + btnH / 2;
-      const canAfford = Game.state!.coins >= tool.cost;
       const stars = '★'.repeat(tool.tier);
-      const lbl = tool.name + ' ' + stars + '\n+' + tool.cleanGain + '✨\n' + tool.cost + '⬡';
-      const fbtn = makeButton(this, bx, by, btnW - 2, btnH, lbl,
-        canAfford ? 0x10405A : 0x1A1A2A, () => {
-          if (Game.state!.coins < tool.cost) { showToast(this, 'Not enough coins!', '#ff9999'); return; }
-          Game.state!.coins -= tool.cost;
+      const lbl = tool.name + ' ' + stars + '\n+' + tool.cleanGain + '✨\nFREE';
+      const fbtn = makeButton(this, bx, by, btnW - 2, btnH, lbl, 0x1060A0, () => {
           this._monster.cleanliness = Math.min(100, this._monster.cleanliness + tool.cleanGain);
           this._monster.lastCaredAt = Date.now();
           this._gainXP(8 + tool.tier * 3);
@@ -548,11 +538,9 @@ export class HabitatRoom extends Phaser.Scene {
           this._playCleanAnim(tool.id);
           showFloat(this, this._monImg.x, this._monImg.y - 85, '+' + tool.cleanGain + '✨', '#88ccff');
           this._refreshStats();
-          this._updateCoinDisplay();
           this._clearPicker();
         }, 10);
       fbtn.setDepth(29);
-      if (!canAfford) fbtn.setAlpha(0.5);
       this._pickerItems.push(fbtn);
     });
   }
@@ -567,30 +555,94 @@ export class HabitatRoom extends Phaser.Scene {
   private _playFeedAnim(foodId: string, tier: number) {
     const mx = this._monImg.x, my = this._monImg.y;
     const color = FOOD_COLORS[foodId] ?? 0xFFB300;
-    const r = 8 + tier * 3;
+    const r = 12 + tier * 4;
 
+    // Draw food item
     const foodG = this.add.graphics().setDepth(30);
     foodG.fillStyle(color, 1);
     foodG.fillCircle(0, 0, r);
-    foodG.fillStyle(0xffffff, 0.45);
-    foodG.fillCircle(-r * 0.35, -r * 0.35, r * 0.36);
-    foodG.x = mx;
-    foodG.y = my - 75;
+    foodG.fillStyle(0xffffff, 0.55);
+    foodG.fillCircle(-r * 0.35, -r * 0.38, r * 0.42);
+    if (tier >= 2) {
+      foodG.lineStyle(3, 0xffffff, 0.5);
+      foodG.strokeCircle(0, 0, r + 5);
+    }
+    foodG.setPosition(mx, my - 110).setScale(0);
 
-    if (tier === 3) this._spawnParticles(mx, my - 75, color, 6);
-
+    // Phase 1: pop in
     this.tweens.add({
-      targets: foodG,
-      y: my - 8,
-      duration: 340,
-      ease: 'Quad.In',
+      targets: foodG, scaleX: 1, scaleY: 1,
+      duration: 220, ease: 'Back.Out',
       onComplete: () => {
-        foodG.destroy();
+        // Phase 2: wobble
         this.tweens.add({
-          targets: this._monImg,
-          scaleX: 1.22, scaleY: 0.82,
-          duration: 55, yoyo: true, repeat: 1,
-          onComplete: () => this._monImg.setScale(1),
+          targets: foodG, angle: { from: -18, to: 18 },
+          duration: 100, yoyo: true, repeat: 1, ease: 'Sine.InOut',
+          onComplete: () => {
+            // Monster jumps up slightly to catch food
+            this.tweens.add({
+              targets: this._monImg, y: my - 14,
+              duration: 130, ease: 'Sine.Out', yoyo: true,
+            });
+            // Phase 3: arc fall
+            this.tweens.add({
+              targets: foodG,
+              x: mx + (Math.random() > 0.5 ? 8 : -8),
+              y: my - 18,
+              scaleX: 0.5, scaleY: 0.5, angle: 200,
+              duration: 260, ease: 'Quad.In',
+              onComplete: () => {
+                foodG.destroy();
+                // Burst of colored particles
+                this._spawnParticles(mx, my - 18, color, 8 + tier * 4);
+                // Ring flash
+                const flash = this.add.graphics().setDepth(30);
+                flash.lineStyle(4, color, 0.9);
+                flash.strokeCircle(mx, my - 18, 8);
+                this.tweens.add({
+                  targets: flash, scaleX: 3.5, scaleY: 3.5, alpha: 0,
+                  duration: 380, ease: 'Quad.Out',
+                  onComplete: () => { try { flash.destroy(); } catch { /**/ } },
+                });
+                // Monster happy squish chain
+                const mon = this._monImg;
+                this.tweens.add({
+                  targets: mon, scaleX: 1.35, scaleY: 0.72,
+                  duration: 55, ease: 'Quad.Out',
+                  onComplete: () => this.tweens.add({
+                    targets: mon, scaleX: 0.82, scaleY: 1.3,
+                    duration: 80, ease: 'Quad.Out',
+                    onComplete: () => this.tweens.add({
+                      targets: mon, scaleX: 1.12, scaleY: 0.92,
+                      duration: 70, ease: 'Sine.Out',
+                      onComplete: () => this.tweens.add({
+                        targets: mon, scaleX: 1, scaleY: 1,
+                        duration: 120, ease: 'Back.Out',
+                      }),
+                    }),
+                  }),
+                });
+                // Floating hearts/stars
+                const emojis = tier === 3 ? ['💛','✨','❤️','⭐'] : tier === 2 ? ['💛','✨','💛'] : ['💛','✨'];
+                emojis.forEach((e, idx) => {
+                  this.time.delayedCall(idx * 90, () => {
+                    if (!this.scene?.isActive('HabitatRoom')) return;
+                    const ex = mx + (Math.random() - 0.5) * 80;
+                    const ht = this.add.text(ex, my - 30, e, {
+                      fontFamily: FONT, fontSize: (16 + tier * 2) + 'px',
+                    }).setOrigin(0.5).setDepth(31);
+                    this.tweens.add({
+                      targets: ht,
+                      y: ht.y - 80 - Math.random() * 40,
+                      alpha: 0, angle: (Math.random() - 0.5) * 50,
+                      duration: 900 + Math.random() * 200, ease: 'Sine.Out',
+                      onComplete: () => { try { ht.destroy(); } catch { /**/ } },
+                    });
+                  });
+                });
+              },
+            });
+          },
         });
       },
     });
