@@ -24,6 +24,8 @@ export interface Monster {
   lastCaredAt: number;
   source: string;
   nickname?: string;
+  ownedToy?: string;
+  ownedTool?: string;
 }
 
 export interface Egg {

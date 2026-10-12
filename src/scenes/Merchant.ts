@@ -205,6 +205,8 @@ export class Merchant extends Phaser.Scene {
       }
       state.coins -= cost;
       state.habitats[sp.habitat].unlocked = true;
+      if (!state.tanks) state.tanks = { dirt: 0, grass: 0, aquatic: 0 };
+      state.tanks[sp.habitat] = 4;
       store.setJSON('mps_state', state);
       this._coinTxt.setText(String(state.coins));
       sfx.buy();
@@ -216,7 +218,12 @@ export class Merchant extends Phaser.Scene {
       showToast(this, 'Not enough coins! Need ' + sp.price + '⬡', '#ff9999');
       return;
     }
-    const cap = (state.tanks?.[sp.habitat] ?? 1) * TANK_CAPACITY;
+    const tankCount = state.tanks?.[sp.habitat] ?? 0;
+    if (tankCount === 0) {
+      showToast(this, 'Buy a tank in Hub first!', '#ffaaaa');
+      return;
+    }
+    const cap = tankCount * TANK_CAPACITY;
     const usage = state.monsters.filter(m => m.habitatType === sp.habitat).length
                 + state.eggs.filter(e => e.habitatType === sp.habitat).length;
     if (usage >= cap) {
@@ -227,6 +234,7 @@ export class Merchant extends Phaser.Scene {
     const vi = Math.floor(Math.random() * 100);
     const egg = newEgg(sp.id, vi, 'merchant');
     state.eggs.push(egg);
+    state.merchantStock = state.merchantStock.filter(id => id !== spId);
     store.setJSON('mps_state', state);
     this._coinTxt.setText(String(state.coins));
     sfx.buy();

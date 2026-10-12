@@ -373,6 +373,8 @@ export class Hub extends Phaser.Scene {
     }
     Game.state!.coins -= cost;
     Game.state!.habitats[type].unlocked = true;
+    if (!Game.state!.tanks) Game.state!.tanks = { dirt: 4, grass: 0, aquatic: 0 };
+    Game.state!.tanks[type] = 4;
     store.setJSON('mps_state', Game.state);
     this._updateCoinDisplay();
     this._updateTabs();
@@ -478,7 +480,7 @@ export class Hub extends Phaser.Scene {
       store.setJSON('mps_state', Game.state);
       this._updateCoinDisplay();
       sfx.buy();
-      showToast(this, 'New tank purchased! +2 slots', '#aaffaa');
+      showToast(this, 'New tank purchased! +1 slot', '#aaffaa');
       this.refreshAll();
     });
     this._displayGroup.add(zone);

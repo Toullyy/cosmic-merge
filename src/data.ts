@@ -70,8 +70,8 @@ export const LISTING_DURATION_MS = 15 * 60 * 1000;
 export const MERCHANT_REFRESH_MS = 30 * 60 * 1000;
 
 export const TANK_COST = 100;
-export const TANK_CAPACITY = 2;
-export const MAX_TANKS = 3;
+export const TANK_CAPACITY = 1;
+export const MAX_TANKS = 8;
 
 export const DIAMOND_NEW_SPECIES = 5;
 export const DIAMOND_NEW_COLOR   = 2;
@@ -169,7 +169,7 @@ export function newState(): GameState {
     listings: [],
     merchantRefreshAt: Date.now() + MERCHANT_REFRESH_MS,
     merchantStock: generateMerchantStock(),
-    tanks: { dirt: 1, grass: 1, aquatic: 1 },
+    tanks: { dirt: 4, grass: 0, aquatic: 0 },
     newDiscoveries: [],
     diamonds: 0,
   };
