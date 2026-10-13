@@ -90,69 +90,141 @@ export class HabitatRoom extends Phaser.Scene {
     const g = this.add.graphics().setDepth(0);
 
     if (habitat === 'dirt') {
-      // Warm terracotta cave
-      g.fillGradientStyle(0xA84E28, 0xA84E28, 0x7A3418, 0x7A3418, 1);
+      // Dark stone cave background
+      g.fillGradientStyle(0x1E1E2E, 0x1E1E2E, 0x141422, 0x141422, 1);
       g.fillRect(0, 0, W, H);
 
-      // Cave wall texture (stone bumps)
-      [[28,220,44,24],[90,360,36,20],[185,190,52,28],[320,310,40,22],[430,440,46,25],[510,240,38,20],[75,510,42,24],[270,480,50,26]].forEach((s, i) => {
-        g.fillStyle([0x3A1E0A, 0x2E1608, 0x441E0C][i % 3], 0.38);
-        g.fillEllipse(s[0], s[1], s[2], s[3]);
+      // Subtle stone texture patches
+      [[40,180,60,32],[140,320,50,28],[280,200,66,34],[390,350,54,30],[500,260,44,26],[80,480,58,32],[330,450,62,34]].forEach((s2, i) => {
+        g.fillStyle([0x2A2A3E, 0x222234, 0x303048][i % 3], 0.45);
+        g.fillEllipse(s2[0], s2[1], s2[2], s2[3]);
       });
 
-      // Root tendrils from ceiling
-      [[55,0],[145,0],[260,0],[380,0],[490,0]].forEach((r, i) => {
-        const dx = (i % 2 === 0 ? 18 : -18);
-        const rc = [0x5A3010, 0x4A2808, 0x6A3A14][i % 3];
-        g.lineStyle(3, rc, 0.72);
-        g.beginPath(); g.moveTo(r[0], 0); g.lineTo(r[0]+dx, 55); g.lineTo(r[0]-dx*0.5, 115); g.strokePath();
-        g.lineStyle(1.8, darken(rc, 10), 0.5);
-        g.beginPath(); g.moveTo(r[0]+dx*0.8, 60); g.lineTo(r[0]+dx*1.5, 108); g.strokePath();
-        g.lineStyle(1.2, darken(rc, 20), 0.35);
-        g.beginPath(); g.moveTo(r[0]-dx*0.3, 82); g.lineTo(r[0]-dx*1.0, 122); g.strokePath();
+      // Stone arch alcoves (decorative background slots)
+      const totalSlots = Math.min(4, (Game.state?.tanks?.[habitat as 'dirt'] ?? 4));
+      const occupiedSlots = Game.state?.monsters.filter(m => m.habitatType === habitat).length ?? 0;
+      const alcovePositions: [number, number][] = [
+        [72, 310], [468, 310], [72, 520], [468, 520],
+      ].slice(0, totalSlots) as [number, number][];
+
+      alcovePositions.forEach(([ax, ay], idx) => {
+        const isEmpty = idx >= occupiedSlots;
+        g.fillStyle(0x0A0A16, 0.80);
+        g.fillEllipse(ax + 3, ay + 3, 88, 44);
+        g.fillRect(ax - 41, ay, 88, 38);
+        g.fillStyle(0x3A3A52, 1);
+        g.fillEllipse(ax, ay, 90, 46);
+        g.fillRect(ax - 44, ay, 90, 40);
+        g.fillStyle(0x0E0E1C, 1);
+        g.fillEllipse(ax, ay, 74, 38);
+        g.fillRect(ax - 36, ay, 74, 36);
+        g.lineStyle(2, 0x5A5A7A, 0.65);
+        g.beginPath();
+        g.arc(ax, ay, 38, Math.PI, 0, false);
+        g.strokePath();
+        if (isEmpty) {
+          g.fillStyle(0x8844FF, 0.18);
+          g.fillCircle(ax, ay + 16, 20);
+          g.lineStyle(3, 0xAA66FF, 0.85);
+          g.beginPath(); g.moveTo(ax, ay + 6); g.lineTo(ax, ay + 26); g.strokePath();
+          g.beginPath(); g.moveTo(ax - 10, ay + 16); g.lineTo(ax + 10, ay + 16); g.strokePath();
+        }
       });
 
-      // Stalactites with highlights and drips
-      [[70,58],[160,44],[265,72],[370,52],[470,66]].forEach((s, i) => {
-        const col = [0x5A3015, 0x4A2810, 0x6A3A1A][i % 3];
-        g.fillStyle(darken(col, 22), 0.65);
-        g.fillTriangle(s[0]-s[1]/2+3, 0, s[0]+s[1]/2+3, 0, s[0]+3, s[1]*1.6+4);
-        g.fillStyle(col, 1);
-        g.fillTriangle(s[0]-s[1]/2, 0, s[0]+s[1]/2, 0, s[0], s[1]*1.6);
-        g.fillStyle(lighten(col, 20), 0.42);
-        g.fillTriangle(s[0]-s[1]/4, 0, s[0], s[1]*0.55, s[0]+s[1]/4, 0);
-        g.fillStyle(lighten(col, 8), 0.5); g.fillEllipse(s[0], s[1]*1.6+3, 9, 13);
-      });
+      // Purple portal arch center-back
+      const pax = W / 2, pay = 165;
+      g.fillStyle(0x4400AA, 0.12); g.fillEllipse(pax, pay, 180, 90);
+      g.fillStyle(0x6600CC, 0.08); g.fillEllipse(pax, pay, 220, 110);
+      g.lineStyle(5, 0x7722EE, 0.35);
+      g.beginPath(); g.arc(pax, pay, 96, Math.PI, 0, false); g.strokePath();
+      g.lineStyle(3, 0xBB44FF, 0.28);
+      g.beginPath(); g.arc(pax, pay, 108, Math.PI, 0, false); g.strokePath();
+      g.fillStyle(0x3300AA, 0.55);
+      g.fillEllipse(pax, pay, 180, 90);
+      g.fillRect(pax - 90, pay, 180, 55);
+      g.fillStyle(0x5500CC, 0.28);
+      g.fillEllipse(pax, pay, 158, 78);
+      g.lineStyle(4, 0x9933FF, 0.75);
+      g.beginPath(); g.arc(pax, pay, 88, Math.PI, 0, false); g.strokePath();
+      g.lineStyle(2, 0xCC88FF, 0.55);
+      g.beginPath(); g.arc(pax, pay, 80, Math.PI, 0, false); g.strokePath();
+      g.fillStyle(0x7722EE, 0.06); g.fillEllipse(pax, pay - 10, 140, 65);
 
-      // Ground — warm earth strata
-      g.fillStyle(0x5E2C10, 1); g.fillRect(0, H*0.695, W, H*0.305);
-      g.fillStyle(0x7A3E18, 1); g.fillRect(0, H*0.695, W, H*0.078);
-      g.fillStyle(0x9A5220, 1); g.fillRect(0, H*0.695, W, 12);
-      g.fillStyle(0xBB6A2C, 1); g.fillRect(0, H*0.695, W, 5);
-      g.fillStyle(0xD48040, 0.5); g.fillRect(0, H*0.695, W, 2.5);
+      // Hanging crystal lantern at top center
+      const lx = W / 2, ly = 55;
+      g.lineStyle(2, 0x445566, 0.85);
+      g.beginPath(); g.moveTo(lx, 0); g.lineTo(lx, ly - 22); g.strokePath();
+      g.fillStyle(0x0A2230, 0.95);
+      g.fillRect(lx - 14, ly - 22, 28, 38);
+      g.fillStyle(0x00CCCC, 0.12); g.fillCircle(lx, ly, 40);
+      g.fillStyle(0x00EECC, 0.22); g.fillCircle(lx, ly, 24);
+      g.fillStyle(0x44FFEE, 0.85); g.fillCircle(lx, ly, 10);
+      g.fillStyle(0xAAFFF0, 0.70); g.fillCircle(lx - 3, ly - 3, 4);
+      g.lineStyle(1.5, 0x00CCCC, 0.60);
+      g.strokeRect(lx - 14, ly - 22, 28, 38);
+      g.fillStyle(0x445566, 1);
+      g.fillTriangle(lx - 17, ly - 22, lx + 17, ly - 22, lx, ly - 36);
+      g.fillRect(lx - 14, ly + 16, 28, 6);
 
-      // Rocks
-      [[55,H*0.76,48,28],[165,H*0.74,38,22],[310,H*0.77,56,30],[430,H*0.75,42,26],[495,H*0.79,34,20]].forEach((r, i) => {
-        const rc = [0x4A2E10, 0x3D2408, 0x5E3C18][i % 3];
-        g.fillStyle(darken(rc, 15), 0.75); g.fillEllipse(r[0]+2, r[1]+3, r[2] as number, r[3] as number);
+      // Large tropical leaves — left side
+      g.fillStyle(0x1B5E20, 0.90); g.fillEllipse(86, H*0.48, 120, 28);
+      g.fillStyle(0x2E7D32, 0.65); g.fillEllipse(76, H*0.48 - 6, 80, 14);
+      g.lineStyle(2, 0x1B5E20, 0.5);
+      g.beginPath(); g.moveTo(8, H*0.48); g.lineTo(128, H*0.48); g.strokePath();
+      g.fillStyle(0x1A6018, 0.90); g.fillEllipse(74, H*0.56, 120, 28);
+      g.fillStyle(0x2A7028, 0.65); g.fillEllipse(64, H*0.56 - 6, 80, 14);
+      g.lineStyle(2, 0x1A6018, 0.5);
+      g.beginPath(); g.moveTo(8, H*0.56); g.lineTo(118, H*0.56); g.strokePath();
+      // Large tropical leaves — right side
+      g.fillStyle(0x1B5E20, 0.90); g.fillEllipse(W - 86, H*0.48, 120, 28);
+      g.fillStyle(0x2E7D32, 0.65); g.fillEllipse(W - 76, H*0.48 - 6, 80, 14);
+      g.lineStyle(2, 0x1B5E20, 0.5);
+      g.beginPath(); g.moveTo(W - 8, H*0.48); g.lineTo(W - 128, H*0.48); g.strokePath();
+      g.fillStyle(0x1A6018, 0.90); g.fillEllipse(W - 74, H*0.56, 120, 28);
+      g.fillStyle(0x2A7028, 0.65); g.fillEllipse(W - 64, H*0.56 - 6, 80, 14);
+      g.lineStyle(2, 0x1A6018, 0.5);
+      g.beginPath(); g.moveTo(W - 8, H*0.56); g.lineTo(W - 118, H*0.56); g.strokePath();
+
+      // Ground — cool stone earth
+      g.fillStyle(0x2A1E10, 1); g.fillRect(0, H*0.695, W, H*0.305);
+      g.fillStyle(0x3A2A18, 1); g.fillRect(0, H*0.695, W, H*0.075);
+      g.fillStyle(0x4A3420, 1); g.fillRect(0, H*0.695, W, 14);
+      g.fillStyle(0x5E4228, 1); g.fillRect(0, H*0.695, W, 6);
+      g.fillStyle(0x7A5830, 0.45); g.fillRect(0, H*0.695, W, 2.5);
+
+      // Ground rocks
+      [[50,H*0.755,52,30],[170,H*0.74,40,24],[318,H*0.77,58,32],[440,H*0.75,44,26],[498,H*0.78,36,22]].forEach((r, i) => {
+        const rc = [0x3A2A14, 0x2E2010, 0x4A3418][i % 3];
+        g.fillStyle(darken(rc, 12), 0.70); g.fillEllipse(r[0]+2, r[1]+3, r[2] as number, r[3] as number);
         g.fillStyle(rc, 1); g.fillEllipse(r[0], r[1], r[2] as number, r[3] as number);
-        g.fillStyle(lighten(rc, 28), 0.38); g.fillEllipse(r[0]-r[2]*0.14, r[1]-r[3]*0.27, r[2]*0.52, r[3]*0.44);
+        g.fillStyle(lighten(rc, 22), 0.35); g.fillEllipse(r[0]-r[2]*0.14, r[1]-r[3]*0.27, r[2]*0.50, r[3]*0.42);
       });
 
-      // Glowing mushrooms
-      ([[48,H*0.712,0xFF6060,13],[155,H*0.718,0x44FF88,11],[338,H*0.712,0xFF55FF,12],[465,H*0.718,0x44BBFF,10]] as [number,number,number,number][]).forEach(([mx,my,mc,mr]) => {
-        g.fillStyle(mc, 0.1); g.fillCircle(mx, my-mr*1.2, mr*2.8);
-        g.fillStyle(darken(mc, 55), 1); g.fillRect(mx-3, my-mr*1.5-2, 6, mr*1.5+2);
-        g.fillStyle(mc, 1); g.fillEllipse(mx, my-mr*1.6, mr*2.4, mr*1.1);
-        g.fillStyle(lighten(mc, 60), 0.48); g.fillCircle(mx-mr*0.35, my-mr*2.0, mr*0.32);
+      // Blue/purple crystal formations
+      ([[35,H*0.70,0x6644DD],[105,H*0.71,0x4488FF],[195,H*0.705,0x8844FF],[365,H*0.70,0x4466EE],[450,H*0.715,0x6644DD],[508,H*0.705,0x5566FF]] as [number,number,number][]).forEach(([cx2,cy2,cc]) => {
+        g.fillStyle(cc, 0.10); g.fillCircle(cx2, cy2, 22);
+        g.fillStyle(cc, 0.25); g.fillCircle(cx2, cy2, 13);
+        g.fillStyle(cc, 0.92); g.fillCircle(cx2, cy2, 6);
+        g.fillStyle(0xffffff, 0.60); g.fillCircle(cx2 - 1.5, cy2 - 1.5, 2);
+        g.fillStyle(cc, 0.70);
+        g.fillTriangle(cx2 - 5, cy2, cx2 + 5, cy2, cx2, cy2 - 16);
+        g.fillTriangle(cx2 - 10, cy2 + 2, cx2 - 2, cy2 + 2, cx2 - 6, cy2 - 12);
+        g.fillTriangle(cx2 + 2, cy2 + 2, cx2 + 10, cy2 + 2, cx2 + 6, cy2 - 12);
       });
 
-      // Crystals — enlarged with stronger glow
-      [[28,240,0xFFD700],[108,390,0xFF8C00],[195,510,0xFF4500],[355,290,0xFFD700],[440,440,0xE0C060],[500,180,0xFF8C00]].forEach(c => {
-        g.fillStyle(c[2], 0.08); g.fillCircle(c[0], c[1], 22);
-        g.fillStyle(c[2], 0.22); g.fillCircle(c[0], c[1], 13);
-        g.fillStyle(c[2], 0.9);  g.fillCircle(c[0], c[1], 6);
-        g.fillStyle(0xffffff, 0.55); g.fillCircle(c[0]-1.5, c[1]-1.5, 2);
+      // Ceramic vase decoration
+      const vx = W * 0.76, vy = H * 0.712;
+      g.fillStyle(0x6A3820, 1); g.fillEllipse(vx, vy, 36, 10);
+      g.fillStyle(0x8B4A28, 1);
+      g.fillRect(vx - 14, vy - 44, 28, 44);
+      g.fillEllipse(vx, vy - 44, 36, 14);
+      g.fillEllipse(vx, vy - 44, 30, 10);
+      g.fillStyle(0xAA6035, 0.45); g.fillEllipse(vx - 5, vy - 56, 14, 22);
+      g.lineStyle(1.5, 0x5A2C14, 0.60);
+      g.strokeRect(vx - 14, vy - 44, 28, 44);
+      g.lineStyle(1, 0xCC7040, 0.30);
+      [[vy - 36, 24], [vy - 24, 26], [vy - 12, 24]].forEach(([y2, w2]) => {
+        g.beginPath(); g.moveTo(vx - w2/2, y2); g.lineTo(vx + w2/2, y2); g.strokePath();
       });
 
     } else if (habitat === 'grass') {
@@ -272,26 +344,27 @@ export class HabitatRoom extends Phaser.Scene {
   // ── STATS BARS ────────────────────────────────────────────────────────────
 
   private _buildStats(W: number, H: number) {
-    const statsY = H * 0.72 + 18;
+    const statsY = H * 0.72 + 16;
     const defs = [
       { key: 'hunger',      label: '🍖', col: 0xF57C00 },
       { key: 'happiness',   label: '💛', col: 0xFDD835 },
       { key: 'cleanliness', label: '✨', col: 0x42A5F5 },
     ];
-    const barW = W - 100;
+    const barW = W - 90;
     this._bars = {};
 
     defs.forEach((d, i) => {
-      const by = statsY + i * 46;
-      this.add.text(28, by, d.label, { fontFamily: FONT, fontSize: '20px' }).setOrigin(0, 0.5).setDepth(10);
+      const by = statsY + i * 44;
+      this.add.text(24, by, d.label, { fontFamily: FONT, fontSize: '22px' }).setOrigin(0, 0.5).setDepth(10);
       const bg = this.add.graphics().setDepth(10);
-      bg.fillStyle(0x00000066, 1);
-      bg.fillRoundedRect(58, by - 10, barW, 20, 10);
+      bg.fillStyle(0x00000055, 1);
+      bg.fillRoundedRect(54, by - 11, barW, 22, 11);
       const fill = this.add.graphics().setDepth(11);
-      const val = this.add.text(W - 26, by, '0', {
-        fontFamily: FONT, fontSize: '13px', color: '#cccccc',
+      const val = this.add.text(W - 18, by, '0%', {
+        fontFamily: FONT, fontSize: '13px', color: '#eeeeee',
+        stroke: '#000000', strokeThickness: 2,
       }).setOrigin(1, 0.5).setDepth(12);
-      this._bars[d.key] = { fill, col: d.col, bx: 58, by: by - 10, bw: barW, val };
+      this._bars[d.key] = { fill, col: d.col, bx: 54, by: by - 11, bw: barW, val };
     });
 
     this._refreshStats();
@@ -306,7 +379,7 @@ export class HabitatRoom extends Phaser.Scene {
       e.fill.clear();
       e.fill.fillStyle(e.col, 1);
       e.fill.fillRoundedRect(e.bx, e.by, Math.max(16, e.bw * pct), 20, 10);
-      e.val.setText(String(Math.round(m[k])));
+      e.val.setText(Math.round(m[k]) + '%');
     });
     if (this._dirtyOverlay) this._updateDirtyOverlay();
     if (this._monster.hunger < 30) {
@@ -399,10 +472,45 @@ export class HabitatRoom extends Phaser.Scene {
   // ── ACTION BUTTONS ────────────────────────────────────────────────────────
 
   private _buildActions(W: number, H: number) {
-    const btnY = H - 58, sp = 148;
-    makeButton(this, W/2 - sp, btnY, 128, 52, '🍽 Feed',  0xC83800, () => this._showFoodPicker(), 16).setDepth(10);
-    makeButton(this, W/2,      btnY, 128, 52, '🎾 Play',  0x9030C8, () => this._showToyPicker(), 16).setDepth(10);
-    makeButton(this, W/2 + sp, btnY, 128, 52, '🧹 Clean', 0x2080C0, () => this._showToolPicker(), 16).setDepth(10);
+    const btnY = H - 72;
+    const positions = [W/2 - 148, W/2, W/2 + 148];
+    const icons = ['🍽', '🎾', '🧹'];
+    const labels = ['Feed', 'Play', 'Clean'];
+    const colors = [0xC83800, 0x9030C8, 0x2080C0];
+    const callbacks = [
+      () => this._showFoodPicker(),
+      () => this._showToyPicker(),
+      () => this._showToolPicker(),
+    ];
+    positions.forEach((bx, i) => {
+      const btn = this.add.container(bx, btnY).setDepth(10).setSize(90, 80);
+      const bg = this.add.graphics();
+      bg.fillStyle(darken(colors[i], 20), 1);
+      bg.fillEllipse(0, -4, 78, 74);
+      bg.fillStyle(colors[i], 1);
+      bg.fillEllipse(0, -8, 78, 74);
+      bg.lineStyle(2, lighten(colors[i], 40), 0.70);
+      bg.strokeEllipse(0, -8, 78, 74);
+      const ico = this.add.text(0, -14, icons[i], { fontFamily: FONT, fontSize: '28px' }).setOrigin(0.5);
+      const lbl = this.add.text(0, 18, labels[i], {
+        fontFamily: FONT, fontSize: '12px', color: '#ffffff', stroke: '#000000', strokeThickness: 2,
+      }).setOrigin(0.5);
+      btn.add([bg, ico, lbl]);
+      btn.setInteractive({ useHandCursor: true });
+      btn.on('pointerdown', callbacks[i]);
+      btn.on('pointerover', () => {
+        bg.clear();
+        bg.fillStyle(darken(colors[i], 10), 1); bg.fillEllipse(0, -4, 78, 74);
+        bg.fillStyle(lighten(colors[i], 15), 1); bg.fillEllipse(0, -8, 78, 74);
+        bg.lineStyle(2, lighten(colors[i], 50), 0.85); bg.strokeEllipse(0, -8, 78, 74);
+      });
+      btn.on('pointerout', () => {
+        bg.clear();
+        bg.fillStyle(darken(colors[i], 20), 1); bg.fillEllipse(0, -4, 78, 74);
+        bg.fillStyle(colors[i], 1); bg.fillEllipse(0, -8, 78, 74);
+        bg.lineStyle(2, lighten(colors[i], 40), 0.70); bg.strokeEllipse(0, -8, 78, 74);
+      });
+    });
   }
 
   // ── HUD ───────────────────────────────────────────────────────────────────

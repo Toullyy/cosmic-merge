@@ -9,69 +9,73 @@ function h(c: number): string {
 function bugSVG(bc: number, sc: number, lc: number, ec: number, habitat: string): string {
   const b = h(bc), s = h(sc), l = h(lc), e = h(ec);
   const gExt = habitat === 'grass' ? `
-<ellipse cx="35" cy="80" rx="14" ry="22" fill="#4CAF50" opacity="0.75" transform="rotate(-18,35,80)"/>
-<ellipse cx="93" cy="80" rx="14" ry="22" fill="#4CAF50" opacity="0.75" transform="rotate(18,93,80)"/>
-<ellipse cx="35" cy="80" rx="7" ry="12" fill="#81C784" opacity="0.55" transform="rotate(-18,35,80)"/>
-<ellipse cx="93" cy="80" rx="7" ry="12" fill="#81C784" opacity="0.55" transform="rotate(18,93,80)"/>` : '';
+<ellipse cx="30" cy="78" rx="14" ry="22" fill="#4CAF50" opacity="0.75" transform="rotate(-22,30,78)"/>
+<ellipse cx="98" cy="78" rx="14" ry="22" fill="#4CAF50" opacity="0.75" transform="rotate(22,98,78)"/>
+<ellipse cx="30" cy="78" rx="7" ry="12" fill="#81C784" opacity="0.55" transform="rotate(-22,30,78)"/>
+<ellipse cx="98" cy="78" rx="7" ry="12" fill="#81C784" opacity="0.55" transform="rotate(22,98,78)"/>` : '';
   const dExt = habitat === 'dirt' ? `
-<path d="M 52 28 L 47 14 L 58 24 Z" fill="${s}"/>
-<path d="M 76 28 L 81 14 L 70 24 Z" fill="${s}"/>
-<path d="M 52 29 L 49 20 L 55 25 Z" fill="${l}" opacity="0.4"/>
-<path d="M 76 29 L 79 20 L 73 25 Z" fill="${l}" opacity="0.4"/>` : '';
+<path d="M 46 43 L 40 20 L 55 39 Z" fill="${s}"/>
+<path d="M 64 40 L 61 18 L 74 38 Z" fill="${s}"/>
+<path d="M 82 43 L 88 20 L 73 39 Z" fill="${s}"/>
+<path d="M 46 44 L 43 27 L 53 41 Z" fill="${l}" opacity="0.38"/>
+<path d="M 64 41 L 63 24 L 70 39 Z" fill="${l}" opacity="0.38"/>
+<path d="M 82 44 L 85 27 L 75 41 Z" fill="${l}" opacity="0.38"/>` : '';
   const aExt = habitat === 'aquatic' ? `
-<circle cx="88" cy="70" r="13" fill="#88DDFF" opacity="0.28"/>
-<circle cx="84" cy="66" r="4" fill="white" opacity="0.45"/>
-<circle cx="88" cy="70" r="13" fill="none" stroke="#66CCFF" stroke-width="1" opacity="0.55"/>` : '';
+<circle cx="94" cy="65" r="14" fill="#88DDFF" opacity="0.25"/>
+<circle cx="90" cy="61" r="5" fill="white" opacity="0.40"/>
+<circle cx="94" cy="65" r="14" fill="none" stroke="#66CCFF" stroke-width="1" opacity="0.5"/>` : '';
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="256" height="256">
 <defs>
-<radialGradient id="bg" cx="32%" cy="28%" r="70%">
+<radialGradient id="bg" cx="32%" cy="28%" r="72%">
 <stop offset="0%" stop-color="${l}"/>
 <stop offset="55%" stop-color="${b}"/>
 <stop offset="100%" stop-color="${s}"/>
 </radialGradient>
 </defs>
-<ellipse cx="66" cy="120" rx="33" ry="7" fill="black" opacity="0.15"/>
-<g stroke="${s}" stroke-width="2.5" stroke-linecap="round">
-<line x1="37" y1="83" x2="12" y2="73"/>
-<line x1="36" y1="92" x2="9" y2="91"/>
-<line x1="37" y1="101" x2="13" y2="112"/>
-<line x1="91" y1="83" x2="116" y2="73"/>
-<line x1="92" y1="92" x2="119" y2="91"/>
-<line x1="91" y1="101" x2="115" y2="112"/>
-</g>
-${gExt}
-<ellipse cx="65" cy="91" rx="30" ry="22" fill="${s}" opacity="0.32"/>
-<ellipse cx="64" cy="88" rx="28" ry="21" fill="url(#bg)" stroke="${s}" stroke-width="2"/>
-<line x1="64" y1="68" x2="64" y2="108" stroke="${s}" stroke-width="1.6" opacity="0.45"/>
-<ellipse cx="51" cy="80" rx="10" ry="6" fill="white" opacity="0.18"/>
-<circle cx="65" cy="55" r="27" fill="${s}" opacity="0.28"/>
-<circle cx="64" cy="52" r="26" fill="url(#bg)" stroke="${s}" stroke-width="2"/>
-<ellipse cx="52" cy="41" rx="12" ry="8" fill="white" opacity="0.22"/>
-<ellipse cx="50" cy="39" rx="5" ry="3" fill="white" opacity="0.30"/>
-${dExt}${aExt}
-<path d="M 56 28 Q 46 17 38 9" stroke="${s}" stroke-width="2.2" fill="none" stroke-linecap="round"/>
-<path d="M 72 28 Q 82 17 90 9" stroke="${s}" stroke-width="2.2" fill="none" stroke-linecap="round"/>
-<circle cx="38" cy="9" r="5" fill="${l}"/>
-<circle cx="90" cy="9" r="5" fill="${l}"/>
-<circle cx="37" cy="8" r="2" fill="white" opacity="0.55"/>
-<circle cx="89" cy="8" r="2" fill="white" opacity="0.55"/>
-<circle cx="50" cy="50" r="14" fill="${e}" opacity="0.14"/>
-<circle cx="78" cy="50" r="14" fill="${e}" opacity="0.14"/>
-<circle cx="50" cy="50" r="11" fill="white"/>
-<circle cx="78" cy="50" r="11" fill="white"/>
-<path d="M 39.5 47 Q 50 43 60.5 47" stroke="${s}" stroke-width="1.5" fill="none" opacity="0.38"/>
-<path d="M 67.5 47 Q 78 43 88.5 47" stroke="${s}" stroke-width="1.5" fill="none" opacity="0.38"/>
-<circle cx="50" cy="51.5" r="7.5" fill="${e}"/>
-<circle cx="78" cy="51.5" r="7.5" fill="${e}"/>
-<circle cx="51.5" cy="53" r="4.5" fill="#0A001E"/>
-<circle cx="79.5" cy="53" r="4.5" fill="#0A001E"/>
-<circle cx="54.5" cy="48" r="3" fill="white"/>
-<circle cx="82.5" cy="48" r="3" fill="white"/>
-<circle cx="48.5" cy="55" r="1.5" fill="white" opacity="0.65"/>
-<circle cx="76.5" cy="55" r="1.5" fill="white" opacity="0.65"/>
-<ellipse cx="37" cy="59" rx="10" ry="5" fill="#FF6B8A" opacity="0.27"/>
-<ellipse cx="91" cy="59" rx="10" ry="5" fill="#FF6B8A" opacity="0.27"/>
-<path d="M 53 65 Q 64 72 75 65" stroke="${s}" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+<ellipse cx="64" cy="123" rx="32" ry="6" fill="black" opacity="0.15"/>
+${gExt}${dExt}
+<ellipse cx="66" cy="85" rx="36" ry="42" fill="${s}" opacity="0.28"/>
+<ellipse cx="64" cy="83" rx="34" ry="40" fill="url(#bg)" stroke="${s}" stroke-width="2"/>
+<circle cx="48" cy="70" r="4.5" fill="${s}" opacity="0.30"/>
+<circle cx="76" cy="66" r="4" fill="${s}" opacity="0.26"/>
+<circle cx="86" cy="82" r="3.5" fill="${s}" opacity="0.24"/>
+<circle cx="52" cy="92" r="5" fill="${s}" opacity="0.28"/>
+<circle cx="78" cy="92" r="4" fill="${s}" opacity="0.24"/>
+<circle cx="40" cy="86" r="3.5" fill="${s}" opacity="0.26"/>
+<circle cx="64" cy="104" r="4.5" fill="${s}" opacity="0.20"/>
+<circle cx="44" cy="100" r="3" fill="${s}" opacity="0.20"/>
+<circle cx="84" cy="100" r="3" fill="${s}" opacity="0.20"/>
+<ellipse cx="48" cy="60" rx="15" ry="9" fill="white" opacity="0.20"/>
+<ellipse cx="46" cy="58" rx="6" ry="3.5" fill="white" opacity="0.28"/>
+${aExt}
+<circle cx="48" cy="60" r="13" fill="${e}" opacity="0.14"/>
+<circle cx="80" cy="60" r="13" fill="${e}" opacity="0.14"/>
+<circle cx="48" cy="60" r="11" fill="white"/>
+<circle cx="80" cy="60" r="11" fill="white"/>
+<circle cx="48" cy="61.5" r="7.5" fill="${e}"/>
+<circle cx="80" cy="61.5" r="7.5" fill="${e}"/>
+<circle cx="49.5" cy="63" r="4.5" fill="#0A001E"/>
+<circle cx="81.5" cy="63" r="4.5" fill="#0A001E"/>
+<circle cx="53" cy="57" r="3.2" fill="white"/>
+<circle cx="85" cy="57" r="3.2" fill="white"/>
+<circle cx="47" cy="65" r="1.6" fill="white" opacity="0.65"/>
+<circle cx="79" cy="65" r="1.6" fill="white" opacity="0.65"/>
+<ellipse cx="32" cy="67" rx="10" ry="5" fill="#FF6B8A" opacity="0.28"/>
+<ellipse cx="96" cy="67" rx="10" ry="5" fill="#FF6B8A" opacity="0.28"/>
+<path d="M 50 74 L 78 74 Q 78 86 64 89 Q 50 86 50 74 Z" fill="#1A0008"/>
+<polygon points="52,74 56,74 54,81" fill="white"/>
+<polygon points="58,74 62,74 60,81" fill="white"/>
+<polygon points="64,74 68,74 66,81" fill="white"/>
+<polygon points="70,74 74,74 72,81" fill="white"/>
+<polygon points="55,89 58,89 56.5,83" fill="white"/>
+<polygon points="62,89 65,89 63.5,83" fill="white"/>
+<polygon points="69,89 72,89 70.5,83" fill="white"/>
+<line x1="50" y1="74" x2="78" y2="74" stroke="${s}" stroke-width="2" stroke-linecap="round"/>
+<path d="M 50 74 Q 50 90 64 91 Q 78 90 78 74" stroke="${s}" stroke-width="2" fill="none"/>
+<ellipse cx="50" cy="119" rx="11" ry="7" fill="${s}" opacity="0.80"/>
+<ellipse cx="78" cy="119" rx="11" ry="7" fill="${s}" opacity="0.80"/>
+<ellipse cx="50" cy="118" rx="6" ry="3.5" fill="${l}" opacity="0.30"/>
+<ellipse cx="78" cy="118" rx="6" ry="3.5" fill="${l}" opacity="0.30"/>
 </svg>`;
 }
 
