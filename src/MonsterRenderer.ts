@@ -296,14 +296,32 @@ export function preloadMonsterTexture(scene: Phaser.Scene, monster: Monster): Pr
     ctx.drawImage(src as HTMLImageElement, 0, 0, SIZE, SIZE);
     ctx.filter = 'none';
     if (mods.isGolden) {
-      const grd = ctx.createRadialGradient(256, 256, 140, 256, 256, 280);
-      grd.addColorStop(0, 'rgba(255,215,0,0)');
-      grd.addColorStop(1, 'rgba(255,215,0,0.55)');
+      // Outer radial glow
+      const grd = ctx.createRadialGradient(SIZE/2, SIZE/2, SIZE*0.26, SIZE/2, SIZE/2, SIZE*0.54);
+      grd.addColorStop(0,   'rgba(255,215,0,0)');
+      grd.addColorStop(0.7, 'rgba(255,215,0,0)');
+      grd.addColorStop(1,   'rgba(255,215,0,0.62)');
       ctx.fillStyle = grd;
       ctx.fillRect(0, 0, SIZE, SIZE);
-      ctx.strokeStyle = 'rgba(255,215,0,0.92)';
-      ctx.lineWidth = 10;
-      ctx.strokeRect(5, 5, SIZE - 10, SIZE - 10);
+      // Soft circular ring (no harsh box)
+      ctx.strokeStyle = 'rgba(255,215,0,0.88)';
+      ctx.lineWidth = 7;
+      ctx.beginPath();
+      ctx.arc(SIZE/2, SIZE/2, SIZE/2 - 8, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,245,130,0.46)';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(SIZE/2, SIZE/2, SIZE/2 - 2, 0, Math.PI * 2);
+      ctx.stroke();
+      // Sparkle dots at 8 positions around the ring
+      const R = SIZE/2 - 8;
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2 - Math.PI / 8;
+        const sx = SIZE/2 + Math.cos(a) * R, sy = SIZE/2 + Math.sin(a) * R;
+        ctx.fillStyle = 'rgba(255,215,0,0.45)'; ctx.beginPath(); ctx.arc(sx, sy, 5.5, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.beginPath(); ctx.arc(sx, sy, 2.8, 0, Math.PI*2); ctx.fill();
+      }
     }
     scene.textures.addCanvas(key, canvas);
   };
