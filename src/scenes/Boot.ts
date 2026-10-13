@@ -23,18 +23,17 @@ export class Boot extends Phaser.Scene {
         Game.state.merchantStock = generateMerchantStock();
         Game.state.merchantRefreshAt = Date.now() + MERCHANT_REFRESH_MS;
       }
-      // migrate tanks: give enough tanks to cover existing monsters
+      // migrate tanks: ensure each unlocked habitat has at least 4 slots
       if (!Game.state.tanks) {
-        const calcTanks = (h: string) => {
-          const cnt = Game.state!.monsters.filter(m => m.habitatType === h).length;
-          return Math.max(1, Math.ceil(cnt / TANK_CAPACITY));
-        };
-        Game.state.tanks = {
-          dirt:    calcTanks('dirt'),
-          grass:   calcTanks('grass'),
-          aquatic: calcTanks('aquatic'),
-        } as any;
+        Game.state.tanks = { dirt: 0, grass: 0, aquatic: 0 } as any;
       }
+      (['dirt', 'grass', 'aquatic'] as const).forEach(h => {
+        const unlocked = Game.state!.habitats[h].unlocked;
+        const minSlots = unlocked ? 4 : 0;
+        if ((Game.state!.tanks![h] ?? 0) < minSlots) {
+          Game.state!.tanks![h] = minSlots;
+        }
+      });
       if (!Game.state.newDiscoveries) Game.state.newDiscoveries = [];
       if (Game.state.diamonds === undefined) Game.state.diamonds = 0;
       if (!Game.state.stats.goldenDiscovered) Game.state.stats.goldenDiscovered = [];
