@@ -136,6 +136,8 @@ export function newMonster(speciesId: number, variantIndex?: number, source?: st
     cleanliness: 90,
     lastCaredAt: Date.now(),
     source: source ?? 'merchant',
+    ownedToy: 'yarn',
+    ownedTool: 'cloth',
   };
 }
 

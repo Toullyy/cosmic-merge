@@ -111,7 +111,7 @@ export class Hub extends Phaser.Scene {
     hud.lineStyle(4, 0x55EEFF, 0.18);
     hud.strokeRoundedRect(179, 5, 126, 58, 17);
 
-    this.add.text(26, 34, '⬡', {
+    this.add.text(26, 34, '🪙', {
       fontFamily: FONT, fontSize: '26px', color: '#FFD700',
       stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0, 0.5).setDepth(11);
@@ -156,7 +156,7 @@ export class Hub extends Phaser.Scene {
 
   private _adBtnLabel(): string {
     const r = this._adCooldownRemaining();
-    if (r <= 0) return '📺 +' + AD_COINS_REWARD + '⬡';
+    if (r <= 0) return '📺 +' + AD_COINS_REWARD + '🪙';
     const mins = Math.ceil(r / 60000);
     return '📺 ' + (mins >= 60 ? Math.floor(mins / 60) + 'h' : mins + 'm');
   }
@@ -175,7 +175,7 @@ export class Hub extends Phaser.Scene {
         store.setJSON('mps_state', Game.state);
         this._updateCoinDisplay();
         sfx.buy();
-        showToast(this, '+' + AD_COINS_REWARD + ' ⬡ free coins!', '#aaffaa');
+        showToast(this, '+' + AD_COINS_REWARD + ' 🪙 free coins!', '#aaffaa');
       }
     });
   }
@@ -368,7 +368,7 @@ export class Hub extends Phaser.Scene {
   private _tryUnlockHabitat(type: HabitatType) {
     const cost = HABITATS[type].unlockCost;
     if (Game.state!.coins < cost) {
-      showToast(this, 'Need ' + cost + '⬡ to unlock ' + HABITATS[type].label, '#ff9999');
+      showToast(this, 'Need ' + cost + '🪙 to unlock ' + HABITATS[type].label, '#ff9999');
       return;
     }
     Game.state!.coins -= cost;
@@ -417,7 +417,7 @@ export class Hub extends Phaser.Scene {
     monsters.forEach(mon => { if (idx < slots.length) { this._drawTerrarium(slots[idx].x, slots[idx].y, mon); idx++; } });
 
     const usage = monsters.length + eggs.length;
-    if (usage >= capacity && capacity < MAX_TANKS * TANK_CAPACITY && idx < slots.length) {
+    if (capacity < MAX_TANKS * TANK_CAPACITY && idx < slots.length) {
       this._drawBuyTankCard(slots[idx].x, slots[idx].y);
     }
   }
@@ -462,7 +462,7 @@ export class Hub extends Phaser.Scene {
     this._displayGroup.add(this.add.text(cx, vpCY - 18, '+', {
       fontFamily: FONT, fontSize: '52px', color: '#8B6040', fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(22));
-    this._displayGroup.add(this.add.text(cx, vpCY + 28, TANK_COST + ' ⬡', {
+    this._displayGroup.add(this.add.text(cx, vpCY + 28, TANK_COST + ' 🪙', {
       fontFamily: FONT, fontSize: '16px', color: '#FFD700',
       stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5).setDepth(22));
@@ -471,7 +471,7 @@ export class Hub extends Phaser.Scene {
     zone.on('pointerdown', () => {
       sfx.unlock();
       if (Game.state!.coins < TANK_COST) {
-        showToast(this, 'Need ' + TANK_COST + ' ⬡ to buy a tank!', '#ff9999');
+        showToast(this, 'Need ' + TANK_COST + ' 🪙 to buy a tank!', '#ff9999');
         return;
       }
       Game.state!.coins -= TANK_COST;

@@ -35,6 +35,11 @@ export class Boot extends Phaser.Scene {
         }
       });
       if (!Game.state.newDiscoveries) Game.state.newDiscoveries = [];
+      // give default toy+tool to monsters that don't have one
+      Game.state.monsters.forEach(m => {
+        if (!m.ownedToy)  m.ownedToy  = 'yarn';
+        if (!m.ownedTool) m.ownedTool = 'cloth';
+      });
       if (Game.state.diamonds === undefined) Game.state.diamonds = 0;
       if (!Game.state.stats.goldenDiscovered) Game.state.stats.goldenDiscovered = [];
       // migrate existing listings — add buyer if missing
