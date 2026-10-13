@@ -52,6 +52,10 @@ export class Boot extends Phaser.Scene {
     }
     registerVisibilityHandler();
 
+    // Hide boot splash once game is ready
+    const bootEl = document.getElementById('boot');
+    if (bootEl) bootEl.style.display = 'none';
+
     // Preload all monster SVG textures before showing Hub
     const monsters = Game.state!.monsters;
     if (monsters.length === 0) {

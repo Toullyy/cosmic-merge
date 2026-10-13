@@ -325,7 +325,7 @@ export function preloadMonsterTexture(scene: Phaser.Scene, monster: Monster): Pr
     img.crossOrigin = 'anonymous';
     img.onload  = () => { buildFromSource(img); resolve(key); };
     img.onerror = () => { fallbackToSVG().then(resolve); };
-    img.src = `/sprites/${sp.bodyShape}_${sp.habitat}.png`;
+    img.src = `${import.meta.env.BASE_URL}sprites/${sp.bodyShape}_${sp.habitat}.png`;
   });
 }
 
