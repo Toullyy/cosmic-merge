@@ -278,25 +278,54 @@ function drawGoldenGlow(g: Phaser.GameObjects.Graphics, cx: number, cy: number, 
   });
 }
 
-// ── SVG-based async texture loader ────────────────────────────────────────────
+// ── PNG sprite loader (with SVG fallback) ─────────────────────────────────────
 
 export function preloadMonsterTexture(scene: Phaser.Scene, monster: Monster): Promise<string> {
   const key = 'mon_' + monster.speciesId + '_' + monster.variantIndex;
   if (scene.textures.exists(key)) return Promise.resolve(key);
 
-  const sp     = SPECIES[monster.speciesId];
-  const mods   = getVariantModifiers(monster.variantIndex);
-  const bc     = shiftHue(sp.baseColor, mods.hueShift);
-  const sc     = darken(bc, 50);
-  const lc     = lighten(bc, 48);
-  const ec     = shiftHue(bc, 150);
-  const svgStr = buildMonsterSVG(sp.bodyShape, bc, sc, lc, ec, sp.habitat, mods.isGolden);
+  const sp   = SPECIES[monster.speciesId];
+  const mods = getVariantModifiers(monster.variantIndex);
+
+  const buildFromSource = (src: CanvasImageSource) => {
+    const SIZE = 512;
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = SIZE;
+    const ctx = canvas.getContext('2d')!;
+    if (mods.hueShift !== 0) ctx.filter = `hue-rotate(${mods.hueShift}deg)`;
+    ctx.drawImage(src as HTMLImageElement, 0, 0, SIZE, SIZE);
+    ctx.filter = 'none';
+    if (mods.isGolden) {
+      const grd = ctx.createRadialGradient(256, 256, 140, 256, 256, 280);
+      grd.addColorStop(0, 'rgba(255,215,0,0)');
+      grd.addColorStop(1, 'rgba(255,215,0,0.55)');
+      ctx.fillStyle = grd;
+      ctx.fillRect(0, 0, SIZE, SIZE);
+      ctx.strokeStyle = 'rgba(255,215,0,0.92)';
+      ctx.lineWidth = 10;
+      ctx.strokeRect(5, 5, SIZE - 10, SIZE - 10);
+    }
+    scene.textures.addCanvas(key, canvas);
+  };
+
+  const fallbackToSVG = () => new Promise<string>(resolve => {
+    const bc     = shiftHue(sp.baseColor, mods.hueShift);
+    const sc     = darken(bc, 50);
+    const lc     = lighten(bc, 48);
+    const ec     = shiftHue(bc, 150);
+    const svgStr = buildMonsterSVG(sp.bodyShape, bc, sc, lc, ec, sp.habitat, mods.isGolden);
+    const img    = new window.Image(256, 256);
+    img.onload   = () => { scene.textures.addImage(key, img); resolve(key); };
+    img.onerror  = () => { resolve(makeMonsterTextureFallback(scene, monster)); };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
+  });
 
   return new Promise<string>(resolve => {
-    const img = new window.Image(256, 256);
-    img.onload  = () => { scene.textures.addImage(key, img); resolve(key); };
-    img.onerror = () => { resolve(makeMonsterTextureFallback(scene, monster)); };
-    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
+    const img = new window.Image();
+    img.crossOrigin = 'anonymous';
+    img.onload  = () => { buildFromSource(img); resolve(key); };
+    img.onerror = () => { fallbackToSVG().then(resolve); };
+    img.src = `/sprites/${sp.bodyShape}_${sp.habitat}.png`;
   });
 }
 
