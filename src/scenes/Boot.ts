@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { Game, store } from '../utils';
-import { DECAY, newState, generateMerchantStock, MERCHANT_REFRESH_MS, TANK_CAPACITY, randomBuyer } from '../data';
+import { DECAY, newState, generateMerchantStock, MERCHANT_REFRESH_MS, TANK_CAPACITY, randomBuyer, VISITOR_INTERVAL_MS, checkAndUpdateVisitor, generateDailyQuests, getDecayMult } from '../data';
 import { preloadMonsterTexture } from '../MonsterRenderer';
 import type { GameState } from '../types';
 
@@ -50,6 +50,24 @@ export class Boot extends Phaser.Scene {
           l.buyerJob  = b.job;
         }
       });
+      // migrate decorations to string[] if needed
+      (['dirt', 'grass', 'aquatic'] as const).forEach(h => {
+        if (!Array.isArray(Game.state!.habitats[h].decorations)) {
+          Game.state!.habitats[h].decorations = [];
+        }
+      });
+      // visitor defaults
+      if (Game.state.visitorNextAt === undefined) {
+        Game.state.visitorNextAt = Date.now() + VISITOR_INTERVAL_MS;
+      }
+      checkAndUpdateVisitor(Game.state);
+      // daily quests
+      const now2 = Date.now();
+      if (!Game.state.quests || !Game.state.questResetAt || now2 >= Game.state.questResetAt) {
+        Game.state.quests = generateDailyQuests();
+        const midnight = new Date(); midnight.setHours(24, 0, 0, 0);
+        Game.state.questResetAt = midnight.getTime();
+      }
       reconcileOfflineTime(Game.state);
     } else {
       Game.state = newState();
@@ -79,9 +97,10 @@ function reconcileOfflineTime(state: GameState) {
   const hours = elapsed / 3600000;
   if (hours < 0.001) return;
   state.monsters.forEach(mon => {
-    mon.happiness   = Math.max(0, mon.happiness   + DECAY.happiness   * hours);
-    mon.hunger      = Math.max(0, mon.hunger      + DECAY.hunger      * hours);
-    mon.cleanliness = Math.max(0, mon.cleanliness + DECAY.cleanliness * hours);
+    const mult = getDecayMult(state, mon.habitatType);
+    mon.happiness   = Math.max(0, mon.happiness   + DECAY.happiness   * hours * mult);
+    mon.hunger      = Math.max(0, mon.hunger      + DECAY.hunger      * hours * mult);
+    mon.cleanliness = Math.max(0, mon.cleanliness + DECAY.cleanliness * hours * mult);
   });
   state.lastTickAt = now;
   store.setJSON('mps_state', state);
@@ -98,6 +117,7 @@ function registerVisibilityHandler() {
       store.setJSON('mps_state', Game.state);
     } else {
       reconcileOfflineTime(Game.state);
+      checkAndUpdateVisitor(Game.state);
       const hub = Game.phaser?.scene.getScene('Hub') as any;
       if (hub && hub.scene.isActive()) hub.refreshAll();
     }

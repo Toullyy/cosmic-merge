@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { Game, FONT, store, sfx } from '../utils';
+import { Game, FONT, store, sfx, recordQuestProgress } from '../utils';
 import { SPECIES, HABITATS, FOOD_TYPES, TOY_TYPES, CLEAN_TOOLS, XP_TABLE, getLevelName, randomBuyer, randomListingDuration } from '../data';
 import { makeMonsterTexture, getVariantModifiers, lighten, darken } from '../MonsterRenderer';
 import { makeButton, setButtonLabel, setButtonColor } from '../ui/Button';
@@ -263,7 +263,7 @@ export class HabitatRoom extends Phaser.Scene {
         g.fillStyle(0xFFFDE7, 1); g.fillCircle(fl[0], fl[1], 3.5);
       });
 
-    } else { // aquatic
+    } else if (habitat === 'aquatic') {
       // Bright tropical ocean
       g.fillGradientStyle(0x0898D8, 0x0898D8, 0x0568B0, 0x0568B0, 1);
       g.fillRect(0, 0, W, H);
@@ -296,6 +296,85 @@ export class HabitatRoom extends Phaser.Scene {
         g.lineStyle(3, 0x388E3C, 0.55);
         g.beginPath(); g.moveTo(swx + 18, swBase - 8); g.lineTo(swx + 7, swBase - 65);
         g.lineTo(swx + 20, swBase - 115); g.strokePath();
+      }
+    }
+
+    this._drawDecorations(g, W, H, habitat);
+  }
+
+  private _drawDecorations(g: Phaser.GameObjects.Graphics, W: number, H: number, habitat: HabitatType) {
+    const owned = Game.state?.habitats[habitat].decorations ?? [];
+    if (owned.length === 0) return;
+
+    if (habitat === 'dirt') {
+      if (owned.includes('dirt_torch')) {
+        [[45, H*0.64], [W-45, H*0.64], [85, H*0.52], [W-85, H*0.52]].forEach(([tx, ty]) => {
+          g.fillStyle(0x3A2A10, 1); g.fillRect(tx - 4, ty - 18, 8, 22);
+          g.fillStyle(0xFF8800, 0.45); g.fillCircle(tx, ty - 22, 14);
+          g.fillStyle(0xFFCC44, 0.75); g.fillCircle(tx, ty - 22, 8);
+          g.fillStyle(0xFFEE88, 1);    g.fillCircle(tx, ty - 22, 4);
+        });
+      }
+      if (owned.includes('dirt_shrine')) {
+        const sx = W * 0.18, sy = H * 0.685;
+        g.fillStyle(0x8844CC, 0.22); g.fillCircle(sx, sy - 20, 30);
+        g.fillStyle(0x6644AA, 1); g.fillRect(sx - 12, sy - 34, 24, 38);
+        g.fillStyle(0x9966CC, 1); g.fillTriangle(sx - 16, sy - 34, sx + 16, sy - 34, sx, sy - 56);
+        g.fillStyle(0xFFDD66, 1); g.fillCircle(sx, sy - 34, 5);
+        g.lineStyle(2, 0xBB88EE, 0.6); g.strokeRect(sx - 12, sy - 34, 24, 38);
+      }
+      if (owned.includes('dirt_garden')) {
+        const gx = W * 0.82, gy = H * 0.685;
+        g.fillStyle(0x1A4A18, 1); g.fillEllipse(gx, gy - 10, 52, 22);
+        [[gx - 12, gy - 20, 0xFF5252], [gx, gy - 26, 0xFF9800], [gx + 12, gy - 20, 0xE91E63]].forEach(([fx, fy, fc]) => {
+          for (let pi = 0; pi < 5; pi++) { const pa = (pi/5)*Math.PI*2; g.fillStyle(fc as number, 1); g.fillCircle((fx as number) + Math.cos(pa)*4, (fy as number) + Math.sin(pa)*4, 3); }
+          g.fillStyle(0xFFFDE7, 1); g.fillCircle(fx as number, fy as number, 2.5);
+        });
+      }
+    } else if (habitat === 'grass') {
+      if (owned.includes('grass_flower')) {
+        [[90, H*0.742], [225, H*0.755], [360, H*0.748], [480, H*0.742]].forEach(([fx, fy]) => {
+          const fc = [0xFF5252, 0xFF9800, 0xE91E63, 0xFFEB3B][Math.floor(Math.random()*4)];
+          for (let pi = 0; pi < 6; pi++) { const pa = (pi/6)*Math.PI*2; g.fillStyle(fc, 1); g.fillCircle((fx as number) + Math.cos(pa)*5, (fy as number) + Math.sin(pa)*5, 4); }
+          g.fillStyle(0xFFFDE7, 1); g.fillCircle(fx as number, fy as number, 3);
+        });
+      }
+      if (owned.includes('grass_pond')) {
+        const px = W * 0.15, py = H * 0.74;
+        g.fillStyle(0x1565C0, 0.75); g.fillEllipse(px, py, 64, 26);
+        g.fillStyle(0x42A5F5, 0.45); g.fillEllipse(px - 8, py - 5, 28, 10);
+        g.lineStyle(1.5, 0x90CAF9, 0.6); g.strokeEllipse(px, py, 64, 26);
+      }
+      if (owned.includes('grass_lantern')) {
+        [[W*0.28, H*0.20], [W*0.72, H*0.22]].forEach(([lx, ly]) => {
+          g.lineStyle(2, 0x558855, 0.7); g.beginPath(); g.moveTo(lx as number, 0); g.lineTo(lx as number, ly as number - 14); g.strokePath();
+          g.fillStyle(0x225522, 1); g.fillRoundedRect((lx as number) - 10, (ly as number) - 14, 20, 28, 4);
+          g.fillStyle(0xFFEE66, 0.88); g.fillRoundedRect((lx as number) - 7, (ly as number) - 10, 14, 20, 3);
+          g.fillStyle(0xFFFF88, 0.25); g.fillCircle(lx as number, ly as number, 28);
+        });
+      }
+    } else if (habitat === 'aquatic') {
+      if (owned.includes('aqua_coral')) {
+        [[140, H*0.69, 0xFF5252], [290, H*0.695, 0xE91E63], [430, H*0.685, 0x7C4DFF]].forEach(([cx, cy, cc]) => {
+          g.fillStyle(cc as number, 1);
+          g.fillRect((cx as number) - 4, cy as number, 8, 36); g.fillCircle(cx as number, cy as number, 13);
+          g.fillCircle((cx as number) - 9, (cy as number) + 8, 9); g.fillCircle((cx as number) + 9, (cy as number) + 10, 10);
+          g.fillStyle(lighten(cc as number, 40), 0.5); g.fillCircle((cx as number) - 3, (cy as number) - 4, 5);
+        });
+      }
+      if (owned.includes('aqua_chest')) {
+        const chx = W * 0.8, chy = H * 0.72;
+        g.fillStyle(0x5D3A1A, 1); g.fillRect(chx - 18, chy - 16, 36, 28);
+        g.fillStyle(0x8B5E3C, 1); g.fillRoundedRect(chx - 18, chy - 20, 36, 12, 4);
+        g.fillStyle(0xFFD700, 1); g.fillRect(chx - 5, chy - 6, 10, 8); g.fillCircle(chx, chy - 2, 4);
+        g.lineStyle(2, 0xFFD700, 0.8); g.strokeRect(chx - 18, chy - 16, 36, 28);
+      }
+      if (owned.includes('aqua_ruins')) {
+        const rx = W * 0.14, ry = H * 0.60;
+        g.fillStyle(0x5A6A7A, 0.85); g.fillRect(rx - 8, ry, 16, H * 0.12); g.fillRect(rx + 28, ry - 10, 16, H * 0.13);
+        g.fillStyle(0x4A5A6A, 1); g.fillRect(rx - 12, ry - 12, 72, 14);
+        g.fillStyle(0x6A7A8A, 0.4); g.fillRect(rx - 6, ry + 4, 10, H * 0.10); g.fillRect(rx + 30, ry + 2, 10, H * 0.11);
+        g.lineStyle(1.5, 0x88AABB, 0.3); g.strokeRect(rx - 8, ry, 16, H * 0.12);
       }
     }
   }
@@ -647,6 +726,7 @@ export class HabitatRoom extends Phaser.Scene {
           this._monster.happiness = Math.min(100, this._monster.happiness + food.happinessGain);
           this._monster.lastCaredAt = Date.now();
           this._gainXP(10 + food.tier * 3);
+          recordQuestProgress('feed');
           store.setJSON('mps_state', Game.state);
           sfx.feed();
           this._playFeedAnim(food.id, food.tier);
@@ -689,6 +769,7 @@ export class HabitatRoom extends Phaser.Scene {
           this._monster.happiness = Math.min(100, this._monster.happiness + ownedToy.happinessGain);
           this._monster.lastCaredAt = Date.now();
           this._gainXP(8 + ownedToy.tier * 3);
+          recordQuestProgress('play');
           store.setJSON('mps_state', Game.state);
           sfx.pet();
           this._playPetAnim(ownedToy.id);
@@ -785,6 +866,7 @@ export class HabitatRoom extends Phaser.Scene {
           this._monster.cleanliness = Math.min(100, this._monster.cleanliness + ownedTool.cleanGain);
           this._monster.lastCaredAt = Date.now();
           this._gainXP(8 + ownedTool.tier * 3);
+          recordQuestProgress('clean');
           store.setJSON('mps_state', Game.state);
           sfx.clean();
           this._playCleanAnim(ownedTool.id);
@@ -1159,6 +1241,7 @@ export class HabitatRoom extends Phaser.Scene {
       Game.state!.listings = Game.state!.listings.filter(l => l.id !== listing.id);
       Game.state!.stats.sold++;
       Game.state!.stats.totalEarned += price;
+      recordQuestProgress('sell');
       store.setJSON('mps_state', Game.state);
       sfx.sell();
       this._spawnParticles(W/2, H/2 - 80, 0xFFD700, 26);

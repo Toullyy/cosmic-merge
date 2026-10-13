@@ -1,4 +1,4 @@
-import type { GameState } from './types';
+import type { GameState, Quest } from './types';
 
 export const FONT = '"Noto Sans Thai", "Sarabun", system-ui, sans-serif';
 
@@ -21,6 +21,19 @@ export const Game: { state: GameState | null; phaser: import('phaser').Game | nu
   state: null,
   phaser: null,
 };
+
+export function recordQuestProgress(type: Quest['type']): void {
+  if (!Game.state?.quests) return;
+  let changed = false;
+  Game.state.quests.forEach(q => {
+    if (q.type === type && !q.completed) {
+      q.progress = Math.min(q.target, q.progress + 1);
+      if (q.progress >= q.target) q.completed = true;
+      changed = true;
+    }
+  });
+  if (changed) store.setJSON('mps_state', Game.state);
+}
 
 export const sfx = {
   ctx: null as AudioContext | null,

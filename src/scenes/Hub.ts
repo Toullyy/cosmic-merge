@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
 import { Game, FONT, store, sfx } from '../utils';
-import { SPECIES, HABITATS, TANK_COST, TANK_CAPACITY, MAX_TANKS, getLevelName, AD_COINS_REWARD, AD_COOLDOWN_MS } from '../data';
+import { SPECIES, HABITATS, TANK_COST, TANK_CAPACITY, MAX_TANKS, getLevelName, AD_COINS_REWARD, AD_COOLDOWN_MS, checkAndUpdateVisitor, VISITOR_DURATION_MS } from '../data';
 import { makeMonsterTexture, getVariantModifiers, shiftHue, darken, lighten } from '../MonsterRenderer';
-import { makeButton, setButtonLabel } from '../ui/Button';
+import { makeButton, setButtonLabel, setButtonColor } from '../ui/Button';
 import { showToast } from '../ui/Toast';
 import { Ads } from '../ads';
 import type { Monster, Egg, HabitatType } from '../types';
@@ -20,6 +20,10 @@ export class Hub extends Phaser.Scene {
   private _dexDotTxt!: Phaser.GameObjects.Text;
   private _diamondTxt!: Phaser.GameObjects.Text;
   private _adBtn!: Phaser.GameObjects.Container;
+  private _questBtn!: Phaser.GameObjects.Container;
+  private _questDot!: Phaser.GameObjects.Graphics;
+  private _visitorBanner: Phaser.GameObjects.Container | null = null;
+  private _visitorTimer: Phaser.Time.TimerEvent | null = null;
 
   constructor() { super({ key: 'Hub' }); }
 
@@ -35,8 +39,10 @@ export class Hub extends Phaser.Scene {
     this._buildBottomNav(W, H);
     this._bgGraphics = this.add.graphics().setDepth(1);
     this._buildHabitatBg(W, H);
+    this._buildVisitorBanner(W, H);
     this.refreshAll();
     this._startEggTimer();
+    this._startVisitorTimer();
 
     const boot = document.getElementById('boot');
     if (boot) boot.style.display = 'none';
@@ -327,42 +333,57 @@ export class Hub extends Phaser.Scene {
   }
 
   private _buildBottomNav(W: number, H: number) {
-    const btnY = H - 54;
-    const bw = 165, bh = 52;
-    makeButton(this, W / 6, btnY, bw, bh, 'Shop', 0x6828A0, () => {
+    const btnY = H - 54, bw = 118, bh = 52;
+    const xs = [W/8, W*3/8, W*5/8, W*7/8];
+
+    makeButton(this, xs[0], btnY, bw, bh, 'Shop', 0x6828A0, () => {
       Ads.maybeInterstitial(() => { this.scene.start('Merchant'); });
-    }, 16).setDepth(10);
+    }, 15).setDepth(10);
+
+    const unclaimedCount = (Game.state!.quests ?? []).filter(q => q.completed && !q.claimed).length;
+    const questLabel = unclaimedCount > 0 ? '📜 Quests ✓' : '📜 Quests';
+    this._questBtn = makeButton(this, xs[1], btnY, bw, bh, questLabel, 0x7A6010, () => {
+      this._showQuestsPanel();
+    }, 13).setDepth(10);
+    this._questDot = this.add.graphics().setDepth(12);
+    this._updateQuestDot(xs[1], bw, btnY, bh, unclaimedCount > 0);
 
     const disc = Game.state!.stats.discovered.length;
     const hasNew = (Game.state!.newDiscoveries?.length ?? 0) > 0;
-    this._dexBtn = makeButton(this, W / 2, btnY, bw, bh, 'Dex ' + disc + '/25', 0x0878A0, () => {
+    this._dexBtn = makeButton(this, xs[2], btnY, bw, bh, 'Dex ' + disc + '/25', 0x0878A0, () => {
       this.scene.start('PokedexScene');
-    }, 16);
-    this._dexBtn.setDepth(10);
-
+    }, 14).setDepth(10);
     this._dexDot = this.add.graphics().setDepth(12);
-    this._dexDotTxt = this.add.text(W / 2 + bw / 2 - 6, btnY - bh / 2 + 2, '!', {
+    this._dexDotTxt = this.add.text(xs[2] + bw / 2 - 6, btnY - bh / 2 + 2, '!', {
       fontFamily: FONT, fontSize: '10px', fontStyle: 'bold', color: '#ffffff',
     }).setOrigin(0.5).setDepth(13);
-    this._updateDexDot(W, bw, btnY, bh, hasNew);
+    this._updateDexDot(xs[2], bw, btnY, bh, hasNew);
 
-    makeButton(this, W * 5 / 6, btnY, bw, bh, 'Breed', 0xA02860, () => {
+    makeButton(this, xs[3], btnY, bw, bh, 'Breed', 0xA02860, () => {
       const eligible = Game.state!.monsters.filter(m => m.level >= 4);
       if (eligible.length < 2) {
         showToast(this, 'Need 2 monsters at Level 4+', '#ff9999');
       } else {
         Ads.maybeInterstitial(() => { this.scene.start('BreedingLab'); });
       }
-    }, 16).setDepth(10);
+    }, 15).setDepth(10);
   }
 
-  private _updateDexDot(W: number, bw: number, btnY: number, bh: number, hasNew: boolean) {
+  private _updateDexDot(x: number, bw: number, btnY: number, bh: number, hasNew: boolean) {
     this._dexDot.clear();
     if (hasNew) {
       this._dexDot.fillStyle(0xFF3333, 1);
-      this._dexDot.fillCircle(W / 2 + bw / 2 - 6, btnY - bh / 2 + 8, 9);
+      this._dexDot.fillCircle(x + bw / 2 - 6, btnY - bh / 2 + 8, 9);
     }
-    this._dexDotTxt.setVisible(hasNew);
+    if (this._dexDotTxt) this._dexDotTxt.setVisible(hasNew);
+  }
+
+  private _updateQuestDot(x: number, bw: number, btnY: number, bh: number, hasClaim: boolean) {
+    this._questDot.clear();
+    if (hasClaim) {
+      this._questDot.fillStyle(0xFFCC00, 1);
+      this._questDot.fillCircle(x + bw / 2 - 6, btnY - bh / 2 + 8, 9);
+    }
   }
 
   private _tryUnlockHabitat(type: HabitatType) {
@@ -381,6 +402,193 @@ export class Hub extends Phaser.Scene {
     showToast(this, HABITATS[type].label + ' unlocked!', '#aaffaa');
   }
 
+  private _buildVisitorBanner(W: number, H: number) {
+    this._visitorBanner = this.add.container(0, H - 90).setDepth(14);
+    this._updateVisitorBanner();
+  }
+
+  private _updateVisitorBanner() {
+    if (!this._visitorBanner) return;
+    this._visitorBanner.removeAll(true);
+    const state = Game.state!;
+    const W = this.scale.width;
+    const now = Date.now();
+    if (!state.visitorSpeciesId || !state.visitorExpiresAt || now >= state.visitorExpiresAt) return;
+
+    const sp = SPECIES[state.visitorSpeciesId];
+    const remaining = Math.max(0, state.visitorExpiresAt - now);
+    const mins = Math.ceil(remaining / 60000);
+    const hasMon = state.monsters.some(m => m.speciesId === state.visitorSpeciesId);
+
+    const bg = this.add.graphics();
+    bg.fillStyle(0x5A3800, 0.95);
+    bg.fillRoundedRect(8, 0, W - 16, 32, 10);
+    bg.lineStyle(2, 0xFFCC00, 0.9);
+    bg.strokeRoundedRect(8, 0, W - 16, 32, 10);
+    this._visitorBanner.add(bg);
+
+    this._visitorBanner.add(this.add.text(W / 2, 16, '⭐ VIP Visitor wants ' + sp.name + '! ' + (state.visitorPriceMult ?? 2) + 'x price  ' + mins + 'm left' + (hasMon ? '' : ' (none owned)'), {
+      fontFamily: FONT, fontSize: '12px', color: hasMon ? '#FFE066' : '#BB9944', fontStyle: 'bold',
+    }).setOrigin(0.5));
+
+    const zone = this.add.zone(W / 2, 16, W - 16, 32).setInteractive();
+    zone.on('pointerdown', () => this._showVisitorPopup());
+    this._visitorBanner.add(zone);
+  }
+
+  private _startVisitorTimer() {
+    if (this._visitorTimer) this._visitorTimer.remove();
+    this._visitorTimer = this.time.addEvent({
+      delay: 10000, loop: true, callback: () => {
+        checkAndUpdateVisitor(Game.state!);
+        this._updateVisitorBanner();
+        store.setJSON('mps_state', Game.state);
+      },
+    });
+  }
+
+  private _showVisitorPopup() {
+    const state = Game.state!;
+    if (!state.visitorSpeciesId || !state.visitorExpiresAt) return;
+    const W = this.scale.width, H = this.scale.height;
+    const sp = SPECIES[state.visitorSpeciesId];
+    const mult = state.visitorPriceMult ?? 2;
+    const offerPrice = Math.floor(sp.price * mult);
+    const candidates = state.monsters.filter(m => m.speciesId === state.visitorSpeciesId);
+    const remaining = Math.max(0, state.visitorExpiresAt - Date.now());
+    const mins = Math.ceil(remaining / 60000);
+
+    const popup = this.add.container(0, 0).setDepth(50);
+    const overlay = this.add.graphics();
+    overlay.fillStyle(0x000000, 0.65); overlay.fillRect(0, 0, W, H);
+    popup.add(overlay);
+    const panel = this.add.graphics();
+    panel.fillStyle(0x1A0C08, 1);
+    panel.fillRoundedRect(W/2 - 160, H/2 - 130, 320, 260, 16);
+    panel.lineStyle(2, 0xFFCC00, 0.9);
+    panel.strokeRoundedRect(W/2 - 160, H/2 - 130, 320, 260, 16);
+    popup.add(panel);
+
+    popup.add(this.add.text(W/2, H/2 - 108, '⭐ VIP Visitor!', { fontFamily: FONT, fontSize: '20px', fontStyle: 'bold', color: '#FFE066' }).setOrigin(0.5));
+    popup.add(this.add.text(W/2, H/2 - 78, 'Wants: ' + sp.name, { fontFamily: FONT, fontSize: '16px', color: '#ffffff' }).setOrigin(0.5));
+    popup.add(this.add.text(W/2, H/2 - 52, 'Offer: ' + offerPrice + ' 🪙  (' + mult + 'x)', { fontFamily: FONT, fontSize: '15px', color: '#FFD700' }).setOrigin(0.5));
+    popup.add(this.add.text(W/2, H/2 - 26, 'Expires in ' + mins + ' min', { fontFamily: FONT, fontSize: '13px', color: '#BBBBCC' }).setOrigin(0.5));
+
+    const close = () => popup.destroy();
+
+    if (candidates.length > 0) {
+      popup.add(makeButton(this, W/2, H/2 + 20, 260, 48, 'Quick Sell ' + sp.name + ' for ' + offerPrice + '🪙', 0x2A7A18, () => {
+        const mon = candidates[0];
+        state.monsters = state.monsters.filter(m => m.id !== mon.id);
+        state.listings = state.listings.filter(l => l.monsterId !== mon.id);
+        state.coins += offerPrice;
+        state.stats.sold++;
+        state.stats.totalEarned += offerPrice;
+        state.visitorSpeciesId = undefined;
+        state.visitorExpiresAt = undefined;
+        store.setJSON('mps_state', state);
+        sfx.sell();
+        showToast(this, 'Sold for ' + offerPrice + ' 🪙!', '#aaffaa');
+        close();
+        this._updateCoinDisplay();
+        this._updateVisitorBanner();
+        this.refreshAll();
+      }, 13));
+    } else {
+      popup.add(this.add.text(W/2, H/2 + 20, 'You have no ' + sp.name + ' to sell', { fontFamily: FONT, fontSize: '14px', color: '#BB9944' }).setOrigin(0.5));
+    }
+
+    popup.add(makeButton(this, W/2, H/2 + 82, 120, 38, 'Close', 0x2a1560, close, 13));
+    overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, W, H), Phaser.Geom.Rectangle.Contains);
+    overlay.on('pointerdown', close);
+  }
+
+  private _showQuestsPanel() {
+    const state = Game.state!;
+    const quests = state.quests ?? [];
+    const W = this.scale.width, H = this.scale.height;
+
+    const popup = this.add.container(0, 0).setDepth(50);
+    const overlay = this.add.graphics();
+    overlay.fillStyle(0x000000, 0.65); overlay.fillRect(0, 0, W, H);
+    popup.add(overlay);
+
+    const panH = 50 + quests.length * 90 + 60;
+    const panY = H / 2 - panH / 2;
+    const panel = this.add.graphics();
+    panel.fillStyle(0x1C1408, 1);
+    panel.fillRoundedRect(W/2 - 170, panY, 340, panH, 16);
+    panel.lineStyle(2, 0xCC9900, 0.8);
+    panel.strokeRoundedRect(W/2 - 170, panY, 340, panH, 16);
+    popup.add(panel);
+
+    popup.add(this.add.text(W/2, panY + 24, '📜 Daily Quests', { fontFamily: FONT, fontSize: '19px', fontStyle: 'bold', color: '#FFD700' }).setOrigin(0.5));
+
+    const resetAt = state.questResetAt ?? 0;
+    const minsLeft = Math.max(0, Math.floor((resetAt - Date.now()) / 60000));
+    const hLeft = Math.floor(minsLeft / 60), mLeft = minsLeft % 60;
+    popup.add(this.add.text(W/2, panY + 42, 'Resets in ' + hLeft + 'h ' + mLeft + 'm', { fontFamily: FONT, fontSize: '11px', color: '#AA9944' }).setOrigin(0.5));
+
+    quests.forEach((q, qi) => {
+      const qy = panY + 58 + qi * 90;
+      const done = q.completed;
+      const clmd = q.claimed;
+      const qBg = this.add.graphics();
+      qBg.fillStyle(done ? (clmd ? 0x1A2A1A : 0x2A3A10) : 0x221A08, 1);
+      qBg.fillRoundedRect(W/2 - 155, qy, 310, 78, 10);
+      qBg.lineStyle(1.5, done ? 0x66CC44 : 0x6A5010, 0.7);
+      qBg.strokeRoundedRect(W/2 - 155, qy, 310, 78, 10);
+      popup.add(qBg);
+
+      popup.add(this.add.text(W/2 - 145, qy + 14, q.label, { fontFamily: FONT, fontSize: '13px', fontStyle: 'bold', color: done ? '#AAFFAA' : '#FFEEAA' }).setOrigin(0, 0.5));
+      popup.add(this.add.text(W/2 - 145, qy + 36, 'Reward: ' + q.coinReward + ' 🪙', { fontFamily: FONT, fontSize: '12px', color: '#FFD700' }).setOrigin(0, 0.5));
+
+      const barW = 160, barH = 10;
+      const barBg = this.add.graphics();
+      barBg.fillStyle(0x000000, 0.5); barBg.fillRoundedRect(W/2 - 145, qy + 54, barW, barH, 4);
+      const fill = Math.min(1, q.progress / q.target);
+      if (fill > 0) {
+        barBg.fillStyle(done ? 0x44DD44 : 0xDD9922, 1);
+        barBg.fillRoundedRect(W/2 - 145, qy + 54, barW * fill, barH, 4);
+      }
+      popup.add(barBg);
+      popup.add(this.add.text(W/2 + 20, qy + 59, q.progress + '/' + q.target, { fontFamily: FONT, fontSize: '10px', color: '#CCCCCC' }).setOrigin(0, 0.5));
+
+      if (done && !clmd) {
+        const claimBtn = makeButton(this, W/2 + 105, qy + 40, 90, 36, 'Claim!', 0x2A7A10, () => {
+          q.claimed = true;
+          state.coins += q.coinReward;
+          store.setJSON('mps_state', state);
+          sfx.buy();
+          showToast(this, '+' + q.coinReward + ' 🪙 claimed!', '#aaffaa');
+          this._updateCoinDisplay();
+          this._updateQuestBtn();
+          close();
+          this._showQuestsPanel();
+        }, 12);
+        popup.add(claimBtn);
+      } else if (clmd) {
+        popup.add(this.add.text(W/2 + 105, qy + 40, '✓ Claimed', { fontFamily: FONT, fontSize: '12px', color: '#66AA66' }).setOrigin(0.5));
+      }
+    });
+
+    const close = () => popup.destroy();
+    popup.add(makeButton(this, W/2, panY + panH - 28, 120, 40, 'Close', 0x2a1560, close, 13));
+    overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, W, H), Phaser.Geom.Rectangle.Contains);
+    overlay.on('pointerdown', close);
+  }
+
+  private _updateQuestBtn() {
+    if (!this._questBtn) return;
+    const H = this.scale.height, W = this.scale.width;
+    const bw = 118, bh = 52, btnY = H - 54;
+    const x = W * 3 / 8;
+    const unclaimedCount = (Game.state!.quests ?? []).filter(q => q.completed && !q.claimed).length;
+    setButtonLabel(this._questBtn, unclaimedCount > 0 ? '📜 Quests ✓' : '📜 Quests');
+    setButtonColor(this._questBtn, unclaimedCount > 0 ? 0x4A7A10 : 0x7A6010);
+    this._updateQuestDot(x, bw, btnY, bh, unclaimedCount > 0);
+  }
+
   refreshAll() {
     this._bobTweens.forEach(t => { try { t.stop(); } catch { /* ignore */ } });
     this._bobTweens = [];
@@ -394,11 +602,13 @@ export class Hub extends Phaser.Scene {
     const disc = Game.state!.stats.discovered.length;
     const hasNew = (Game.state!.newDiscoveries?.length ?? 0) > 0;
     const H = this.scale.height;
-    const bw = 165, bh = 52, btnY = H - 54;
+    const bw = 118, bh = 52, btnY = H - 54;
     if (this._dexBtn) {
       setButtonLabel(this._dexBtn, 'Dex ' + disc + '/25');
     }
-    if (this._dexDot) this._updateDexDot(W, bw, btnY, bh, hasNew);
+    if (this._dexDot) this._updateDexDot(W * 5 / 8, bw, btnY, bh, hasNew);
+    this._updateQuestBtn();
+    this._updateVisitorBanner();
 
     if (monsters.length === 0 && eggs.length === 0) {
       const emptyTxt = this.add.text(W/2, 460, 'No monsters here yet!', {
@@ -784,6 +994,11 @@ export class Hub extends Phaser.Scene {
     Game.state!.monsters.push(monster);
     Game.state!.stats.hatched++;
     this._markDiscovered(monster.speciesId);
+    // hatch quest progress
+    (Game.state!.quests ?? []).filter(q => q.type === 'hatch' && !q.completed).forEach(q => {
+      q.progress = Math.min(q.target, q.progress + 1);
+      if (q.progress >= q.target) q.completed = true;
+    });
     store.setJSON('mps_state', Game.state);
     this._updateCoinDisplay();
     this.refreshAll();

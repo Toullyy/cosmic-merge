@@ -1,4 +1,4 @@
-import type { Species, FoodType, ToyType, CleanTool, HabitatType, HabitatConfig, Monster, Egg, GameState } from './types';
+import type { Species, FoodType, ToyType, CleanTool, HabitatType, HabitatConfig, Monster, Egg, GameState, Quest, Decoration } from './types';
 
 export const SPECIES: Species[] = [
   // ── Dirt (0–4) ──────────────────────────────────────────────────────────
@@ -121,6 +121,79 @@ export function generateMerchantStock(): number[] {
 }
 
 export const XP_TABLE = [0, 50, 120, 210, 320, 450, 600, 780, 980, 1200];
+
+// ── VISITOR EVENTS ────────────────────────────────────────────────────────────
+export const VISITOR_INTERVAL_MS = 2 * 60 * 60 * 1000;
+export const VISITOR_DURATION_MS = 10 * 60 * 1000;
+
+export function generateVisitor(state: GameState): void {
+  const uniqueSpecies = [...new Set(state.monsters.map(m => m.speciesId))];
+  if (uniqueSpecies.length === 0) {
+    state.visitorNextAt = Date.now() + VISITOR_INTERVAL_MS;
+    return;
+  }
+  const speciesId = uniqueSpecies[Math.floor(Math.random() * uniqueSpecies.length)];
+  state.visitorSpeciesId = speciesId;
+  state.visitorPriceMult = Math.round((1.5 + Math.random()) * 10) / 10;
+  state.visitorExpiresAt = Date.now() + VISITOR_DURATION_MS;
+  state.visitorNextAt = state.visitorExpiresAt + VISITOR_INTERVAL_MS;
+}
+
+export function checkAndUpdateVisitor(state: GameState): void {
+  const now = Date.now();
+  if (state.visitorExpiresAt && now >= state.visitorExpiresAt) {
+    state.visitorSpeciesId = undefined;
+    state.visitorExpiresAt = undefined;
+  }
+  if (!state.visitorExpiresAt && state.visitorNextAt && now >= state.visitorNextAt) {
+    generateVisitor(state);
+  }
+}
+
+// ── DAILY QUESTS ─────────────────────────────────────────────────────────────
+interface QuestDef { type: Quest['type']; targets: number[]; coins: number[]; makeLbl: (n: number) => string; }
+const QUEST_DEFS: QuestDef[] = [
+  { type: 'feed',  targets: [3, 5, 8], coins: [20, 35, 55], makeLbl: n => 'Feed ' + n + ' monsters'     },
+  { type: 'play',  targets: [2, 4, 6], coins: [25, 40, 65], makeLbl: n => 'Play with ' + n + ' monsters' },
+  { type: 'clean', targets: [2, 4, 6], coins: [20, 35, 55], makeLbl: n => 'Clean ' + n + ' monsters'     },
+  { type: 'sell',  targets: [1, 2, 3], coins: [30, 55, 90], makeLbl: n => 'Sell ' + n + ' monsters'      },
+  { type: 'hatch', targets: [1, 2],    coins: [40, 80],      makeLbl: n => 'Hatch ' + n + ' egg' + (n > 1 ? 's' : '') },
+];
+
+export function generateDailyQuests(): Quest[] {
+  const defs = [...QUEST_DEFS].sort(() => Math.random() - 0.5).slice(0, 3);
+  return defs.map((def, i) => {
+    const ti = Math.floor(Math.random() * def.targets.length);
+    return {
+      id: 'q' + i + '_' + Date.now(),
+      type: def.type,
+      target: def.targets[ti],
+      progress: 0,
+      completed: false,
+      claimed: false,
+      coinReward: def.coins[ti],
+      label: def.makeLbl(def.targets[ti]),
+    };
+  });
+}
+
+// ── DECORATIONS ───────────────────────────────────────────────────────────────
+export const DECORATIONS: Decoration[] = [
+  { id:'dirt_torch',    name:'Crystal Torch',  habitat:'dirt',    cost:60,  tier:1, desc:'-10% decay' },
+  { id:'dirt_shrine',   name:'Stone Shrine',   habitat:'dirt',    cost:150, tier:2, desc:'-20% decay' },
+  { id:'dirt_garden',   name:'Cave Garden',    habitat:'dirt',    cost:300, tier:3, desc:'-30% decay' },
+  { id:'grass_flower',  name:'Flower Patch',   habitat:'grass',   cost:60,  tier:1, desc:'-10% decay' },
+  { id:'grass_pond',    name:'Forest Pond',    habitat:'grass',   cost:150, tier:2, desc:'-20% decay' },
+  { id:'grass_lantern', name:'Glow Lanterns',  habitat:'grass',   cost:300, tier:3, desc:'-30% decay' },
+  { id:'aqua_coral',    name:'Coral Reef',     habitat:'aquatic', cost:60,  tier:1, desc:'-10% decay' },
+  { id:'aqua_chest',    name:'Treasure Chest', habitat:'aquatic', cost:150, tier:2, desc:'-20% decay' },
+  { id:'aqua_ruins',    name:'Sunken Ruins',   habitat:'aquatic', cost:300, tier:3, desc:'-30% decay' },
+];
+
+export function getDecayMult(state: GameState, habitat: HabitatType): number {
+  const owned = state.habitats[habitat].decorations;
+  return Math.max(0.70, 1 - owned.length * 0.10);
+}
 
 export function newMonster(speciesId: number, variantIndex?: number, source?: string): Monster {
   const sp = SPECIES[speciesId];

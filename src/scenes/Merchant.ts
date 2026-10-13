@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { Game, FONT, store, sfx } from '../utils';
-import { CATALOG, HABITATS, newEgg, SPECIES, generateMerchantStock, MERCHANT_REFRESH_MS, TANK_CAPACITY } from '../data';
+import { CATALOG, HABITATS, newEgg, SPECIES, generateMerchantStock, MERCHANT_REFRESH_MS, TANK_CAPACITY, DECORATIONS } from '../data';
 import { shiftHue } from '../MonsterRenderer';
 import { makeButton } from '../ui/Button';
 import { showToast } from '../ui/Toast';
@@ -83,14 +83,14 @@ export class Merchant extends Phaser.Scene {
   }
 
   private _buildFilterTabs(W: number) {
-    const filters: string[] = ['dirt', 'grass', 'aquatic'];
-    const labels: Record<string, string> = { dirt:'⛰ Dirt', grass:'🌿 Grass', aquatic:'🌊 Aqua' };
-    const tabW = (W - 20) / 3;
+    const filters: string[] = ['dirt', 'grass', 'aquatic', 'decor'];
+    const labels: Record<string, string> = { dirt:'⛰ Dirt', grass:'🌿 Grass', aquatic:'🌊 Aqua', decor:'🎨 Decor' };
+    const tabW = (W - 20) / 4;
     filters.forEach((f, i) => {
       const x = 10 + tabW * i;
       const g = this.add.graphics();
       const lbl = this.add.text(x + tabW/2, 94, labels[f], {
-        fontFamily: FONT, fontSize: '15px', color: '#aaaaaa',
+        fontFamily: FONT, fontSize: '13px', color: '#aaaaaa',
       }).setOrigin(0.5);
       this._filterGroup.addMultiple([g, lbl]);
       (g as any)._filterKey = f;
@@ -108,8 +108,8 @@ export class Merchant extends Phaser.Scene {
 
   private _updateFilterTabs() {
     const W = this.scale.width;
-    const filters = ['dirt', 'grass', 'aquatic'];
-    const tabW = (W - 20) / 3;
+    const filters = ['dirt', 'grass', 'aquatic', 'decor'];
+    const tabW = (W - 20) / 4;
     this._filterGroup.getChildren().forEach(child => {
       const key = (child as any)._filterKey;
       if (!key) return;
@@ -117,7 +117,8 @@ export class Merchant extends Phaser.Scene {
       if (child.type === 'Graphics') {
         const g = child as Phaser.GameObjects.Graphics;
         g.clear();
-        g.fillStyle(isActive ? 0x6830A8 : 0x2A1060, isActive ? 1 : 0.7);
+        const activeColors: Record<string, number> = { dirt:0x6830A8, grass:0x286820, aquatic:0x1060A8, decor:0x805020 };
+        g.fillStyle(isActive ? (activeColors[key] ?? 0x6830A8) : 0x2A1060, isActive ? 1 : 0.7);
         const i = filters.indexOf(key);
         g.fillRoundedRect(10 + tabW*i + 2, 78, tabW - 4, 32, 8);
       } else if (child.type === 'Text') {
@@ -128,6 +129,11 @@ export class Merchant extends Phaser.Scene {
 
   private _buildGrid(W: number, H: number) {
     this._gridGroup.clear(true, true);
+
+    if (this._filter === 'decor') {
+      this._buildDecorGrid(W, H);
+      return;
+    }
 
     const stockIds = Game.state!.merchantStock ?? [];
     const filtered = stockIds
@@ -192,6 +198,82 @@ export class Merchant extends Phaser.Scene {
       btn.setAlpha(unlocked ? 1 : 0.55);
       this._gridGroup.add(btn);
     });
+  }
+
+  private _buildDecorGrid(W: number, H: number) {
+    const cols = 2, cardW = 210, cardH = 140, gapX = (W - cols * cardW) / (cols + 1), startY = 128;
+    const unlocked: string[] = (['dirt', 'grass', 'aquatic'] as const)
+      .filter(h => Game.state!.habitats[h].unlocked)
+      .flatMap(h => Game.state!.habitats[h].decorations);
+
+    const visible = DECORATIONS.filter(d => Game.state!.habitats[d.habitat].unlocked);
+    if (visible.length === 0) {
+      this._gridGroup.add(this.add.text(W/2, 420, 'Unlock habitats to\nbuy decorations!', {
+        fontFamily: FONT, fontSize: '16px', color: '#9988CC', align: 'center',
+      }).setOrigin(0.5));
+      return;
+    }
+
+    visible.forEach((dec, idx) => {
+      const col = idx % cols, row = Math.floor(idx / cols);
+      const cx = gapX + cardW/2 + col * (cardW + gapX);
+      const cy = startY + 20 + row * (cardH + 12) + cardH/2;
+      const owned = unlocked.includes(dec.id);
+
+      const cardBg = this.add.graphics();
+      cardBg.fillStyle(owned ? 0x1A2A10 : 0x2E1458, 1);
+      cardBg.fillRoundedRect(cx - cardW/2, cy - cardH/2, cardW, cardH, 12);
+      cardBg.lineStyle(2, owned ? 0x44CC44 : HABITATS[dec.habitat].wallColor, owned ? 0.8 : 0.6);
+      cardBg.strokeRoundedRect(cx - cardW/2, cy - cardH/2, cardW, cardH, 12);
+      this._gridGroup.add(cardBg);
+
+      const habitatIcons: Record<string, string> = { dirt:'⛰', grass:'🌿', aquatic:'🌊' };
+      this._gridGroup.add(this.add.text(cx, cy - 44, habitatIcons[dec.habitat] + ' T' + dec.tier, {
+        fontFamily: FONT, fontSize: '11px', color: '#CCBBEE',
+      }).setOrigin(0.5));
+      this._gridGroup.add(this.add.text(cx, cy - 26, dec.name, {
+        fontFamily: FONT, fontSize: '15px', fontStyle: 'bold', color: owned ? '#AAFFAA' : '#FFFFFF',
+      }).setOrigin(0.5));
+      this._gridGroup.add(this.add.text(cx, cy - 6, dec.desc, {
+        fontFamily: FONT, fontSize: '12px', color: '#BBAAFF',
+      }).setOrigin(0.5));
+
+      if (owned) {
+        this._gridGroup.add(this.add.text(cx, cy + 32, '✓ Installed', {
+          fontFamily: FONT, fontSize: '14px', fontStyle: 'bold', color: '#66CC66',
+        }).setOrigin(0.5));
+      } else {
+        const btn = makeButton(this, cx, cy + 36, 160, 34, 'Buy  ' + dec.cost + '🪙', 0x4A1878, () => {
+          this._handleBuyDecor(dec.id);
+        }, 13);
+        this._gridGroup.add(btn);
+      }
+    });
+  }
+
+  private _handleBuyDecor(decId: string) {
+    const dec = DECORATIONS.find(d => d.id === decId);
+    if (!dec) return;
+    const state = Game.state!;
+    if (!state.habitats[dec.habitat].unlocked) {
+      showToast(this, 'Unlock ' + HABITATS[dec.habitat].label + ' first!', '#ffaaaa');
+      return;
+    }
+    if (state.habitats[dec.habitat].decorations.includes(decId)) {
+      showToast(this, 'Already installed!', '#ffaaaa');
+      return;
+    }
+    if (state.coins < dec.cost) {
+      showToast(this, 'Need ' + dec.cost + '🪙', '#ffaaaa');
+      return;
+    }
+    state.coins -= dec.cost;
+    state.habitats[dec.habitat].decorations.push(decId);
+    store.setJSON('mps_state', state);
+    this._coinTxt.setText(String(state.coins));
+    sfx.buy();
+    showToast(this, dec.name + ' installed!', '#aaffaa');
+    this._buildGrid(this.scale.width, this.scale.height);
   }
 
   private _handleBuy(spId: number, unlocked: boolean) {

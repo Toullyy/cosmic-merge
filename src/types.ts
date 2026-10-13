@@ -40,7 +40,27 @@ export interface Egg {
 
 export interface HabitatState {
   unlocked: boolean;
-  decorations: unknown[];
+  decorations: string[];
+}
+
+export interface Quest {
+  id: string;
+  type: 'feed' | 'play' | 'clean' | 'sell' | 'hatch';
+  target: number;
+  progress: number;
+  completed: boolean;
+  claimed: boolean;
+  coinReward: number;
+  label: string;
+}
+
+export interface Decoration {
+  id: string;
+  name: string;
+  habitat: HabitatType;
+  cost: number;
+  tier: number;
+  desc: string;
 }
 
 export interface GameStats {
@@ -76,6 +96,12 @@ export interface GameState {
   newDiscoveries?: string[];
   diamonds?: number;
   adCooldownAt?: number;
+  visitorSpeciesId?: number;
+  visitorPriceMult?: number;
+  visitorExpiresAt?: number;
+  visitorNextAt?: number;
+  quests?: Quest[];
+  questResetAt?: number;
 }
 
 export interface VariantModifiers {
