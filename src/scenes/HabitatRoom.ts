@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { Game, FONT, store, sfx, recordQuestProgress } from '../utils';
-import { SPECIES, HABITATS, FOOD_TYPES, TOY_TYPES, CLEAN_TOOLS, XP_TABLE, getLevelName, randomBuyer, randomListingDuration } from '../data';
+import { SPECIES, HABITATS, FOOD_TYPES, TOY_TYPES, CLEAN_TOOLS, XP_TABLE, getLevelName, randomBuyer, randomListingDuration, TRAITS } from '../data';
 import { makeMonsterTexture, getVariantModifiers, lighten, darken } from '../MonsterRenderer';
 import { makeButton, setButtonLabel, setButtonColor } from '../ui/Button';
 import { showToast, showFloat } from '../ui/Toast';
@@ -81,7 +81,8 @@ export class HabitatRoom extends Phaser.Scene {
   private _calcSell(sp: Species): number {
     const m = this._monster;
     const golden = getVariantModifiers(m.variantIndex).isGolden ? 1.5 : 1;
-    return Math.max(10, Math.round(sp.price * (1 + m.level * 0.2) * (m.happiness / 100) * 0.8 * golden));
+    const traitMod = TRAITS.find(t => t.id === m.trait)?.sellMod ?? 1;
+    return Math.max(10, Math.round(sp.price * (1 + m.level * 0.2) * (m.happiness / 100) * 0.8 * golden * traitMod));
   }
 
   // ── BACKGROUND ────────────────────────────────────────────────────────────
@@ -596,6 +597,7 @@ export class HabitatRoom extends Phaser.Scene {
 
   private _buildHUD(W: number, H: number, sp: Species) {
     const mods = getVariantModifiers(this._monster.variantIndex);
+    const trait = TRAITS.find(t => t.id === this._monster.trait);
     makeButton(this, 56, 34, 92, 44, '← Back', 0x4A2010, () => { this.scene.start('Hub'); }, 15).setDepth(20);
 
     const displayName = this._monster.nickname ?? sp.name;
@@ -609,8 +611,9 @@ export class HabitatRoom extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(20).setInteractive({ useHandCursor: true });
     speciesHint.on('pointerdown', () => this._renameMonster());
 
+    const traitLabel = trait ? '  ·  ' + trait.emoji + ' ' + trait.name : '';
     this.add.text(W / 2, 56, getLevelName(this._monster.level) + '  ·  ' +
-      sp.habitat.charAt(0).toUpperCase() + sp.habitat.slice(1), {
+      sp.habitat.charAt(0).toUpperCase() + sp.habitat.slice(1) + traitLabel, {
       fontFamily: FONT, fontSize: '12px', color: '#CCDDFF',
     }).setOrigin(0.5).setDepth(20);
 
@@ -618,9 +621,10 @@ export class HabitatRoom extends Phaser.Scene {
       'Sell  ' + this._sellPrice + '🪙', 0x8B6000, () => this._handleListBtn(), 13);
     this._sellBtn.setDepth(20);
 
-    const isGoldenMon = getVariantModifiers(this._monster.variantIndex).isGolden;
+    const isGoldenMon = mods.isGolden;
     const goldenMult = isGoldenMon ? 1.5 : 1;
-    const maxPrice = Math.max(10, Math.round(sp.price * (1 + 10 * 0.2) * 0.8 * goldenMult));
+    const traitSellMod = trait?.sellMod ?? 1;
+    const maxPrice = Math.max(10, Math.round(sp.price * (1 + 10 * 0.2) * 0.8 * goldenMult * traitSellMod));
     const hintLabel = isGoldenMon
       ? '✨ Golden +50%  ·  max: ' + maxPrice + '🪙'
       : 'Lv10 max: ' + maxPrice + '🪙  ·  ❤️';
@@ -725,7 +729,8 @@ export class HabitatRoom extends Phaser.Scene {
           this._monster.hunger    = Math.min(100, this._monster.hunger    + food.hungerGain);
           this._monster.happiness = Math.min(100, this._monster.happiness + food.happinessGain);
           this._monster.lastCaredAt = Date.now();
-          this._gainXP(10 + food.tier * 3);
+          const feedXpBonus = TRAITS.find(t => t.id === this._monster.trait)?.xpMod ?? 0;
+          this._gainXP(10 + food.tier * 3 + feedXpBonus);
           recordQuestProgress('feed');
           store.setJSON('mps_state', Game.state);
           sfx.feed();
@@ -764,16 +769,17 @@ export class HabitatRoom extends Phaser.Scene {
       this._pickerItems.push(this.add.text(fpX + fpW/2, fpY + 13, '🎾 ' + ownedToy.name, {
         fontFamily: FONT, fontSize: '12px', color: '#aa88cc',
       }).setOrigin(0.5).setDepth(28));
+      const playHapGain = Math.round(ownedToy.happinessGain * (TRAITS.find(t => t.id === this._monster.trait)?.hapGainMod ?? 1));
       const fbtn = makeButton(this, fpX + fpW/2, fpY + 60, fpW - 30, 54,
-        'Play! FREE  +' + ownedToy.happinessGain + '💛', 0x6030A0, () => {
-          this._monster.happiness = Math.min(100, this._monster.happiness + ownedToy.happinessGain);
+        'Play! FREE  +' + playHapGain + '💛', 0x6030A0, () => {
+          this._monster.happiness = Math.min(100, this._monster.happiness + playHapGain);
           this._monster.lastCaredAt = Date.now();
           this._gainXP(8 + ownedToy.tier * 3);
           recordQuestProgress('play');
           store.setJSON('mps_state', Game.state);
           sfx.pet();
           this._playPetAnim(ownedToy.id);
-          showFloat(this, this._monImg.x, this._monImg.y - 85, '+' + ownedToy.happinessGain + '💛', '#ffdd55');
+          showFloat(this, this._monImg.x, this._monImg.y - 85, '+' + playHapGain + '💛', '#ffdd55');
           this._refreshStats();
           this._clearPicker();
         }, 14);

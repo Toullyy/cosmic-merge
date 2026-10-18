@@ -1,5 +1,25 @@
 import type { Species, FoodType, ToyType, CleanTool, HabitatType, HabitatConfig, Monster, Egg, GameState, Quest, Decoration } from './types';
 
+export interface Trait {
+  id: string;
+  name: string;
+  emoji: string;
+  desc: string;
+  decayMod?: { happiness?: number; hunger?: number; cleanliness?: number };
+  sellMod?: number;
+  xpMod?: number;
+  hapGainMod?: number;
+}
+
+export interface Achievement {
+  id: string;
+  name: string;
+  emoji: string;
+  desc: string;
+  diamonds: number;
+  check: (state: GameState) => boolean;
+}
+
 export const SPECIES: Species[] = [
   // ── Dirt (0–4) ──────────────────────────────────────────────────────────
   { id:0,  name:'Blobbit',     habitat:'dirt',    hatchHours:1,  price:80,   bodyShape:'round',  baseColor:0x8B7355 },
@@ -195,8 +215,36 @@ export function getDecayMult(state: GameState, habitat: HabitatType): number {
   return Math.max(0.70, 1 - owned.length * 0.10);
 }
 
+// ── TRAITS ────────────────────────────────────────────────────────────────────
+export const TRAITS: Trait[] = [
+  { id:'greedy',   name:'Greedy',   emoji:'🍖', desc:'Hungry; +5 XP/feed',          decayMod:{ hunger: 1.30 }, xpMod: 5 },
+  { id:'lazy',     name:'Lazy',     emoji:'😴', desc:'Easygoing, slow to tire',      decayMod:{ happiness: 0.80, hunger: 0.80, cleanliness: 0.80 } },
+  { id:'lucky',    name:'Lucky',    emoji:'🍀', desc:'+20% sell price',              sellMod: 1.20 },
+  { id:'fierce',   name:'Fierce',   emoji:'🔥', desc:'+35% sell, gets dirty fast',   sellMod: 1.35, decayMod:{ cleanliness: 1.40 } },
+  { id:'playful',  name:'Playful',  emoji:'🎾', desc:'Stays happy; +30% play bonus', decayMod:{ happiness: 0.75 }, hapGainMod: 1.30 },
+  { id:'pristine', name:'Pristine', emoji:'✨', desc:'Self-grooming, stays clean',   decayMod:{ cleanliness: 0.40 } },
+];
+
+// ── ACHIEVEMENTS ──────────────────────────────────────────────────────────────
+export const ACHIEVEMENTS: Achievement[] = [
+  { id:'first_hatch',  name:'First Hatch',      emoji:'🥚', desc:'Hatch your first egg',        diamonds:1, check: s => s.stats.hatched >= 1 },
+  { id:'hatch_10',     name:'Incubator',         emoji:'🔥', desc:'Hatch 10 eggs',               diamonds:2, check: s => s.stats.hatched >= 10 },
+  { id:'first_sell',   name:'First Sale',        emoji:'💰', desc:'Make your first sale',        diamonds:1, check: s => s.stats.sold >= 1 },
+  { id:'sell_10',      name:'Merchant',          emoji:'🏪', desc:'Sell 10 monsters',            diamonds:3, check: s => s.stats.sold >= 10 },
+  { id:'first_golden', name:'Golden Touch',      emoji:'🌟', desc:'Discover a golden monster',   diamonds:3, check: s => (s.stats.goldenDiscovered?.length ?? 0) >= 1 },
+  { id:'species_5',    name:'Explorer',          emoji:'🔭', desc:'Discover 5 species',          diamonds:2, check: s => s.stats.discovered.length >= 5 },
+  { id:'species_15',   name:'Collector',         emoji:'📚', desc:'Discover 15 species',         diamonds:4, check: s => s.stats.discovered.length >= 15 },
+  { id:'all_habitats', name:'Habitat Master',    emoji:'🌍', desc:'Unlock all 3 habitats',       diamonds:3, check: s => (['dirt','grass','aquatic'] as HabitatType[]).every(h => s.habitats[h].unlocked) },
+  { id:'coins_5000',   name:'Wealthy',           emoji:'💎', desc:'Earn 5,000 coins total',      diamonds:2, check: s => s.stats.totalEarned >= 5000 },
+  { id:'level_5',      name:'Veteran',           emoji:'💪', desc:'Raise a monster to level 5',  diamonds:2, check: s => s.monsters.some(m => m.level >= 5) },
+  { id:'decor_3',      name:'Interior Designer', emoji:'🎨', desc:'Install 3 decorations',       diamonds:2, check: s => (['dirt','grass','aquatic'] as HabitatType[]).reduce((n,h)=>n+s.habitats[h].decorations.length,0) >= 3 },
+  { id:'quest_5',      name:'Quest Champion',    emoji:'📜', desc:'Complete 5 daily quests',     diamonds:2, check: s => (s.stats.questsCompleted ?? 0) >= 5 },
+  { id:'visitor_deal', name:'VIP Welcome',       emoji:'🎯', desc:'Sell to a VIP visitor',       diamonds:3, check: s => (s.stats.visitorSales ?? 0) >= 1 },
+];
+
 export function newMonster(speciesId: number, variantIndex?: number, source?: string): Monster {
   const sp = SPECIES[speciesId];
+  const trait = TRAITS[Math.floor(Math.random() * TRAITS.length)].id;
   return {
     id: 'mon_' + Date.now() + '_' + Math.floor(Math.random() * 9999),
     speciesId,
@@ -211,6 +259,7 @@ export function newMonster(speciesId: number, variantIndex?: number, source?: st
     source: source ?? 'merchant',
     ownedToy: 'yarn',
     ownedTool: 'cloth',
+    trait,
   };
 }
 

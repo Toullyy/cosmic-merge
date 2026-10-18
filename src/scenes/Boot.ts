@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
-import { Game, store } from '../utils';
-import { DECAY, newState, generateMerchantStock, MERCHANT_REFRESH_MS, TANK_CAPACITY, randomBuyer, VISITOR_INTERVAL_MS, checkAndUpdateVisitor, generateDailyQuests, getDecayMult } from '../data';
+import { Game, store, getNewAchievements } from '../utils';
+import { DECAY, newState, generateMerchantStock, MERCHANT_REFRESH_MS, TANK_CAPACITY, randomBuyer, VISITOR_INTERVAL_MS, checkAndUpdateVisitor, generateDailyQuests, getDecayMult, TRAITS } from '../data';
 import { preloadMonsterTexture } from '../MonsterRenderer';
 import type { GameState } from '../types';
 
@@ -68,7 +68,17 @@ export class Boot extends Phaser.Scene {
         const midnight = new Date(); midnight.setHours(24, 0, 0, 0);
         Game.state.questResetAt = midnight.getTime();
       }
+      // assign trait to monsters that don't have one
+      Game.state.monsters.forEach(m => {
+        if (!m.trait) m.trait = TRAITS[Math.floor(Math.random() * TRAITS.length)].id;
+      });
+      // initialize achievements + stats counters
+      if (!Game.state.achievements) Game.state.achievements = [];
+      if (Game.state.stats.questsCompleted === undefined) Game.state.stats.questsCompleted = 0;
+      if (Game.state.stats.visitorSales === undefined) Game.state.stats.visitorSales = 0;
       reconcileOfflineTime(Game.state);
+      // retroactive achievement check (silent — no popups, just awards diamonds for past play)
+      getNewAchievements(Game.state);
     } else {
       Game.state = newState();
       store.setJSON('mps_state', Game.state);
@@ -97,10 +107,14 @@ function reconcileOfflineTime(state: GameState) {
   const hours = elapsed / 3600000;
   if (hours < 0.001) return;
   state.monsters.forEach(mon => {
-    const mult = getDecayMult(state, mon.habitatType);
-    mon.happiness   = Math.max(0, mon.happiness   + DECAY.happiness   * hours * mult);
-    mon.hunger      = Math.max(0, mon.hunger      + DECAY.hunger      * hours * mult);
-    mon.cleanliness = Math.max(0, mon.cleanliness + DECAY.cleanliness * hours * mult);
+    const decayMult = getDecayMult(state, mon.habitatType);
+    const trait = TRAITS.find(t => t.id === mon.trait);
+    const hMod  = (trait?.decayMod?.happiness    ?? 1) * decayMult;
+    const nuMod = (trait?.decayMod?.hunger        ?? 1) * decayMult;
+    const cMod  = (trait?.decayMod?.cleanliness   ?? 1) * decayMult;
+    mon.happiness   = Math.max(0, mon.happiness   + DECAY.happiness   * hours * hMod);
+    mon.hunger      = Math.max(0, mon.hunger      + DECAY.hunger      * hours * nuMod);
+    mon.cleanliness = Math.max(0, mon.cleanliness + DECAY.cleanliness * hours * cMod);
   });
   state.lastTickAt = now;
   store.setJSON('mps_state', state);

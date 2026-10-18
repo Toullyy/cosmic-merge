@@ -26,6 +26,7 @@ export interface Monster {
   nickname?: string;
   ownedToy?: string;
   ownedTool?: string;
+  trait?: string;
 }
 
 export interface Egg {
@@ -69,6 +70,8 @@ export interface GameStats {
   totalEarned: number;
   discovered: number[];
   goldenDiscovered?: number[];
+  questsCompleted?: number;
+  visitorSales?: number;
 }
 
 export interface Listing {
@@ -102,6 +105,7 @@ export interface GameState {
   visitorNextAt?: number;
   quests?: Quest[];
   questResetAt?: number;
+  achievements?: string[];
 }
 
 export interface VariantModifiers {

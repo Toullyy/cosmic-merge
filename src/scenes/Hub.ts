@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
-import { Game, FONT, store, sfx } from '../utils';
-import { SPECIES, HABITATS, TANK_COST, TANK_CAPACITY, MAX_TANKS, getLevelName, AD_COINS_REWARD, AD_COOLDOWN_MS, checkAndUpdateVisitor, VISITOR_DURATION_MS } from '../data';
+import { Game, FONT, store, sfx, getNewAchievements } from '../utils';
+import { SPECIES, HABITATS, TANK_COST, TANK_CAPACITY, MAX_TANKS, getLevelName, AD_COINS_REWARD, AD_COOLDOWN_MS, checkAndUpdateVisitor, VISITOR_DURATION_MS, TRAITS, ACHIEVEMENTS } from '../data';
+import type { Achievement } from '../data';
 import { makeMonsterTexture, getVariantModifiers, shiftHue, darken, lighten } from '../MonsterRenderer';
 import { makeButton, setButtonLabel, setButtonColor } from '../ui/Button';
 import { showToast } from '../ui/Toast';
@@ -484,6 +485,7 @@ export class Hub extends Phaser.Scene {
         state.coins += offerPrice;
         state.stats.sold++;
         state.stats.totalEarned += offerPrice;
+        state.stats.visitorSales = (state.stats.visitorSales ?? 0) + 1;
         state.visitorSpeciesId = undefined;
         state.visitorExpiresAt = undefined;
         store.setJSON('mps_state', state);
@@ -558,11 +560,14 @@ export class Hub extends Phaser.Scene {
         const claimBtn = makeButton(this, W/2 + 105, qy + 40, 90, 36, 'Claim!', 0x2A7A10, () => {
           q.claimed = true;
           state.coins += q.coinReward;
+          state.stats.questsCompleted = (state.stats.questsCompleted ?? 0) + 1;
           store.setJSON('mps_state', state);
           sfx.buy();
           showToast(this, '+' + q.coinReward + ' 🪙 claimed!', '#aaffaa');
           this._updateCoinDisplay();
           this._updateQuestBtn();
+          const newAch = getNewAchievements(state);
+          newAch.forEach(a => this._showAchievementPopup(a));
           close();
           this._showQuestsPanel();
         }, 12);
@@ -573,9 +578,104 @@ export class Hub extends Phaser.Scene {
     });
 
     const close = () => popup.destroy();
-    popup.add(makeButton(this, W/2, panY + panH - 28, 120, 40, 'Close', 0x2a1560, close, 13));
+    popup.add(makeButton(this, W/2 - 70, panY + panH - 28, 120, 40, 'Close', 0x2a1560, close, 13));
+    popup.add(makeButton(this, W/2 + 70, panY + panH - 28, 130, 40, '🏆 Achievements', 0x1A3A6A, () => {
+      close(); this._showAchievementsPanel();
+    }, 11));
     overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, W, H), Phaser.Geom.Rectangle.Contains);
     overlay.on('pointerdown', close);
+  }
+
+  private _showAchievementsPanel() {
+    const state = Game.state!;
+    const earned = new Set(state.achievements ?? []);
+    const W = this.scale.width, H = this.scale.height;
+
+    const popup = this.add.container(0, 0).setDepth(50);
+    const overlay = this.add.graphics();
+    overlay.fillStyle(0x000000, 0.70); overlay.fillRect(0, 0, W, H);
+    popup.add(overlay);
+
+    const cols = 2, cardW = 150, cardH = 66, gapX = 12, gapY = 10;
+    const rows = Math.ceil(ACHIEVEMENTS.length / cols);
+    const panW = cols * cardW + (cols + 1) * gapX;
+    const panH = 56 + rows * (cardH + gapY) + gapY + 50;
+    const panX = W / 2 - panW / 2, panY = Math.max(20, H / 2 - panH / 2);
+
+    const panel = this.add.graphics();
+    panel.fillStyle(0x0E1830, 1);
+    panel.fillRoundedRect(panX, panY, panW, panH, 16);
+    panel.lineStyle(2, 0x55EEFF, 0.75);
+    panel.strokeRoundedRect(panX, panY, panW, panH, 16);
+    popup.add(panel);
+
+    popup.add(this.add.text(W / 2, panY + 26, '🏆 Achievements', {
+      fontFamily: FONT, fontSize: '19px', fontStyle: 'bold', color: '#88EEFF',
+    }).setOrigin(0.5));
+    popup.add(this.add.text(W / 2, panY + 44, earned.size + ' / ' + ACHIEVEMENTS.length + ' earned', {
+      fontFamily: FONT, fontSize: '11px', color: '#5588AA',
+    }).setOrigin(0.5));
+
+    ACHIEVEMENTS.forEach((a, i) => {
+      const col = i % cols, row = Math.floor(i / cols);
+      const cx = panX + gapX + col * (cardW + gapX);
+      const cy = panY + 56 + row * (cardH + gapY);
+      const done = earned.has(a.id);
+
+      const cg = this.add.graphics();
+      cg.fillStyle(done ? 0x112244 : 0x0A0A1A, 1);
+      cg.fillRoundedRect(cx, cy, cardW, cardH, 8);
+      cg.lineStyle(1.5, done ? 0x55EEFF : 0x223344, done ? 0.75 : 0.35);
+      cg.strokeRoundedRect(cx, cy, cardW, cardH, 8);
+      popup.add(cg);
+
+      popup.add(this.add.text(cx + 12, cy + 18, a.emoji + ' ' + a.name, {
+        fontFamily: FONT, fontSize: '12px', fontStyle: 'bold',
+        color: done ? '#FFFFFF' : '#445566',
+      }).setOrigin(0, 0.5));
+      popup.add(this.add.text(cx + 12, cy + 36, done ? a.desc : '???', {
+        fontFamily: FONT, fontSize: '10px',
+        color: done ? '#88AABB' : '#334455',
+      }).setOrigin(0, 0.5));
+      popup.add(this.add.text(cx + cardW - 8, cy + 18, done ? ('+' + a.diamonds + '💎') : '💎', {
+        fontFamily: FONT, fontSize: '11px',
+        color: done ? '#88EEFF' : '#334455',
+      }).setOrigin(1, 0.5));
+    });
+
+    const close = () => popup.destroy();
+    popup.add(makeButton(this, W / 2, panY + panH - 28, 120, 40, 'Close', 0x2a1560, close, 13));
+    overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, W, H), Phaser.Geom.Rectangle.Contains);
+    overlay.on('pointerdown', close);
+  }
+
+  private _showAchievementPopup(a: Achievement) {
+    const W = this.scale.width, H = this.scale.height;
+    const popup = this.add.container(W / 2, H * 0.30).setDepth(60);
+
+    const bg = this.add.graphics();
+    bg.fillStyle(0x0A1830, 0.95);
+    bg.fillRoundedRect(-130, -40, 260, 80, 14);
+    bg.lineStyle(2, 0x55EEFF, 0.9);
+    bg.strokeRoundedRect(-130, -40, 260, 80, 14);
+    popup.add(bg);
+
+    popup.add(this.add.text(0, -12, a.emoji + ' Achievement Unlocked!', {
+      fontFamily: FONT, fontSize: '13px', fontStyle: 'bold', color: '#88EEFF',
+    }).setOrigin(0.5));
+    popup.add(this.add.text(0, 12, a.name + '  +' + a.diamonds + '💎', {
+      fontFamily: FONT, fontSize: '14px', fontStyle: 'bold', color: '#FFFFFF',
+    }).setOrigin(0.5));
+
+    popup.setScale(0);
+    this.tweens.add({ targets: popup, scaleX: 1, scaleY: 1, duration: 280, ease: 'Back.Out' });
+    this.time.delayedCall(2800, () => {
+      this.tweens.add({
+        targets: popup, scaleX: 0, scaleY: 0, alpha: 0, duration: 220, ease: 'Back.In',
+        onComplete: () => { try { popup.destroy(); } catch { /* ignore */ } },
+      });
+    });
+    this._updateCoinDisplay();
   }
 
   private _updateQuestBtn() {
@@ -593,6 +693,10 @@ export class Hub extends Phaser.Scene {
     this._bobTweens.forEach(t => { try { t.stop(); } catch { /* ignore */ } });
     this._bobTweens = [];
     this._displayGroup.clear(true, true);
+
+    const newAch = getNewAchievements(Game.state!);
+    newAch.forEach(a => this._showAchievementPopup(a));
+
     const W = this.scale.width;
     const monsters = Game.state!.monsters.filter(m => m.habitatType === this._currentHabitat);
     const eggs     = Game.state!.eggs.filter(e => e.habitatType === this._currentHabitat);
@@ -765,6 +869,13 @@ export class Hub extends Phaser.Scene {
     this._displayGroup.add(this.add.text(vpX + 7, vpY + 12, lvlLabel, {
       fontFamily: FONT, fontSize: '10px', color: '#FFE066', fontStyle: 'bold',
     }).setOrigin(0, 0.5).setDepth(24));
+
+    const monTrait = TRAITS.find(t => t.id === mon.trait);
+    if (monTrait) {
+      this._displayGroup.add(this.add.text(vpX + vpW - 5, vpY + vpH - 5, monTrait.emoji, {
+        fontFamily: FONT, fontSize: '13px',
+      }).setOrigin(1, 1).setDepth(24));
+    }
 
     if (mods.isGolden) {
       this._displayGroup.add(this.add.text(vpX + vpW - 5, vpY + 5, '★', {

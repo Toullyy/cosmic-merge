@@ -1,4 +1,6 @@
 import type { GameState, Quest } from './types';
+import { ACHIEVEMENTS } from './data';
+import type { Achievement } from './data';
 
 export const FONT = '"Noto Sans Thai", "Sarabun", system-ui, sans-serif';
 
@@ -33,6 +35,17 @@ export function recordQuestProgress(type: Quest['type']): void {
     }
   });
   if (changed) store.setJSON('mps_state', Game.state);
+}
+
+export function getNewAchievements(state: GameState): Achievement[] {
+  const existing = new Set(state.achievements ?? []);
+  const newOnes = ACHIEVEMENTS.filter(a => !existing.has(a.id) && a.check(state));
+  if (newOnes.length > 0) {
+    state.achievements = [...(state.achievements ?? []), ...newOnes.map(a => a.id)];
+    newOnes.forEach(a => { state.diamonds = (state.diamonds ?? 0) + a.diamonds; });
+    store.setJSON('mps_state', state);
+  }
+  return newOnes;
 }
 
 export const sfx = {
