@@ -1152,6 +1152,7 @@ export class HabitatRoom extends Phaser.Scene {
           } else {
             this._monster.bowl = { foodId: food.id, remaining: food.hungerGain, maxAmount: food.hungerGain, color: bowlColor };
           }
+          this._monster.hunger = Math.min(100, this._monster.hunger + food.hungerGain);
           this._monster.happiness = Math.min(100, this._monster.happiness + food.happinessGain);
           this._monster.lastCaredAt = Date.now();
           const feedXpBonus = TRAITS.find(t => t.id === this._monster.trait)?.xpMod ?? 0;
@@ -1160,7 +1161,7 @@ export class HabitatRoom extends Phaser.Scene {
           store.setJSON('mps_state', Game.state);
           sfx.feed();
           this._playBowlFeedAnim(food.id, food.tier);
-          showFloat(this, this._bowlX, this._bowlY - 42, '+' + food.happinessGain + '💛  yum!', '#ffcc44');
+          showFloat(this, this._bowlX, this._bowlY - 42, '+' + food.hungerGain + '🍖 +' + food.happinessGain + '💛', '#ffcc44');
           this._refreshStats();
           this._drawBowl();
           this._updateCoinDisplay();
