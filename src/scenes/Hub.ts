@@ -210,6 +210,12 @@ export class Hub extends Phaser.Scene {
     hud.lineStyle(4, 0x55EEFF, 0.18);
     hud.strokeRoundedRect(179, 5, 126, 58, 17);
 
+    // Inner top-edge shine on both HUD boxes
+    hud.fillStyle(0xFFD700, 0.10);
+    hud.fillRoundedRect(9, 9, 166, 24, { tl: 13, tr: 13, bl: 0, br: 0 });
+    hud.fillStyle(0x55EEFF, 0.10);
+    hud.fillRoundedRect(183, 9, 118, 24, { tl: 13, tr: 13, bl: 0, br: 0 });
+
     this.add.text(26, 34, '💰', {
       fontFamily: FONT, fontSize: '26px', color: '#FFD700',
       stroke: '#000000', strokeThickness: 3,
@@ -442,6 +448,13 @@ export class Hub extends Phaser.Scene {
   private _buildBottomNav(W: number, H: number) {
     const btnY = H - 54, bw = 118, bh = 52;
     const xs = [W/8, W*3/8, W*5/8, W*7/8];
+
+    // Dark nav backing strip
+    const navBg = this.add.graphics().setDepth(9);
+    navBg.fillStyle(0x06040E, 0.93);
+    navBg.fillRoundedRect(0, H - 110, W, 112, { tl: 18, tr: 18, bl: 0, br: 0 });
+    navBg.lineStyle(1.5, 0x3A2070, 0.50);
+    navBg.strokeRoundedRect(0, H - 110, W, 112, { tl: 18, tr: 18, bl: 0, br: 0 });
 
     makeButton(this, xs[0], btnY, bw, bh, t('nav.shop'), 0x6828A0, () => {
       Ads.maybeInterstitial(() => { this.scene.start('Merchant'); });
@@ -825,7 +838,8 @@ export class Hub extends Phaser.Scene {
 
     if (monsters.length === 0 && eggs.length === 0) {
       const emptyTxt = this.add.text(W/2, 460, t('hub.empty'), {
-        fontFamily: FONT, fontSize: '18px', color: '#7060a0', align: 'center',
+        fontFamily: FONT, fontSize: '18px', color: '#9080C8', align: 'center',
+        stroke: '#000000', strokeThickness: 2,
       }).setOrigin(0.5).setDepth(20);
       this._displayGroup.add(emptyTxt);
       const shopBtn = makeButton(this, W/2, 520, 200, 50, t('hub.goShop'), 0x2a1560, () => {
@@ -869,16 +883,23 @@ export class Hub extends Phaser.Scene {
 
     const plateY = cy - CH/2 + vpPad + vpH + 2;
     const plateH = nameH - 4;
+    const tankHabPlate: Record<string, [number, string]> = {
+      dirt:    [0x4A2808, '#FFD8A8'],
+      grass:   [0x0D3008, '#AAFFAA'],
+      aquatic: [0x062030, '#88EEFF'],
+    };
+    const [tankPlateColor, tankNameColor] = tankHabPlate[this._currentHabitat] ?? [0x4A2808, '#FFD8A8'];
     const plateG = this.add.graphics().setDepth(22);
-    plateG.fillStyle(0x5C3418, 1); plateG.fillRoundedRect(vpX, plateY, vpW, plateH, 4);
-    plateG.lineStyle(1.5, 0x3A2010, 0.85); plateG.strokeRoundedRect(vpX, plateY, vpW, plateH, 4);
+    plateG.fillStyle(tankPlateColor, 1); plateG.fillRoundedRect(vpX, plateY, vpW, plateH, 4);
+    plateG.lineStyle(1.5, 0x000000, 0.50); plateG.strokeRoundedRect(vpX, plateY, vpW, plateH, 4);
+    plateG.lineStyle(1, 0xffffff, 0.10); plateG.strokeRoundedRect(vpX + 1, plateY + 1, vpW - 2, plateH - 2, 3);
     this._displayGroup.add(plateG);
     const screwG = this.add.graphics().setDepth(23);
     this._drawScrew(screwG, vpX + 10, plateY + plateH/2); this._drawScrew(screwG, vpX + vpW - 10, plateY + plateH/2);
     this._displayGroup.add(screwG);
     this._displayGroup.add(this.add.text(cx, plateY + plateH/2, t('hub.buyTank'), {
-      fontFamily: FONT, fontSize: '12px', fontStyle: 'bold', color: '#E8C896',
-      stroke: '#2A1008', strokeThickness: 2,
+      fontFamily: FONT, fontSize: '12px', fontStyle: 'bold', color: tankNameColor,
+      stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5).setDepth(23));
 
     const vpCY = vpY + vpH/2;
@@ -953,10 +974,16 @@ export class Hub extends Phaser.Scene {
 
     const plateY = cy - CH/2 + vpPad + vpH + 2;
     const plateH = nameH - 4;
+    const habPlate: Record<string, [number, string]> = {
+      dirt:    [0x4A2808, '#FFD8A8'],
+      grass:   [0x0D3008, '#AAFFAA'],
+      aquatic: [0x062030, '#88EEFF'],
+    };
+    const [plateColor, nameColor] = habPlate[sp.habitat] ?? [0x4A2808, '#FFD8A8'];
     const plateG = this.add.graphics().setDepth(22);
-    plateG.fillStyle(0x5C3418, 1); plateG.fillRoundedRect(vpX, plateY, vpW, plateH, 4);
-    plateG.lineStyle(1.5, 0x3A2010, 0.85); plateG.strokeRoundedRect(vpX, plateY, vpW, plateH, 4);
-    plateG.lineStyle(1, 0x8B5E3C, 0.38); plateG.strokeRoundedRect(vpX + 2, plateY + 2, vpW - 4, plateH - 4, 3);
+    plateG.fillStyle(plateColor, 1); plateG.fillRoundedRect(vpX, plateY, vpW, plateH, 4);
+    plateG.lineStyle(1.5, 0x000000, 0.50); plateG.strokeRoundedRect(vpX, plateY, vpW, plateH, 4);
+    plateG.lineStyle(1, 0xffffff, 0.10); plateG.strokeRoundedRect(vpX + 1, plateY + 1, vpW - 2, plateH - 2, 3);
     this._displayGroup.add(plateG);
 
     const screwG = this.add.graphics().setDepth(23);
@@ -966,8 +993,8 @@ export class Hub extends Phaser.Scene {
 
     const displayName = (mon.nickname ?? sp.name).toUpperCase();
     this._displayGroup.add(this.add.text(cx, plateCY, displayName, {
-      fontFamily: FONT, fontSize: '12px', fontStyle: 'bold', color: '#E8C896',
-      stroke: '#2A1008', strokeThickness: 2,
+      fontFamily: FONT, fontSize: '12px', fontStyle: 'bold', color: nameColor,
+      stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5).setDepth(23));
 
     // Level badge top-left
@@ -1005,11 +1032,14 @@ export class Hub extends Phaser.Scene {
     if (listing) {
       const ready = Date.now() >= listing.readyAt;
       const banner = this.add.graphics().setDepth(25);
-      banner.fillStyle(ready ? 0x1A7040 : 0x884400, 0.92);
-      banner.fillRect(vpX, vpY, vpW, 22);
+      banner.fillStyle(ready ? 0x1A7040 : 0x884400, 0.93);
+      banner.fillRoundedRect(vpX, vpY, vpW, 22, { tl: 2, tr: 2, bl: 0, br: 0 });
+      banner.lineStyle(1, ready ? 0x55EE88 : 0xFFCC44, 0.55);
+      banner.strokeRoundedRect(vpX, vpY, vpW, 22, { tl: 2, tr: 2, bl: 0, br: 0 });
       this._displayGroup.add(banner);
       this._displayGroup.add(this.add.text(cx, vpY + 11, ready ? '✓ READY - Tap to collect' : '🏷 For Sale', {
         fontFamily: FONT, fontSize: '10px', color: '#ffffff', fontStyle: 'bold',
+        stroke: '#000000', strokeThickness: 1,
       }).setOrigin(0.5).setDepth(26));
     }
 
@@ -1060,9 +1090,16 @@ export class Hub extends Phaser.Scene {
 
     const plateY = cy - CH/2 + vpPad + vpH + 2;
     const plateH = nameH - 4;
+    const eggHabPlate: Record<string, [number, string]> = {
+      dirt:    [0x4A2808, '#FFD8A8'],
+      grass:   [0x0D3008, '#AAFFAA'],
+      aquatic: [0x062030, '#88EEFF'],
+    };
+    const [ePlateColor, eNameColor] = eggHabPlate[sp.habitat] ?? [0x4A2808, '#FFD8A8'];
     const plateG = this.add.graphics().setDepth(22);
-    plateG.fillStyle(0x5C3418, 1); plateG.fillRoundedRect(vpX, plateY, vpW, plateH, 4);
-    plateG.lineStyle(1.5, 0x3A2010, 0.85); plateG.strokeRoundedRect(vpX, plateY, vpW, plateH, 4);
+    plateG.fillStyle(isReady ? 0x2A5A18 : ePlateColor, 1); plateG.fillRoundedRect(vpX, plateY, vpW, plateH, 4);
+    plateG.lineStyle(1.5, 0x000000, 0.50); plateG.strokeRoundedRect(vpX, plateY, vpW, plateH, 4);
+    plateG.lineStyle(1, 0xffffff, 0.10); plateG.strokeRoundedRect(vpX + 1, plateY + 1, vpW - 2, plateH - 2, 3);
     this._displayGroup.add(plateG);
 
     const plateCY = plateY + plateH/2;
@@ -1072,7 +1109,7 @@ export class Hub extends Phaser.Scene {
 
     this._displayGroup.add(this.add.text(cx, plateCY, isReady ? '🥚 READY!' : sp.name.toUpperCase() + ' EGG', {
       fontFamily: FONT, fontSize: '12px', fontStyle: 'bold',
-      color: isReady ? '#FFE066' : '#E8C896', stroke: '#2A1008', strokeThickness: 2,
+      color: isReady ? '#CCFFAA' : eNameColor, stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5).setDepth(23));
 
     const vpCY = vpY + vpH / 2;

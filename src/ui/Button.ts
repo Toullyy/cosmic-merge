@@ -1,6 +1,29 @@
 import Phaser from 'phaser';
 import { FONT, sfx } from '../utils';
 
+function _drawBg(g: Phaser.GameObjects.Graphics, w: number, h: number, fill: number) {
+  g.clear();
+  const r = 12;
+  // Drop shadow
+  g.fillStyle(0x000000, 0.28);
+  g.fillRoundedRect(-w/2 + 2, -h/2 + 3, w, h, r);
+  // Main body
+  g.fillStyle(fill, 1);
+  g.fillRoundedRect(-w/2, -h/2, w, h, r);
+  // Bottom depth edge
+  g.fillStyle(0x000000, 0.22);
+  g.fillRoundedRect(-w/2 + 2, h/2 - 5, w - 4, 4, { tl: 0, tr: 0, bl: r - 2, br: r - 2 });
+  // Top highlight
+  g.fillStyle(0xffffff, 0.17);
+  g.fillRoundedRect(-w/2 + 3, -h/2 + 2, w - 6, h * 0.44, { tl: r - 2, tr: r - 2, bl: 0, br: 0 });
+  // Bright top edge line
+  g.fillStyle(0xffffff, 0.38);
+  g.fillRoundedRect(-w/2 + 5, -h/2 + 2, w - 10, 2, 1);
+  // Outer border
+  g.lineStyle(1.5, 0xffffff, 0.28);
+  g.strokeRoundedRect(-w/2, -h/2, w, h, r);
+}
+
 export function makeButton(
   scene: Phaser.Scene,
   x: number, y: number,
@@ -12,26 +35,21 @@ export function makeButton(
 ): Phaser.GameObjects.Container {
   const container = scene.add.container(x, y);
   const bg = scene.add.graphics();
-  bg.fillStyle(fill, 1);
-  bg.fillRoundedRect(-w/2, -h/2, w, h, 10);
-  bg.fillStyle(0xffffff, 0.13);
-  bg.fillRoundedRect(-w/2 + 3, -h/2 + 2, w - 6, h * 0.42, { tl: 8, tr: 8, bl: 0, br: 0 });
-  bg.lineStyle(4, 0xffffff, 0.06);
-  bg.strokeRoundedRect(-w/2 - 1, -h/2 - 1, w + 2, h + 2, 11);
-  bg.lineStyle(1.5, 0xffffff, 0.28);
-  bg.strokeRoundedRect(-w/2, -h/2, w, h, 10);
-  const txt = scene.add.text(0, 0, label, {
+  _drawBg(bg, w, h, fill);
+  const txt = scene.add.text(0, 1, label, {
     fontFamily: FONT,
     fontSize: fontSize + 'px',
     color: '#ffffff',
     align: 'center',
     wordWrap: { width: w - 16 },
+    stroke: '#000000',
+    strokeThickness: 2,
   }).setOrigin(0.5);
   container.add([bg, txt]);
   container.setSize(w, h);
   container.setInteractive();
   container.on('pointerdown', () => {
-    scene.tweens.add({ targets: container, scaleX: 0.94, scaleY: 0.94, duration: 55, yoyo: true });
+    scene.tweens.add({ targets: container, scaleX: 0.91, scaleY: 0.91, duration: 65, yoyo: true });
     if (cb) cb();
   });
   return container;
@@ -45,14 +63,5 @@ export function setButtonLabel(btn: Phaser.GameObjects.Container, label: string)
 export function setButtonColor(btn: Phaser.GameObjects.Container, fill: number) {
   const g = btn.list[0] as Phaser.GameObjects.Graphics | undefined;
   if (!g) return;
-  const w = btn.width, h = btn.height;
-  g.clear();
-  g.fillStyle(fill, 1);
-  g.fillRoundedRect(-w/2, -h/2, w, h, 10);
-  g.fillStyle(0xffffff, 0.13);
-  g.fillRoundedRect(-w/2 + 3, -h/2 + 2, w - 6, h * 0.42, { tl: 8, tr: 8, bl: 0, br: 0 });
-  g.lineStyle(4, 0xffffff, 0.06);
-  g.strokeRoundedRect(-w/2 - 1, -h/2 - 1, w + 2, h + 2, 11);
-  g.lineStyle(1.5, 0xffffff, 0.28);
-  g.strokeRoundedRect(-w/2, -h/2, w, h, 10);
+  _drawBg(g, btn.width, btn.height, fill);
 }
