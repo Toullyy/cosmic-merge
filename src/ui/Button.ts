@@ -17,7 +17,7 @@ function _drawBg(g: Phaser.GameObjects.Graphics, w: number, h: number, fill: num
   g.fillStyle(0xffffff, 0.17);
   g.fillRoundedRect(-w/2 + 3, -h/2 + 2, w - 6, h * 0.44, { tl: r - 2, tr: r - 2, bl: 0, br: 0 });
   // Bright top edge line
-  g.fillStyle(0xffffff, 0.38);
+  g.fillStyle(0xffffff, 0.25);
   g.fillRoundedRect(-w/2 + 5, -h/2 + 2, w - 10, 2, 1);
   // Outer border
   g.lineStyle(1.5, 0xffffff, 0.28);
@@ -36,14 +36,12 @@ export function makeButton(
   const container = scene.add.container(x, y);
   const bg = scene.add.graphics();
   _drawBg(bg, w, h, fill);
-  const txt = scene.add.text(0, 1, label, {
+  const txt = scene.add.text(0, 0, label, {
     fontFamily: FONT,
     fontSize: fontSize + 'px',
     color: '#ffffff',
     align: 'center',
     wordWrap: { width: w - 16 },
-    stroke: '#000000',
-    strokeThickness: 2,
   }).setOrigin(0.5);
   container.add([bg, txt]);
   container.setSize(w, h);
