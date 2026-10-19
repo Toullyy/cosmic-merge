@@ -8,6 +8,9 @@ import { BreedingLab } from './scenes/BreedingLab';
 import { HabitatRoom } from './scenes/HabitatRoom';
 import { PokedexScene } from './scenes/PokedexScene';
 import { HowToPlay } from './scenes/HowToPlay';
+import { MonsterGallery } from './scenes/MonsterGallery';
+
+const _isGallery = window.location.search.includes('gallery');
 
 Game.phaser = new Phaser.Game({
   type: Phaser.AUTO,
@@ -20,5 +23,7 @@ Game.phaser = new Phaser.Game({
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
   input: { activePointers: 2 },
-  scene: [Boot, Hub, Merchant, HatchScene, BreedingLab, HabitatRoom, PokedexScene, HowToPlay],
+  scene: _isGallery
+    ? [MonsterGallery, Boot, Hub, Merchant, HatchScene, BreedingLab, HabitatRoom, PokedexScene, HowToPlay]
+    : [Boot, Hub, Merchant, HatchScene, BreedingLab, HabitatRoom, PokedexScene, HowToPlay, MonsterGallery],
 });

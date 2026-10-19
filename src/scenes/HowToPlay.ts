@@ -1,46 +1,28 @@
 import Phaser from 'phaser';
 import { FONT } from '../utils';
+import { t } from '../i18n';
 import { makeButton } from '../ui/Button';
 
-const PAGES = [
-  {
-    title: '🥚 Hatching Monsters',
-    lines: [
-      'Visit the Shop to buy monster eggs.',
-      'Eggs hatch over time — rarer species take longer.',
-      'Tap a ready egg on the main screen to hatch it.',
-      'Watch an ad to hatch instantly!',
-    ],
-  },
-  {
-    title: '💛 Caring for Your Monsters',
-    lines: [
-      'Tap a monster to enter its habitat room.',
-      '🍽 Feed — increases hunger & happiness.',
-      '⚽ Play — boosts happiness.',
-      '🚿 Clean — improves cleanliness.',
-      'A happier monster sells for more!',
-    ],
-  },
-  {
-    title: '💰 Selling Monsters',
-    lines: [
-      'Monster must be Adult (Lv 5+) to list for sale.',
-      'Tap "List" to post it for sale.',
-      'A buyer arrives in 15 min – 2 hrs.',
-      'Collect the sale, or watch an ad to double it!',
-    ],
-  },
-  {
-    title: '🧬 Breeding & Collection',
-    lines: [
-      'Raise 2 monsters to Lv 4+ to unlock breeding.',
-      'Breeding can produce rare cross-habitat species!',
-      'Collect all 25 species in the Dex.',
-      'Buy more tanks (100 G each) to house more monsters.',
-    ],
-  },
-];
+function getPages() {
+  return [
+    {
+      title: t('howto.page0.title'),
+      lines: [t('howto.page0.l0'), t('howto.page0.l1'), t('howto.page0.l2'), t('howto.page0.l3')],
+    },
+    {
+      title: t('howto.page1.title'),
+      lines: [t('howto.page1.l0'), t('howto.page1.l1'), t('howto.page1.l2'), t('howto.page1.l3'), t('howto.page1.l4')],
+    },
+    {
+      title: t('howto.page2.title'),
+      lines: [t('howto.page2.l0'), t('howto.page2.l1'), t('howto.page2.l2'), t('howto.page2.l3')],
+    },
+    {
+      title: t('howto.page3.title'),
+      lines: [t('howto.page3.l0'), t('howto.page3.l1'), t('howto.page3.l2'), t('howto.page3.l3')],
+    },
+  ];
+}
 
 export class HowToPlay extends Phaser.Scene {
   private _page = 0;
@@ -66,7 +48,7 @@ export class HowToPlay extends Phaser.Scene {
     panel.lineStyle(2, 0x6040cc, 0.9);
     panel.strokeRoundedRect(panelX, panelY, panelW, panelH, 20);
 
-    this.add.text(W / 2, panelY + 26, '📖 How to Play', {
+    this.add.text(W / 2, panelY + 26, t('howto.title'), {
       fontFamily: FONT, fontSize: '22px', fontStyle: 'bold', color: '#ffffff',
     }).setOrigin(0.5).setDepth(2);
 
@@ -78,27 +60,27 @@ export class HowToPlay extends Phaser.Scene {
     this._renderPage(W, panelY, panelW, panelH);
 
     const btnY = H - 76;
-    makeButton(this, 80, btnY, 110, 48, '◀ Prev', 0x1a1040, () => {
+    makeButton(this, 80, btnY, 110, 48, t('btn.prev'), 0x1a1040, () => {
       if (this._page > 0) { this._page--; this._refresh(W, panelY, panelW, panelH); }
     }, 14).setDepth(3);
 
-    makeButton(this, W / 2, btnY, 140, 52, '✓ Got it!', 0x2a1560, () => {
+    makeButton(this, W / 2, btnY, 140, 52, t('btn.gotIt'), 0x2a1560, () => {
       this.scene.stop();
     }, 16).setDepth(3);
 
-    makeButton(this, W - 80, btnY, 110, 48, 'Next ▶', 0x1a1040, () => {
-      if (this._page < PAGES.length - 1) { this._page++; this._refresh(W, panelY, panelW, panelH); }
+    makeButton(this, W - 80, btnY, 110, 48, t('btn.next'), 0x1a1040, () => {
+      if (this._page < getPages().length - 1) { this._page++; this._refresh(W, panelY, panelW, panelH); }
     }, 14).setDepth(3);
   }
 
   private _refresh(W: number, panelY: number, panelW: number, panelH: number) {
     this._contentGroup.clear(true, true);
-    this._pageIndicator.setText((this._page + 1) + ' / ' + PAGES.length);
+    this._pageIndicator.setText((this._page + 1) + ' / ' + getPages().length);
     this._renderPage(W, panelY, panelW, panelH);
   }
 
   private _renderPage(W: number, panelY: number, panelW: number, _panelH: number) {
-    const p = PAGES[this._page];
+    const p = getPages()[this._page];
     const cx = W / 2;
     const titleY = panelY + 80;
 

@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { Game, FONT, sfx } from '../utils';
+import { t } from '../i18n';
 import { SPECIES, newMonster, DIAMOND_NEW_SPECIES, DIAMOND_NEW_COLOR } from '../data';
 import { shiftHue, darken, lighten, getVariantModifiers, preloadMonsterTexture } from '../MonsterRenderer';
 import { makeButton } from '../ui/Button';
@@ -28,7 +29,7 @@ export class HatchScene extends Phaser.Scene {
     this._eggGraphic = this.add.graphics();
     this._drawEgg(this._eggGraphic, cx, cy, eggColor);
 
-    this.add.text(W/2, cy - 170, 'Something is hatching…', {
+    this.add.text(W/2, cy - 170, t('hatch.hatching'), {
       fontFamily: FONT, fontSize: '22px', color: '#ccccff',
       stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0.5);
@@ -92,14 +93,14 @@ export class HatchScene extends Phaser.Scene {
     const isNewGolden = mods.isGolden && !goldenList.includes(mon.speciesId);
 
     let diamondReward = 0;
-    let discoveryLabel = mods.isGolden ? ' ✨ GOLDEN!' : '!';
+    let discoveryLabel = mods.isGolden ? t('hatch.golden') : '!';
 
     if (isNewSpecies) {
       if (Game.state!.newDiscoveries && !Game.state!.newDiscoveries.includes(String(mon.speciesId))) {
         Game.state!.newDiscoveries.push(String(mon.speciesId));
       }
       diamondReward = DIAMOND_NEW_SPECIES;
-      discoveryLabel = ' 🆕 NEW SPECIES!';
+      discoveryLabel = t('hatch.newSpecies');
     } else if (isNewGolden) {
       goldenList.push(mon.speciesId);
       Game.state!.stats.goldenDiscovered = goldenList;
@@ -107,7 +108,7 @@ export class HatchScene extends Phaser.Scene {
         Game.state!.newDiscoveries.push(String(mon.speciesId));
       }
       diamondReward = DIAMOND_NEW_COLOR;
-      discoveryLabel = ' ✨ NEW COLOR!';
+      discoveryLabel = t('hatch.newColor');
     }
 
     if (diamondReward > 0) {
@@ -122,13 +123,13 @@ export class HatchScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     if (diamondReward > 0) {
-      this.add.text(cx, cy + 148, '+' + diamondReward + ' 💎 Diamonds!', {
+      this.add.text(cx, cy + 148, t('hatch.diamonds', { n: diamondReward }), {
         fontFamily: FONT, fontSize: '18px', fontStyle: 'bold', color: '#88EEFF',
         stroke: '#000000', strokeThickness: 3,
       }).setOrigin(0.5);
     }
     const habitatLabelY = diamondReward > 0 ? cy + 170 : cy + 145;
-    this.add.text(cx, habitatLabelY, sp.habitat.charAt(0).toUpperCase() + sp.habitat.slice(1) + ' Monster', {
+    this.add.text(cx, habitatLabelY, t('hatch.habitat', { habitat: t('habitat.' + sp.habitat) }), {
       fontFamily: FONT, fontSize: '16px', color: '#DDDDFF',
     }).setOrigin(0.5);
 
@@ -139,7 +140,7 @@ export class HatchScene extends Phaser.Scene {
     const W = this.scale.width, H = this.scale.height;
     const sp = SPECIES[mon.speciesId];
 
-    this.add.text(cx, H / 2 + 170, 'Name your monster!', {
+    this.add.text(cx, H / 2 + 170, t('hatch.name'), {
       fontFamily: FONT, fontSize: '16px', color: '#ccccff',
       stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5);
@@ -177,7 +178,7 @@ export class HatchScene extends Phaser.Scene {
 
     inp.addEventListener('keydown', (e: KeyboardEvent) => { if (e.key === 'Enter') confirm(); });
 
-    makeButton(this, cx, H / 2 + 270, 220, 50, '✅ Let\'s go!', 0x2a5030, confirm, 18);
+    makeButton(this, cx, H / 2 + 270, 220, 50, t('btn.letsGo'), 0x2a5030, confirm, 18);
 
     this.events.once('shutdown', () => {
       try { document.body.removeChild(inp); } catch { /* ignore */ }

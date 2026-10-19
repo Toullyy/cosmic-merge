@@ -1,6 +1,7 @@
 ﻿import Phaser from 'phaser';
 import { Game, FONT, store, sfx, getNewAchievements } from '../utils';
 import { SPECIES, HABITATS, TANK_COST, TANK_CAPACITY, MAX_TANKS, getLevelName, AD_COINS_REWARD, AD_COOLDOWN_MS, checkAndUpdateVisitor, VISITOR_DURATION_MS, TRAITS, ACHIEVEMENTS } from '../data';
+import { t, currentLang, setLang } from '../i18n';
 import type { Achievement } from '../data';
 import { makeMonsterTexture, getVariantModifiers, shiftHue, darken, lighten } from '../MonsterRenderer';
 import { makeButton, setButtonLabel, setButtonColor } from '../ui/Button';
@@ -171,11 +172,11 @@ export class Hub extends Phaser.Scene {
 
   private _buildShopSign(W: number, H: number) {
     const signY = H * 0.68;
-    this.add.text(W / 2, signY - 8, '✦ Monster Pet Shop ✦', {
+    this.add.text(W / 2, signY - 8, t('hub.sign'), {
       fontFamily: FONT, fontSize: '15px', fontStyle: 'bold',
       color: '#FFE9A0', stroke: '#5A2A00', strokeThickness: 3,
     }).setOrigin(0.5).setDepth(1);
-    this.add.text(W / 2, signY + 10, 'Rare · Magical · Adorable', {
+    this.add.text(W / 2, signY + 10, t('hub.tagline'), {
       fontFamily: FONT, fontSize: '10px',
       color: '#D4AA60', stroke: '#4A2000', strokeThickness: 2,
     }).setOrigin(0.5).setDepth(1);
@@ -237,12 +238,25 @@ export class Hub extends Phaser.Scene {
       callback: () => { if (this._adBtn) setButtonLabel(this._adBtn, this._adBtnLabel()); },
     });
 
-    const sndTxt = this.add.text(W - 50, 34, sfx.muted ? '🔇' : '🔊', {
+    const langTxt = this.add.text(W - 100, 34, currentLang() === 'th' ? 'TH' : 'EN', {
+      fontFamily: FONT, fontSize: '14px', fontStyle: 'bold',
+      color: '#FFD700', stroke: '#000000', strokeThickness: 2,
+    }).setOrigin(0.5, 0.5).setDepth(11).setInteractive({ useHandCursor: true });
+    const langBg = this.add.graphics().setDepth(11);
+    langBg.lineStyle(1.5, 0xFFD700, 0.70);
+    langBg.strokeRoundedRect(W - 114, 24, 28, 20, 6);
+    langTxt.on('pointerdown', () => {
+      const next = currentLang() === 'th' ? 'en' : 'th';
+      setLang(next);
+      this.scene.restart();
+    });
+
+    const sndTxt = this.add.text(W - 60, 34, sfx.muted ? '🔇' : '🔊', {
       fontFamily: FONT, fontSize: '22px', color: '#cccccc',
     }).setOrigin(0.5, 0.5).setDepth(11).setInteractive({ useHandCursor: true });
     sndTxt.on('pointerdown', () => { sfx.toggle(); sndTxt.setText(sfx.muted ? '🔇' : '🔊'); });
 
-    this.add.text(W - 16, 34, '?', {
+    this.add.text(W - 22, 34, '?', {
       fontFamily: FONT, fontSize: '22px', color: '#9060e0', fontStyle: 'bold',
     }).setOrigin(1, 0.5).setDepth(11).setInteractive({ useHandCursor: true })
       .on('pointerdown', () => { this.scene.launch('HowToPlay'); });
@@ -254,16 +268,17 @@ export class Hub extends Phaser.Scene {
 
   private _adBtnLabel(): string {
     const r = this._adCooldownRemaining();
-    if (r <= 0) return '📺 +' + AD_COINS_REWARD + '💰';
+    if (r <= 0) return t('hub.adReady', { n: AD_COINS_REWARD });
     const mins = Math.ceil(r / 60000);
-    return '📺 ' + (mins >= 60 ? Math.floor(mins / 60) + 'h' : mins + 'm');
+    return mins >= 60
+      ? t('hub.adCoolH', { h: Math.floor(mins / 60) })
+      : t('hub.adCoolM', { m: mins });
   }
 
   private _handleAdCoins() {
     const r = this._adCooldownRemaining();
     if (r > 0) {
-      const mins = Math.ceil(r / 60000);
-      showToast(this, 'Next free coins in ' + mins + ' min', '#ffaaaa');
+      showToast(this, t('toast.adCool', { mins: Math.ceil(r / 60000) }), '#ffaaaa');
       return;
     }
     Ads.showRewarded((res: { rewarded: boolean }) => {
@@ -273,14 +288,14 @@ export class Hub extends Phaser.Scene {
         store.setJSON('mps_state', Game.state);
         this._updateCoinDisplay();
         sfx.buy();
-        showToast(this, '+' + AD_COINS_REWARD + ' 💰 free coins!', '#aaffaa');
+        showToast(this, t('toast.adGot', { n: AD_COINS_REWARD }), '#aaffaa');
       }
     });
   }
 
   private _buildTabs(W: number) {
     const types: HabitatType[] = ['dirt', 'grass', 'aquatic'];
-    const labels: Record<string, string> = { dirt:'⛰ Dirt', grass:'🌿 Grass', aquatic:'🌊 Aqua' };
+    const labels: Record<string, string> = { dirt: t('tab.dirt'), grass: t('tab.grass'), aquatic: t('tab.aquatic') };
     const tabW = (W - 20) / 3;
     types.forEach((type, i) => {
       const x = 10 + tabW * i;
@@ -331,7 +346,7 @@ export class Hub extends Phaser.Scene {
 
   private _updateTabs() {
     const types: HabitatType[] = ['dirt', 'grass', 'aquatic'];
-    const labels: Record<string, string> = { dirt:'⛰ Dirt', grass:'🌿 Grass', aquatic:'🌊 Aqua' };
+    const labels: Record<string, string> = { dirt: t('tab.dirt'), grass: t('tab.grass'), aquatic: t('tab.aquatic') };
     const W = this.scale.width, tabW = (W - 20) / 3;
     const textColors: Record<string, string> = { dirt:'#FFD8A8', grass:'#C8FF88', aquatic:'#88EEFF' };
     types.forEach((type, i) => {
@@ -428,12 +443,12 @@ export class Hub extends Phaser.Scene {
     const btnY = H - 54, bw = 118, bh = 52;
     const xs = [W/8, W*3/8, W*5/8, W*7/8];
 
-    makeButton(this, xs[0], btnY, bw, bh, 'Shop', 0x6828A0, () => {
+    makeButton(this, xs[0], btnY, bw, bh, t('nav.shop'), 0x6828A0, () => {
       Ads.maybeInterstitial(() => { this.scene.start('Merchant'); });
     }, 15).setDepth(10);
 
     const unclaimedCount = (Game.state!.quests ?? []).filter(q => q.completed && !q.claimed).length;
-    const questLabel = unclaimedCount > 0 ? '📜 Quests ✓' : '📜 Quests';
+    const questLabel = unclaimedCount > 0 ? t('nav.questsDone') : t('nav.quests');
     this._questBtn = makeButton(this, xs[1], btnY, bw, bh, questLabel, 0x7A6010, () => {
       this._showQuestsPanel();
     }, 13).setDepth(10);
@@ -442,7 +457,7 @@ export class Hub extends Phaser.Scene {
 
     const disc = Game.state!.stats.discovered.length;
     const hasNew = (Game.state!.newDiscoveries?.length ?? 0) > 0;
-    this._dexBtn = makeButton(this, xs[2], btnY, bw, bh, 'Dex ' + disc + '/25', 0x0878A0, () => {
+    this._dexBtn = makeButton(this, xs[2], btnY, bw, bh, t('nav.dex', { n: disc }), 0x0878A0, () => {
       this.scene.start('PokedexScene');
     }, 14).setDepth(10);
     this._dexDot = this.add.graphics().setDepth(12);
@@ -451,10 +466,10 @@ export class Hub extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(13);
     this._updateDexDot(xs[2], bw, btnY, bh, hasNew);
 
-    makeButton(this, xs[3], btnY, bw, bh, 'Breed', 0xA02860, () => {
+    makeButton(this, xs[3], btnY, bw, bh, t('nav.breed'), 0xA02860, () => {
       const eligible = Game.state!.monsters.filter(m => m.level >= 4);
       if (eligible.length < 2) {
-        showToast(this, 'Need 2 monsters at Level 4+', '#ff9999');
+        showToast(this, t('toast.need2monsters'), '#ff9999');
       } else {
         Ads.maybeInterstitial(() => { this.scene.start('BreedingLab'); });
       }
@@ -480,8 +495,9 @@ export class Hub extends Phaser.Scene {
 
   private _tryUnlockHabitat(type: HabitatType) {
     const cost = HABITATS[type].unlockCost;
+    const hName = t('habitat.' + type);
     if (Game.state!.coins < cost) {
-      showToast(this, 'Need ' + cost + '💰 to unlock ' + HABITATS[type].label, '#ff9999');
+      showToast(this, t('toast.needCoinsUnlock', { cost, name: hName }), '#ff9999');
       return;
     }
     Game.state!.coins -= cost;
@@ -491,7 +507,7 @@ export class Hub extends Phaser.Scene {
     store.setJSON('mps_state', Game.state);
     this._updateCoinDisplay();
     this._updateTabs();
-    showToast(this, HABITATS[type].label + ' unlocked!', '#aaffaa');
+    showToast(this, t('toast.unlocked', { name: hName }), '#aaffaa');
   }
 
   private _buildVisitorBanner(W: number, H: number) {
@@ -519,7 +535,9 @@ export class Hub extends Phaser.Scene {
     bg.strokeRoundedRect(8, 0, W - 16, 32, 10);
     this._visitorBanner.add(bg);
 
-    this._visitorBanner.add(this.add.text(W / 2, 16, '⭐ VIP Visitor wants ' + sp.name + '! ' + (state.visitorPriceMult ?? 2) + 'x price  ' + mins + 'm left' + (hasMon ? '' : ' (none owned)'), {
+    const bannerMsg = t('visitor.banner', { name: sp.name, mult: state.visitorPriceMult ?? 2, mins })
+      + (hasMon ? '' : ' ' + t('visitor.bannerNone'));
+    this._visitorBanner.add(this.add.text(W / 2, 16, bannerMsg, {
       fontFamily: FONT, fontSize: '12px', color: hasMon ? '#FFE066' : '#BB9944', fontStyle: 'bold',
     }).setOrigin(0.5));
 
@@ -561,15 +579,15 @@ export class Hub extends Phaser.Scene {
     panel.strokeRoundedRect(W/2 - 160, H/2 - 130, 320, 260, 16);
     popup.add(panel);
 
-    popup.add(this.add.text(W/2, H/2 - 108, '⭐ VIP Visitor!', { fontFamily: FONT, fontSize: '20px', fontStyle: 'bold', color: '#FFE066' }).setOrigin(0.5));
-    popup.add(this.add.text(W/2, H/2 - 78, 'Wants: ' + sp.name, { fontFamily: FONT, fontSize: '16px', color: '#ffffff' }).setOrigin(0.5));
-    popup.add(this.add.text(W/2, H/2 - 52, 'Offer: ' + offerPrice + ' 💰  (' + mult + 'x)', { fontFamily: FONT, fontSize: '15px', color: '#FFD700' }).setOrigin(0.5));
-    popup.add(this.add.text(W/2, H/2 - 26, 'Expires in ' + mins + ' min', { fontFamily: FONT, fontSize: '13px', color: '#BBBBCC' }).setOrigin(0.5));
+    popup.add(this.add.text(W/2, H/2 - 108, t('visitor.title'), { fontFamily: FONT, fontSize: '20px', fontStyle: 'bold', color: '#FFE066' }).setOrigin(0.5));
+    popup.add(this.add.text(W/2, H/2 - 78, t('visitor.wants', { name: sp.name }), { fontFamily: FONT, fontSize: '16px', color: '#ffffff' }).setOrigin(0.5));
+    popup.add(this.add.text(W/2, H/2 - 52, t('visitor.offer', { price: offerPrice, mult }), { fontFamily: FONT, fontSize: '15px', color: '#FFD700' }).setOrigin(0.5));
+    popup.add(this.add.text(W/2, H/2 - 26, t('visitor.expires', { mins }), { fontFamily: FONT, fontSize: '13px', color: '#BBBBCC' }).setOrigin(0.5));
 
     const close = () => popup.destroy();
 
     if (candidates.length > 0) {
-      popup.add(makeButton(this, W/2, H/2 + 20, 260, 48, 'Quick Sell ' + sp.name + ' for ' + offerPrice + '💰', 0x2A7A18, () => {
+      popup.add(makeButton(this, W/2, H/2 + 20, 260, 48, t('visitor.sell', { name: sp.name, price: offerPrice }), 0x2A7A18, () => {
         const mon = candidates[0];
         state.monsters = state.monsters.filter(m => m.id !== mon.id);
         state.listings = state.listings.filter(l => l.monsterId !== mon.id);
@@ -581,17 +599,17 @@ export class Hub extends Phaser.Scene {
         state.visitorExpiresAt = undefined;
         store.setJSON('mps_state', state);
         sfx.sell();
-        showToast(this, 'Sold for ' + offerPrice + ' 💰!', '#aaffaa');
+        showToast(this, t('toast.soldFor', { price: offerPrice }), '#aaffaa');
         close();
         this._updateCoinDisplay();
         this._updateVisitorBanner();
         this.refreshAll();
       }, 13));
     } else {
-      popup.add(this.add.text(W/2, H/2 + 20, 'You have no ' + sp.name + ' to sell', { fontFamily: FONT, fontSize: '14px', color: '#BB9944' }).setOrigin(0.5));
+      popup.add(this.add.text(W/2, H/2 + 20, t('visitor.noMonster', { name: sp.name }), { fontFamily: FONT, fontSize: '14px', color: '#BB9944' }).setOrigin(0.5));
     }
 
-    popup.add(makeButton(this, W/2, H/2 + 82, 120, 38, 'Close', 0x2a1560, close, 13));
+    popup.add(makeButton(this, W/2, H/2 + 82, 120, 38, t('btn.close'), 0x2a1560, close, 13));
     overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, W, H), Phaser.Geom.Rectangle.Contains);
     overlay.on('pointerdown', close);
   }
@@ -615,12 +633,12 @@ export class Hub extends Phaser.Scene {
     panel.strokeRoundedRect(W/2 - 170, panY, 340, panH, 16);
     popup.add(panel);
 
-    popup.add(this.add.text(W/2, panY + 24, '📜 Daily Quests', { fontFamily: FONT, fontSize: '19px', fontStyle: 'bold', color: '#FFD700' }).setOrigin(0.5));
+    popup.add(this.add.text(W/2, panY + 24, t('quests.title'), { fontFamily: FONT, fontSize: '19px', fontStyle: 'bold', color: '#FFD700' }).setOrigin(0.5));
 
     const resetAt = state.questResetAt ?? 0;
     const minsLeft = Math.max(0, Math.floor((resetAt - Date.now()) / 60000));
     const hLeft = Math.floor(minsLeft / 60), mLeft = minsLeft % 60;
-    popup.add(this.add.text(W/2, panY + 42, 'Resets in ' + hLeft + 'h ' + mLeft + 'm', { fontFamily: FONT, fontSize: '11px', color: '#AA9944' }).setOrigin(0.5));
+    popup.add(this.add.text(W/2, panY + 42, t('quests.resets', { h: hLeft, m: mLeft }), { fontFamily: FONT, fontSize: '11px', color: '#AA9944' }).setOrigin(0.5));
 
     quests.forEach((q, qi) => {
       const qy = panY + 58 + qi * 90;
@@ -634,7 +652,7 @@ export class Hub extends Phaser.Scene {
       popup.add(qBg);
 
       popup.add(this.add.text(W/2 - 145, qy + 14, q.label, { fontFamily: FONT, fontSize: '13px', fontStyle: 'bold', color: done ? '#AAFFAA' : '#FFEEAA' }).setOrigin(0, 0.5));
-      popup.add(this.add.text(W/2 - 145, qy + 36, 'Reward: ' + q.coinReward + ' 💰', { fontFamily: FONT, fontSize: '12px', color: '#FFD700' }).setOrigin(0, 0.5));
+      popup.add(this.add.text(W/2 - 145, qy + 36, t('quests.reward', { amount: q.coinReward }), { fontFamily: FONT, fontSize: '12px', color: '#FFD700' }).setOrigin(0, 0.5));
 
       const barW = 160, barH = 10;
       const barBg = this.add.graphics();
@@ -648,13 +666,13 @@ export class Hub extends Phaser.Scene {
       popup.add(this.add.text(W/2 + 20, qy + 59, q.progress + '/' + q.target, { fontFamily: FONT, fontSize: '10px', color: '#CCCCCC' }).setOrigin(0, 0.5));
 
       if (done && !clmd) {
-        const claimBtn = makeButton(this, W/2 + 105, qy + 40, 90, 36, 'Claim!', 0x2A7A10, () => {
+        const claimBtn = makeButton(this, W/2 + 105, qy + 40, 90, 36, t('quests.claim'), 0x2A7A10, () => {
           q.claimed = true;
           state.coins += q.coinReward;
           state.stats.questsCompleted = (state.stats.questsCompleted ?? 0) + 1;
           store.setJSON('mps_state', state);
           sfx.buy();
-          showToast(this, '+' + q.coinReward + ' 💰 claimed!', '#aaffaa');
+          showToast(this, t('quests.toast', { amount: q.coinReward }), '#aaffaa');
           this._updateCoinDisplay();
           this._updateQuestBtn();
           const newAch = getNewAchievements(state);
@@ -664,13 +682,13 @@ export class Hub extends Phaser.Scene {
         }, 12);
         popup.add(claimBtn);
       } else if (clmd) {
-        popup.add(this.add.text(W/2 + 105, qy + 40, '✓ Claimed', { fontFamily: FONT, fontSize: '12px', color: '#66AA66' }).setOrigin(0.5));
+        popup.add(this.add.text(W/2 + 105, qy + 40, t('quests.claimed'), { fontFamily: FONT, fontSize: '12px', color: '#66AA66' }).setOrigin(0.5));
       }
     });
 
     const close = () => popup.destroy();
-    popup.add(makeButton(this, W/2 - 70, panY + panH - 28, 120, 40, 'Close', 0x2a1560, close, 13));
-    popup.add(makeButton(this, W/2 + 70, panY + panH - 28, 130, 40, '🏆 Achievements', 0x1A3A6A, () => {
+    popup.add(makeButton(this, W/2 - 70, panY + panH - 28, 120, 40, t('btn.close'), 0x2a1560, close, 13));
+    popup.add(makeButton(this, W/2 + 70, panY + panH - 28, 130, 40, t('ach.title'), 0x1A3A6A, () => {
       close(); this._showAchievementsPanel();
     }, 11));
     overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, W, H), Phaser.Geom.Rectangle.Contains);
@@ -700,10 +718,10 @@ export class Hub extends Phaser.Scene {
     panel.strokeRoundedRect(panX, panY, panW, panH, 16);
     popup.add(panel);
 
-    popup.add(this.add.text(W / 2, panY + 26, '🏆 Achievements', {
+    popup.add(this.add.text(W / 2, panY + 26, t('ach.title'), {
       fontFamily: FONT, fontSize: '19px', fontStyle: 'bold', color: '#88EEFF',
     }).setOrigin(0.5));
-    popup.add(this.add.text(W / 2, panY + 44, earned.size + ' / ' + ACHIEVEMENTS.length + ' earned', {
+    popup.add(this.add.text(W / 2, panY + 44, t('ach.earned', { earned: earned.size, total: ACHIEVEMENTS.length }), {
       fontFamily: FONT, fontSize: '11px', color: '#5588AA',
     }).setOrigin(0.5));
 
@@ -735,7 +753,7 @@ export class Hub extends Phaser.Scene {
     });
 
     const close = () => popup.destroy();
-    popup.add(makeButton(this, W / 2, panY + panH - 28, 120, 40, 'Close', 0x2a1560, close, 13));
+    popup.add(makeButton(this, W / 2, panY + panH - 28, 120, 40, t('btn.close'), 0x2a1560, close, 13));
     overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, W, H), Phaser.Geom.Rectangle.Contains);
     overlay.on('pointerdown', close);
   }
@@ -751,7 +769,7 @@ export class Hub extends Phaser.Scene {
     bg.strokeRoundedRect(-130, -40, 260, 80, 14);
     popup.add(bg);
 
-    popup.add(this.add.text(0, -12, a.emoji + ' Achievement Unlocked!', {
+    popup.add(this.add.text(0, -12, a.emoji + ' ' + t('ach.unlocked'), {
       fontFamily: FONT, fontSize: '13px', fontStyle: 'bold', color: '#88EEFF',
     }).setOrigin(0.5));
     popup.add(this.add.text(0, 12, a.name + '  +' + a.diamonds + '💎', {
@@ -775,7 +793,7 @@ export class Hub extends Phaser.Scene {
     const bw = 118, bh = 52, btnY = H - 54;
     const x = W * 3 / 8;
     const unclaimedCount = (Game.state!.quests ?? []).filter(q => q.completed && !q.claimed).length;
-    setButtonLabel(this._questBtn, unclaimedCount > 0 ? '📜 Quests ✓' : '📜 Quests');
+    setButtonLabel(this._questBtn, unclaimedCount > 0 ? t('nav.questsDone') : t('nav.quests'));
     setButtonColor(this._questBtn, unclaimedCount > 0 ? 0x4A7A10 : 0x7A6010);
     this._updateQuestDot(x, bw, btnY, bh, unclaimedCount > 0);
   }
@@ -799,18 +817,18 @@ export class Hub extends Phaser.Scene {
     const H = this.scale.height;
     const bw = 118, bh = 52, btnY = H - 54;
     if (this._dexBtn) {
-      setButtonLabel(this._dexBtn, 'Dex ' + disc + '/25');
+      setButtonLabel(this._dexBtn, t('nav.dex', { n: disc }));
     }
     if (this._dexDot) this._updateDexDot(W * 5 / 8, bw, btnY, bh, hasNew);
     this._updateQuestBtn();
     this._updateVisitorBanner();
 
     if (monsters.length === 0 && eggs.length === 0) {
-      const emptyTxt = this.add.text(W/2, 460, 'No monsters here yet!', {
+      const emptyTxt = this.add.text(W/2, 460, t('hub.empty'), {
         fontFamily: FONT, fontSize: '18px', color: '#7060a0', align: 'center',
       }).setOrigin(0.5).setDepth(20);
       this._displayGroup.add(emptyTxt);
-      const shopBtn = makeButton(this, W/2, 520, 200, 50, '🛒 Go to Shop', 0x2a1560, () => {
+      const shopBtn = makeButton(this, W/2, 520, 200, 50, t('hub.goShop'), 0x2a1560, () => {
         Ads.maybeInterstitial(() => { this.scene.start('Merchant'); });
       }, 16).setDepth(20);
       this._displayGroup.add(shopBtn);
@@ -858,7 +876,7 @@ export class Hub extends Phaser.Scene {
     const screwG = this.add.graphics().setDepth(23);
     this._drawScrew(screwG, vpX + 10, plateY + plateH/2); this._drawScrew(screwG, vpX + vpW - 10, plateY + plateH/2);
     this._displayGroup.add(screwG);
-    this._displayGroup.add(this.add.text(cx, plateY + plateH/2, 'BUY TANK', {
+    this._displayGroup.add(this.add.text(cx, plateY + plateH/2, t('hub.buyTank'), {
       fontFamily: FONT, fontSize: '12px', fontStyle: 'bold', color: '#E8C896',
       stroke: '#2A1008', strokeThickness: 2,
     }).setOrigin(0.5).setDepth(23));
@@ -876,7 +894,7 @@ export class Hub extends Phaser.Scene {
     zone.on('pointerdown', () => {
       sfx.unlock();
       if (Game.state!.coins < TANK_COST) {
-        showToast(this, 'Need ' + TANK_COST + ' 💰 to buy a tank!', '#ff9999');
+        showToast(this, t('toast.needTankCoins', { amount: TANK_COST }), '#ff9999');
         return;
       }
       Game.state!.coins -= TANK_COST;
@@ -885,7 +903,7 @@ export class Hub extends Phaser.Scene {
       store.setJSON('mps_state', Game.state);
       this._updateCoinDisplay();
       sfx.buy();
-      showToast(this, 'New tank purchased! +1 slot', '#aaffaa');
+      showToast(this, t('toast.tankBought'), '#aaffaa');
       this.refreshAll();
     });
     this._displayGroup.add(zone);

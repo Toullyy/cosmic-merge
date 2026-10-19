@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { Game, FONT, store, sfx } from '../utils';
+import { t } from '../i18n';
 import { CATALOG, HABITATS, newEgg, SPECIES, generateMerchantStock, MERCHANT_REFRESH_MS, TANK_CAPACITY, DECORATIONS, TOY_TYPES } from '../data';
 import type { Monster } from '../types';
 import { shiftHue } from '../MonsterRenderer';
@@ -97,7 +98,7 @@ export class Merchant extends Phaser.Scene {
       sg.fillCircle(hx, 33, 3);
     });
 
-    this.add.text(W / 2, 81, '✶ Monster Egg Shop ✶', {
+    this.add.text(W / 2, 81, t('merchant.title'), {
       fontFamily: FONT, fontSize: '18px', fontStyle: 'bold',
       color: '#FFE888', stroke: '#4A2204', strokeThickness: 3,
     }).setOrigin(0.5).setDepth(4);
@@ -127,7 +128,7 @@ export class Merchant extends Phaser.Scene {
     }).setOrigin(0, 0.5).setDepth(5);
 
     // Back button
-    makeButton(this, W - 62, 28, 100, 40, '← Back', 0x341278, () => {
+    makeButton(this, W - 62, 28, 100, 40, t('btn.back'), 0x341278, () => {
       this.scene.start('Hub');
     }, 14).setDepth(5);
   }
@@ -180,7 +181,7 @@ export class Merchant extends Phaser.Scene {
     const remaining = Math.max(0, Game.state!.merchantRefreshAt - Date.now());
     const mins = Math.floor(remaining / 60000);
     const secs = Math.floor((remaining % 60000) / 1000);
-    return 'Restocks in ' + mins + ':' + String(secs).padStart(2, '0');
+    return t('merchant.restock', { time: mins + ':' + String(secs).padStart(2, '0') });
   }
 
   private _startRefreshTimer() {
@@ -192,7 +193,7 @@ export class Merchant extends Phaser.Scene {
           Game.state!.merchantRefreshAt = Date.now() + MERCHANT_REFRESH_MS;
           store.setJSON('mps_state', Game.state);
           this._buildGrid(this.scale.width, this.scale.height);
-          this._refreshTxt.setText('Fresh stock!');
+          this._refreshTxt.setText(t('merchant.freshStock'));
         } else {
           this._refreshTxt.setText(this._refreshLabel());
         }
@@ -203,8 +204,8 @@ export class Merchant extends Phaser.Scene {
   private _buildFilterTabs(W: number) {
     const filters = ['dirt', 'grass', 'aquatic', 'decor', 'toys'];
     const labels: Record<string, string> = {
-      dirt: '⛰ Dirt', grass: '🌿 Grass',
-      aquatic: '🌊 Aqua', decor: '🎨 Decor', toys: '🧸 Toys',
+      dirt: t('tab.dirt'), grass: t('tab.grass'),
+      aquatic: t('tab.aquatic'), decor: t('tab.decor'), toys: t('tab.toys'),
     };
     const tabW = (W - 20) / 5;
     filters.forEach((f, i) => {
@@ -288,7 +289,7 @@ export class Merchant extends Phaser.Scene {
     const filtered = stockIds.map(id => SPECIES[id]).filter(sp => sp && sp.habitat === this._filter);
 
     if (filtered.length === 0) {
-      this._gridGroup.add(this.add.text(W / 2, 440, 'No ' + this._filter + ' species\nin stock. Check back soon!', {
+      this._gridGroup.add(this.add.text(W / 2, 440, t('merchant.noStock', { habitat: this._filter }), {
         fontFamily: FONT, fontSize: '16px', color: '#7766AA', align: 'center',
       }).setOrigin(0.5));
       return;
@@ -356,7 +357,7 @@ export class Merchant extends Phaser.Scene {
       }).setOrigin(0.5).setDepth(4));
 
       // Stats row
-      const statRow = unlocked ? ('⏱ ' + sp.hatchHours + 'h  ·  💰 ' + sp.price) : '🔒 Locked';
+      const statRow = unlocked ? ('⏱ ' + sp.hatchHours + 'h  ·  💰 ' + sp.price) : t('merchant.locked');
       this._gridGroup.add(this.add.text(cx, cy + 15, statRow, {
         fontFamily: FONT, fontSize: '12px', color: unlocked ? '#CCBBEE' : '#443366',
       }).setOrigin(0.5).setDepth(4));
@@ -372,8 +373,8 @@ export class Merchant extends Phaser.Scene {
 
       // Buy / Unlock button
       const btnLabel = unlocked
-        ? ('Buy  ' + sp.price + '💰')
-        : (HABITATS[sp.habitat].unlockCost + '💰 Unlock');
+        ? t('btn.buy', { price: sp.price })
+        : t('btn.unlock', { cost: HABITATS[sp.habitat].unlockCost });
       const btnCol = unlocked ? 0x1E6828 : 0x480E78;
       const btn = makeButton(this, cx, cy + 62, unlocked ? 148 : 195, 38, btnLabel, btnCol, () => {
         this._handleBuy(sp.id, unlocked);
@@ -393,7 +394,7 @@ export class Merchant extends Phaser.Scene {
 
     const visible = DECORATIONS.filter(d => Game.state!.habitats[d.habitat].unlocked);
     if (visible.length === 0) {
-      this._gridGroup.add(this.add.text(W / 2, 440, 'Unlock habitats to\nbuy decorations!', {
+      this._gridGroup.add(this.add.text(W / 2, 440, t('merchant.noDecor'), {
         fontFamily: FONT, fontSize: '16px', color: '#7766AA', align: 'center',
       }).setOrigin(0.5));
       return;
@@ -443,11 +444,11 @@ export class Merchant extends Phaser.Scene {
         oBadge.lineStyle(1.5, 0x66CC66, 0.80);
         oBadge.strokeRoundedRect(cx - 44, cy + 24, 88, 28, 14);
         this._gridGroup.add(oBadge);
-        this._gridGroup.add(this.add.text(cx, cy + 38, '✓ Installed', {
+        this._gridGroup.add(this.add.text(cx, cy + 38, t('decor.installed'), {
           fontFamily: FONT, fontSize: '13px', fontStyle: 'bold', color: '#66CC66',
         }).setOrigin(0.5).setDepth(4));
       } else {
-        const btn = makeButton(this, cx, cy + 40, 158, 36, 'Buy  ' + dec.cost + '💰', 0x461070, () => {
+        const btn = makeButton(this, cx, cy + 40, 158, 36, t('btn.buyDecor', { cost: dec.cost }), 0x461070, () => {
           this._handleBuyDecor(dec.id);
         }, 13).setDepth(4);
         this._gridGroup.add(btn);
@@ -462,15 +463,15 @@ export class Merchant extends Phaser.Scene {
     if (!dec) return;
     const state = Game.state!;
     if (!state.habitats[dec.habitat].unlocked) {
-      showToast(this, 'Unlock ' + HABITATS[dec.habitat].label + ' first!', '#ffaaaa');
+      showToast(this, t('toast.unlockFirst', { name: HABITATS[dec.habitat].label }), '#ffaaaa');
       return;
     }
     if (state.habitats[dec.habitat].decorations.includes(decId)) {
-      showToast(this, 'Already installed!', '#ffaaaa');
+      showToast(this, t('toast.alreadyInstalled'), '#ffaaaa');
       return;
     }
     if (state.coins < dec.cost) {
-      showToast(this, 'Need ' + dec.cost + '💰', '#ffaaaa');
+      showToast(this, t('toast.needCoins', { n: dec.cost }), '#ffaaaa');
       return;
     }
     state.coins -= dec.cost;
@@ -478,7 +479,7 @@ export class Merchant extends Phaser.Scene {
     store.setJSON('mps_state', state);
     this._coinTxt.setText(String(state.coins));
     sfx.buy();
-    showToast(this, dec.name + ' installed!', '#aaffaa');
+    showToast(this, t('toast.decorInstalled', { name: dec.name }), '#aaffaa');
     this._buildGrid(this.scale.width, this.scale.height);
   }
 
@@ -488,7 +489,7 @@ export class Merchant extends Phaser.Scene {
     if (!unlocked) {
       const cost = HABITATS[sp.habitat].unlockCost;
       if (state.coins < cost) {
-        showToast(this, 'Need ' + cost + '💰 to unlock ' + HABITATS[sp.habitat].label, '#ff9999');
+        showToast(this, t('toast.needCoinsUnlock', { cost, name: HABITATS[sp.habitat].label }), '#ff9999');
         return;
       }
       state.coins -= cost;
@@ -498,24 +499,24 @@ export class Merchant extends Phaser.Scene {
       store.setJSON('mps_state', state);
       this._coinTxt.setText(String(state.coins));
       sfx.buy();
-      showToast(this, HABITATS[sp.habitat].label + ' unlocked!', '#aaffaa');
+      showToast(this, t('toast.unlocked', { name: HABITATS[sp.habitat].label }), '#aaffaa');
       this._buildGrid(this.scale.width, this.scale.height);
       return;
     }
     if (state.coins < sp.price) {
-      showToast(this, 'Not enough coins! Need ' + sp.price + '💰', '#ff9999');
+      showToast(this, t('toast.notEnough', { n: sp.price }), '#ff9999');
       return;
     }
     const tankCount = state.tanks?.[sp.habitat] ?? 0;
     if (tankCount === 0) {
-      showToast(this, 'Buy a tank in Hub first!', '#ffaaaa');
+      showToast(this, t('toast.buyTankFirst'), '#ffaaaa');
       return;
     }
     const cap = tankCount * TANK_CAPACITY;
     const usage = state.monsters.filter(m => m.habitatType === sp.habitat).length
                 + state.eggs.filter(e => e.habitatType === sp.habitat).length;
     if (usage >= cap) {
-      showToast(this, 'Habitat full! Buy more tanks in the Hub.', '#ffaaaa');
+      showToast(this, t('toast.habitatFull'), '#ffaaaa');
       return;
     }
     state.coins -= sp.price;
@@ -526,7 +527,7 @@ export class Merchant extends Phaser.Scene {
     store.setJSON('mps_state', state);
     this._coinTxt.setText(String(state.coins));
     sfx.buy();
-    showToast(this, sp.name + ' egg added! Hatch in ' + sp.hatchHours + 'h', '#aaffaa');
+    showToast(this, t('toast.eggAdded', { name: sp.name, h: sp.hatchHours }), '#aaffaa');
     this._buildGrid(this.scale.width, this.scale.height);
   }
 
@@ -534,7 +535,7 @@ export class Merchant extends Phaser.Scene {
 
   private _buildToyGrid(W: number, H: number) {
     const habitats = ['dirt', 'grass', 'aquatic'] as const;
-    const habLabels = { dirt: '⛰ Dirt', grass: '🌿 Grass', aquatic: '🌊 Aqua' };
+    const habLabels: Record<string, string> = { dirt: t('tab.dirt'), grass: t('tab.grass'), aquatic: t('tab.aquatic') };
     const habCols   = { dirt: 0xFFAA44, grass: 0x66DD33, aquatic: 0x44CCFF };
     const subTabW = (W - 20) / 3;
 
@@ -715,7 +716,7 @@ export class Merchant extends Phaser.Scene {
   private _handleBuyToy(mon: Monster, toyId: string, toyName: string, toyCost: number) {
     const state = Game.state!;
     if (state.coins < toyCost) {
-      showToast(this, 'Need ' + toyCost + ' 💰!', '#ffaaaa');
+      showToast(this, t('toast.needCoins', { n: toyCost }), '#ffaaaa');
       return;
     }
     state.coins -= toyCost;

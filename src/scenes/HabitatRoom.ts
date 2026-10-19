@@ -1,5 +1,6 @@
 ﻿import Phaser from 'phaser';
 import { Game, FONT, store, sfx, recordQuestProgress } from '../utils';
+import { t } from '../i18n';
 import { SPECIES, HABITATS, FOOD_TYPES, TOY_TYPES, CLEAN_TOOLS, XP_TABLE, getLevelName, randomBuyer, randomListingDuration, TRAITS, BOWL_EAT_RATE } from '../data';
 import { makeMonsterTexture, getVariantModifiers, lighten, darken } from '../MonsterRenderer';
 import { makeButton, setButtonLabel, setButtonColor } from '../ui/Button';
@@ -743,7 +744,7 @@ export class HabitatRoom extends Phaser.Scene {
         this._bowlLabelTxt.setText(Math.round(bowl!.remaining) + '/' + bowl!.maxAmount);
         this._bowlLabelTxt.setColor('#DDBB88');
       } else {
-        this._bowlLabelTxt.setText('empty');
+        this._bowlLabelTxt.setText(t('bowl.empty'));
         this._bowlLabelTxt.setColor('#887766');
       }
     }
@@ -964,7 +965,7 @@ export class HabitatRoom extends Phaser.Scene {
     const btnY = H - 72;
     const positions = [W/2 - 148, W/2, W/2 + 148];
     const icons = ['🍽', '⚽', '🚿'];
-    const labels = ['Feed', 'Play', 'Clean'];
+    const labels = [t('btn.feed'), t('btn.play'), t('btn.clean')];
     const colors = [0xC83800, 0x9030C8, 0x2080C0];
     const callbacks = [
       () => this._showFoodPicker(),
@@ -1007,7 +1008,7 @@ export class HabitatRoom extends Phaser.Scene {
   private _buildHUD(W: number, H: number, sp: Species) {
     const mods = getVariantModifiers(this._monster.variantIndex);
     const trait = TRAITS.find(t => t.id === this._monster.trait);
-    makeButton(this, 56, 34, 92, 44, '← Back', 0x4A2010, () => { this.scene.start('Hub'); }, 15).setDepth(20);
+    makeButton(this, 56, 34, 92, 44, t('btn.back'), 0x4A2010, () => { this.scene.start('Hub'); }, 15).setDepth(20);
 
     const displayName = this._monster.nickname ?? sp.name;
     this._nameTxt = this.add.text(W / 2, 19, displayName + (mods.isGolden ? ' ★' : ''), {
@@ -1027,7 +1028,7 @@ export class HabitatRoom extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(20);
 
     this._sellBtn = makeButton(this, W - 72, 34, 116, 44,
-      'Sell  ' + this._sellPrice + '💰', 0x8B6000, () => this._handleListBtn(), 13);
+      t('btn.sell', { price: this._sellPrice }), 0x8B6000, () => this._handleListBtn(), 13);
     this._sellBtn.setDepth(20);
 
     const isGoldenMon = mods.isGolden;
@@ -1035,8 +1036,8 @@ export class HabitatRoom extends Phaser.Scene {
     const traitSellMod = trait?.sellMod ?? 1;
     const maxPrice = Math.max(10, Math.round(sp.price * (1 + 10 * 0.2) * 0.8 * goldenMult * traitSellMod));
     const hintLabel = isGoldenMon
-      ? '✨ Golden +50%  ·  max: ' + maxPrice + '💰'
-      : 'Lv10 max: ' + maxPrice + '💰  ·  ❤️';
+      ? t('hint.golden', { max: maxPrice })
+      : t('hint.normal', { max: maxPrice });
     this.add.text(W - 72, 76, hintLabel, {
       fontFamily: FONT, fontSize: '10px', color: isGoldenMon ? '#FFD700' : '#BBAACC',
     }).setOrigin(0.5).setDepth(20);
@@ -1066,7 +1067,7 @@ export class HabitatRoom extends Phaser.Scene {
     inp.type = 'text';
     inp.value = this._monster.nickname ?? this._sp.name;
     inp.maxLength = 20;
-    inp.placeholder = 'Enter a name...';
+    inp.placeholder = t('rename.placeholder');
     inp.style.cssText = [
       'position:fixed', 'top:50%', 'left:50%',
       'transform:translate(-50%,-50%)',
@@ -1118,7 +1119,7 @@ export class HabitatRoom extends Phaser.Scene {
     fpBg.strokeRoundedRect(fpX, fpY, fpW, fpH, 14);
     this._pickerItems.push(fpBg);
 
-    this._pickerItems.push(this.add.text(fpX + fpW/2, fpY + 14, '🍽 Choose food', {
+    this._pickerItems.push(this.add.text(fpX + fpW/2, fpY + 14, t('food.title'), {
       fontFamily: FONT, fontSize: '12px', color: '#BBAAFF',
     }).setOrigin(0.5).setDepth(28));
 
@@ -1137,7 +1138,7 @@ export class HabitatRoom extends Phaser.Scene {
       const tierColors = [0x2A4A18, 0x2A4A28, 0x3A3010];
       const fbtn = makeButton(this, bx, by, btnW - 2, btnH, lbl,
         canAfford ? tierColors[food.tier - 1] : 0x1A1A2A, () => {
-          if (Game.state!.coins < food.cost) { showToast(this, 'Not enough coins!', '#ff9999'); return; }
+          if (Game.state!.coins < food.cost) { showToast(this, t('toast.notEnoughCoins'), '#ff9999'); return; }
           Game.state!.coins -= food.cost;
           // Food goes into bowl; happiness gained immediately (seeing food makes them happy)
           const bowlColor = FOOD_COLORS[food.id] ?? 0xFFB300;
@@ -1147,7 +1148,7 @@ export class HabitatRoom extends Phaser.Scene {
             this._monster.bowl.remaining += added;
             this._monster.bowl.maxAmount = this._monster.bowl.remaining;
             this._monster.bowl.color = bowlColor;
-            if (added < food.hungerGain) showToast(this, 'Bowl topped up!', '#ffcc88');
+            if (added < food.hungerGain) showToast(this, t('toast.bowlTopped'), '#ffcc88');
           } else {
             this._monster.bowl = { foodId: food.id, remaining: food.hungerGain, maxAmount: food.hungerGain, color: bowlColor };
           }
@@ -1190,12 +1191,12 @@ export class HabitatRoom extends Phaser.Scene {
       fpBg.lineStyle(1, 0x7030b0, 0.9);
       fpBg.strokeRoundedRect(fpX, fpY, fpW, fpH, 14);
       this._pickerItems.push(fpBg);
-      this._pickerItems.push(this.add.text(fpX + fpW/2, fpY + 13, '⚽ ' + ownedToy.name, {
+      this._pickerItems.push(this.add.text(fpX + fpW/2, fpY + 13, t('toy.titleOwned', { name: ownedToy.name }), {
         fontFamily: FONT, fontSize: '12px', color: '#aa88cc',
       }).setOrigin(0.5).setDepth(28));
       const playHapGain = Math.round(ownedToy.happinessGain * (TRAITS.find(t => t.id === this._monster.trait)?.hapGainMod ?? 1));
       const fbtn = makeButton(this, fpX + fpW/2, fpY + 60, fpW - 30, 54,
-        'Play! FREE  +' + playHapGain + '💛', 0x6030A0, () => {
+        t('toy.playFree', { n: playHapGain }), 0x6030A0, () => {
           this._monster.happiness = Math.min(100, this._monster.happiness + playHapGain);
           this._monster.lastCaredAt = Date.now();
           this._gainXP(8 + ownedToy.tier * 3);
@@ -1212,9 +1213,9 @@ export class HabitatRoom extends Phaser.Scene {
       if (hasUpgrade && nextToy) {
         const canAfford = Game.state!.coins >= nextToy.cost;
         const upgradeBtn = makeButton(this, fpX + fpW/2, fpY + 120, fpW - 30, 30,
-          'Upgrade → ' + nextToy.name + '  ' + nextToy.cost + '💰',
+          t('toy.upgrade', { name: nextToy.name, cost: nextToy.cost }),
           canAfford ? 0x7040B0 : 0x2A1A40, () => {
-            if (Game.state!.coins < nextToy.cost) { showToast(this, 'Not enough coins!', '#ff9999'); return; }
+            if (Game.state!.coins < nextToy.cost) { showToast(this, t('toast.notEnoughCoins'), '#ff9999'); return; }
             Game.state!.coins -= nextToy.cost;
             this._monster.ownedToy = nextToy.id;
             store.setJSON('mps_state', Game.state);
@@ -1234,7 +1235,7 @@ export class HabitatRoom extends Phaser.Scene {
       fpBg.lineStyle(1, 0x7030b0, 0.9);
       fpBg.strokeRoundedRect(fpX, fpY, fpW, fpH, 14);
       this._pickerItems.push(fpBg);
-      this._pickerItems.push(this.add.text(fpX + fpW/2, fpY + 13, '⚽ Buy a toy (kept forever)', {
+      this._pickerItems.push(this.add.text(fpX + fpW/2, fpY + 13, t('toy.titleBuy'), {
         fontFamily: FONT, fontSize: '12px', color: '#aa88cc',
       }).setOrigin(0.5).setDepth(28));
       const btnW = Math.floor((fpW - 24) / 3);
@@ -1246,7 +1247,7 @@ export class HabitatRoom extends Phaser.Scene {
         const lbl = toy.name + ' ' + '★'.repeat(toy.tier) + '\n+' + toy.happinessGain + '💛\n' + toy.cost + '💰';
         const fbtn = makeButton(this, bx, by, btnW - 2, btnH, lbl,
           canAfford ? 0x6030A0 : 0x2A1A40, () => {
-            if (Game.state!.coins < toy.cost) { showToast(this, 'Not enough coins!', '#ff9999'); return; }
+            if (Game.state!.coins < toy.cost) { showToast(this, t('toast.notEnoughCoins'), '#ff9999'); return; }
             Game.state!.coins -= toy.cost;
             this._monster.ownedToy = toy.id;
             this._monster.happiness = Math.min(100, this._monster.happiness + toy.happinessGain);
@@ -1287,12 +1288,12 @@ export class HabitatRoom extends Phaser.Scene {
       fpBg.lineStyle(1, 0x1060b0, 0.9);
       fpBg.strokeRoundedRect(fpX, fpY, fpW, fpH, 14);
       this._pickerItems.push(fpBg);
-      this._pickerItems.push(this.add.text(fpX + fpW/2, fpY + 13, '🚿 ' + ownedTool.name, {
+      this._pickerItems.push(this.add.text(fpX + fpW/2, fpY + 13, t('tool.titleOwned', { name: ownedTool.name }), {
         fontFamily: FONT, fontSize: '12px', color: '#88aacc',
       }).setOrigin(0.5).setDepth(28));
 
       const cleanBtn = makeButton(this, fpX + fpW/2, fpY + 60, fpW - 30, 54,
-        'Clean FREE  +' + ownedTool.cleanGain + '✨', 0x1060A0, () => {
+        t('tool.cleanFree', { n: ownedTool.cleanGain }), 0x1060A0, () => {
           this._monster.cleanliness = Math.min(100, this._monster.cleanliness + ownedTool.cleanGain);
           this._monster.lastCaredAt = Date.now();
           this._gainXP(8 + ownedTool.tier * 3);
@@ -1310,9 +1311,9 @@ export class HabitatRoom extends Phaser.Scene {
       if (hasUpgrade && nextTool) {
         const canAfford = Game.state!.coins >= nextTool.cost;
         const upgradeBtn = makeButton(this, fpX + fpW/2, fpY + 120, fpW - 30, 30,
-          'Upgrade → ' + nextTool.name + '  ' + nextTool.cost + '💰',
+          t('toy.upgrade', { name: nextTool.name, cost: nextTool.cost }),
           canAfford ? 0x1070C0 : 0x0A2840, () => {
-            if (Game.state!.coins < nextTool.cost) { showToast(this, 'Not enough coins!', '#ff9999'); return; }
+            if (Game.state!.coins < nextTool.cost) { showToast(this, t('toast.notEnoughCoins'), '#ff9999'); return; }
             Game.state!.coins -= nextTool.cost;
             this._monster.ownedTool = nextTool.id;
             store.setJSON('mps_state', Game.state);
@@ -1332,7 +1333,7 @@ export class HabitatRoom extends Phaser.Scene {
       fpBg.lineStyle(1, 0x1060b0, 0.9);
       fpBg.strokeRoundedRect(fpX, fpY, fpW, fpH, 14);
       this._pickerItems.push(fpBg);
-      this._pickerItems.push(this.add.text(fpX + fpW/2, fpY + 13, '🚿 Buy cleaning tool (kept forever)', {
+      this._pickerItems.push(this.add.text(fpX + fpW/2, fpY + 13, t('tool.titleBuy'), {
         fontFamily: FONT, fontSize: '12px', color: '#88aacc',
       }).setOrigin(0.5).setDepth(28));
       const btnW = Math.floor((fpW - 24) / 3);
@@ -1344,7 +1345,7 @@ export class HabitatRoom extends Phaser.Scene {
         const lbl = tool.name + ' ' + '★'.repeat(tool.tier) + '\n+' + tool.cleanGain + '✨\n' + tool.cost + '💰';
         const fbtn = makeButton(this, bx, by, btnW - 2, btnH, lbl,
           canAfford ? 0x1060A0 : 0x0A2840, () => {
-            if (Game.state!.coins < tool.cost) { showToast(this, 'Not enough coins!', '#ff9999'); return; }
+            if (Game.state!.coins < tool.cost) { showToast(this, t('toast.notEnoughCoins'), '#ff9999'); return; }
             Game.state!.coins -= tool.cost;
             this._monster.ownedTool = tool.id;
             this._monster.cleanliness = Math.min(100, this._monster.cleanliness + tool.cleanGain);
@@ -1628,8 +1629,7 @@ export class HabitatRoom extends Phaser.Scene {
     if (!listing) {
       if (this._monster.level < 5) {
         const needed = getLevelName(5);
-        showToast(this, (this._monster.nickname ?? this._sp.name) +
-          ' needs to be ' + needed + ' (Lv 5) to sell!', '#ffaaaa');
+        showToast(this, t('sell.needLevel', { name: this._monster.nickname ?? this._sp.name, level: needed }), '#ffaaaa');
         return;
       }
       this._doList();
@@ -1662,7 +1662,7 @@ export class HabitatRoom extends Phaser.Scene {
     this._startListTimer();
     const mins = Math.round(duration / 60000);
     const waitStr = mins >= 60 ? Math.round(mins / 60) + 'h' : mins + 'm';
-    showToast(this, buyer.name + ' is interested! (~' + waitStr + ')', '#aaffaa');
+    showToast(this, t('sell.interested', { buyer: buyer.name, time: waitStr }), '#aaffaa');
   }
 
   private _doCollect(listing: Listing) {
@@ -1683,21 +1683,20 @@ export class HabitatRoom extends Phaser.Scene {
     panel.strokeRoundedRect(W/2 - 160, H/2 - 155, 320, 315, 18);
     popup.add(panel);
 
-    popup.add(this.add.text(W/2, H/2 - 120, 'A Buyer Arrived!', {
+    popup.add(this.add.text(W/2, H/2 - 120, t('sell.buyerArrived'), {
       fontFamily: FONT, fontSize: '21px', fontStyle: 'bold', color: '#66FF99',
     }).setOrigin(0.5));
     popup.add(this.add.text(W/2, H/2 - 88, buyerName + ', ' + buyerJob, {
       fontFamily: FONT, fontSize: '15px', fontStyle: 'italic', color: '#88CCFF',
     }).setOrigin(0.5));
-    popup.add(this.add.text(W/2, H/2 - 64, 'wants to buy your ' +
-      (this._monster.nickname ?? this._sp.name) + '!', {
+    popup.add(this.add.text(W/2, H/2 - 64, t('sell.buyerWants', { name: this._monster.nickname ?? this._sp.name }), {
       fontFamily: FONT, fontSize: '13px', color: '#aaccaa',
     }).setOrigin(0.5));
-    popup.add(this.add.text(W/2, H/2 - 40, 'Offered: ' + basePrice + ' 💰', {
+    popup.add(this.add.text(W/2, H/2 - 40, t('sell.offered', { price: basePrice }), {
       fontFamily: FONT, fontSize: '17px', fontStyle: 'bold', color: '#FFD700',
       stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5));
-    popup.add(this.add.text(W/2, H/2 - 16, 'Watch an ad to double the offer!', {
+    popup.add(this.add.text(W/2, H/2 - 16, t('sell.watchAd'), {
       fontFamily: FONT, fontSize: '11px', color: '#FFD700',
     }).setOrigin(0.5));
 
@@ -1716,13 +1715,13 @@ export class HabitatRoom extends Phaser.Scene {
       this.time.delayedCall(950, () => this.scene.start('Hub'));
     };
 
-    popup.add(makeButton(this, W/2, H/2 + 30, 210, 50, 'Collect ' + basePrice + '💰', 0x2A8840, () => {
+    popup.add(makeButton(this, W/2, H/2 + 30, 210, 50, t('btn.collect', { price: basePrice }), 0x2A8840, () => {
       finalize(basePrice);
     }, 15));
-    popup.add(makeButton(this, W/2, H/2 + 92, 270, 50, 'Ad x2 → ' + (basePrice * 2) + '💰', 0x7A4A00, () => {
+    popup.add(makeButton(this, W/2, H/2 + 92, 270, 50, t('btn.adDouble', { price: basePrice * 2 }), 0x7A4A00, () => {
       Ads.showRewarded(res => { finalize(res.rewarded ? basePrice * 2 : basePrice); });
     }, 14));
-    popup.add(makeButton(this, W/2, H/2 + 148, 120, 38, 'Cancel', 0x4A2890, () => {
+    popup.add(makeButton(this, W/2, H/2 + 148, 120, 38, t('btn.cancel'), 0x4A2890, () => {
       popup.destroy();
     }, 13));
   }
@@ -1745,14 +1744,14 @@ export class HabitatRoom extends Phaser.Scene {
     panel.strokeRoundedRect(W/2 - 135, H/2 - 100, 270, 200, 16);
     popup.add(panel);
 
-    popup.add(this.add.text(W/2, H/2 - 68, 'Sell price: ' + listing.price + '💰', {
+    popup.add(this.add.text(W/2, H/2 - 68, t('sell.price', { price: listing.price }), {
       fontFamily: FONT, fontSize: '18px', fontStyle: 'bold', color: '#ffffff',
     }).setOrigin(0.5));
-    popup.add(this.add.text(W/2, H/2 - 40, 'Ready in ~' + mins + ' min', {
+    popup.add(this.add.text(W/2, H/2 - 40, t('sell.readyIn', { mins }), {
       fontFamily: FONT, fontSize: '14px', color: '#BBCCFF',
     }).setOrigin(0.5));
 
-    popup.add(makeButton(this, W/2, H/2 + 10, 210, 48, 'Cancel Listing', 0x6A1010, () => {
+    popup.add(makeButton(this, W/2, H/2 + 10, 210, 48, t('btn.cancelListing'), 0x6A1010, () => {
       Game.state!.listings = Game.state!.listings.filter(l => l.id !== listing.id);
       store.setJSON('mps_state', Game.state);
       if (this._listTimer) { this._listTimer.remove(); this._listTimer = null; }
@@ -1762,9 +1761,9 @@ export class HabitatRoom extends Phaser.Scene {
         targets: this._sellBtn, scaleX: 1.04, scaleY: 1.04,
         duration: 800, yoyo: true, repeat: -1, ease: 'Sine.InOut',
       });
-      showToast(this, 'Listing cancelled', '#ffaaaa');
+      showToast(this, t('toast.listingCancelled'), '#ffaaaa');
     }, 14));
-    popup.add(makeButton(this, W/2, H/2 + 70, 140, 38, 'Keep Listed', 0x4A2890, () => {
+    popup.add(makeButton(this, W/2, H/2 + 70, 140, 38, t('btn.keepListed'), 0x4A2890, () => {
       popup.destroy();
     }, 14));
   }
@@ -1772,13 +1771,13 @@ export class HabitatRoom extends Phaser.Scene {
   private _updateListBtnState() {
     const listing = Game.state!.listings.find(l => l.monsterId === this._monster.id);
     if (!listing) {
-      setButtonLabel(this._sellBtn, 'Sell  ' + this._sellPrice + '💰');
+      setButtonLabel(this._sellBtn, t('btn.sell', { price: this._sellPrice }));
       setButtonColor(this._sellBtn, 0x8B6000);
       return;
     }
     const remaining = listing.readyAt - Date.now();
     if (remaining <= 0) {
-      setButtonLabel(this._sellBtn, 'Collect ' + listing.price + '💰');
+      setButtonLabel(this._sellBtn, t('btn.collect', { price: listing.price }));
       setButtonColor(this._sellBtn, 0x1A7040);
       if (!this.tweens.isTweening(this._sellBtn)) {
         this.tweens.add({
@@ -1789,7 +1788,7 @@ export class HabitatRoom extends Phaser.Scene {
     } else {
       const mins = Math.ceil(remaining / 60000);
       const timeStr = mins >= 60 ? Math.floor(mins / 60) + 'h ' + (mins % 60) + 'm' : mins + 'm';
-      setButtonLabel(this._sellBtn, 'Buyer in ' + timeStr);
+      setButtonLabel(this._sellBtn, t('sell.buyerIn', { time: timeStr }));
       setButtonColor(this._sellBtn, 0x334466);
     }
   }
@@ -1814,7 +1813,7 @@ export class HabitatRoom extends Phaser.Scene {
         sfx.levelup();
         this._spawnParticles(this._monImg.x, this._monImg.y, 0xFFD700, 24);
         this._spawnParticles(this._monImg.x, this._monImg.y, 0xFFFFFF, 12);
-        showToast(this, SPECIES[m.speciesId].name + ' leveled up! Lv ' + m.level + ' 🎉', '#FFD700');
+        showToast(this, t('toast.levelUp', { name: m.nickname ?? SPECIES[m.speciesId].name, n: m.level }), '#FFD700');
         this._sellPrice = this._calcSell(this._sp);
       }
     }

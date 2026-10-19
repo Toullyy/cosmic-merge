@@ -295,6 +295,59 @@ export function preloadMonsterTexture(scene: Phaser.Scene, monster: Monster): Pr
     if (mods.hueShift !== 0) ctx.filter = `hue-rotate(${mods.hueShift}deg)`;
     ctx.drawImage(src as HTMLImageElement, 0, 0, SIZE, SIZE);
     ctx.filter = 'none';
+
+    // Species color tint — differentiates species sharing the same body+habitat PNG
+    const bc = shiftHue(sp.baseColor, mods.hueShift);
+    const tR = (bc >> 16) & 0xff, tG = (bc >> 8) & 0xff, tB = bc & 0xff;
+    ctx.globalCompositeOperation = 'source-atop';
+    ctx.globalAlpha = 0.14;
+    ctx.fillStyle = `rgb(${tR},${tG},${tB})`;
+    ctx.fillRect(0, 0, SIZE, SIZE);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
+
+    // Spot pattern (patternType >= 1)
+    if (mods.patternType >= 1) {
+      const sc2 = darken(bc, 58);
+      const sR = (sc2 >> 16) & 0xff, sG = (sc2 >> 8) & 0xff, sB = sc2 & 0xff;
+      ctx.globalCompositeOperation = 'source-atop';
+      ctx.fillStyle = `rgb(${sR},${sG},${sB})`;
+      const spots: [number, number, number][] = [
+        [0.37, 0.62, 0.052], [0.56, 0.71, 0.044],
+        [0.44, 0.79, 0.038], [0.63, 0.60, 0.043],
+        [0.50, 0.84, 0.037], [0.67, 0.70, 0.040],
+        [0.41, 0.54, 0.031], [0.60, 0.83, 0.034],
+      ];
+      for (const [rx, ry, rr] of spots) {
+        ctx.globalAlpha = 0.48;
+        ctx.beginPath();
+        ctx.arc(rx * SIZE, ry * SIZE, rr * SIZE, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = 1;
+    }
+
+    // Rare species shimmer (id >= 15)
+    if (sp.id >= 15) {
+      ctx.globalCompositeOperation = 'source-atop';
+      const grd2 = ctx.createRadialGradient(SIZE * 0.40, SIZE * 0.34, 0, SIZE * 0.50, SIZE * 0.50, SIZE * 0.48);
+      grd2.addColorStop(0,   'rgba(180,80,255,0.30)');
+      grd2.addColorStop(0.5, 'rgba(140,40,220,0.14)');
+      grd2.addColorStop(1,   'rgba(80,0,160,0.24)');
+      ctx.fillStyle = grd2;
+      ctx.fillRect(0, 0, SIZE, SIZE);
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = 1;
+      // Sparkle stars at corners (outside body, always visible)
+      for (const [rx, ry] of [[0.14, 0.14], [0.84, 0.12], [0.11, 0.83], [0.87, 0.82], [0.50, 0.08]] as [number,number][]) {
+        ctx.fillStyle = 'rgba(210,140,255,0.82)';
+        ctx.beginPath(); ctx.arc(rx * SIZE, ry * SIZE, 6.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.90)';
+        ctx.beginPath(); ctx.arc(rx * SIZE, ry * SIZE, 3.2, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+
     if (mods.isGolden) {
       // Outer radial glow
       const grd = ctx.createRadialGradient(SIZE/2, SIZE/2, SIZE*0.26, SIZE/2, SIZE/2, SIZE*0.54);
@@ -331,7 +384,7 @@ export function preloadMonsterTexture(scene: Phaser.Scene, monster: Monster): Pr
     const sc     = darken(bc, 50);
     const lc     = lighten(bc, 48);
     const ec     = shiftHue(bc, 150);
-    const svgStr = buildMonsterSVG(sp.bodyShape, bc, sc, lc, ec, sp.habitat, mods.isGolden);
+    const svgStr = buildMonsterSVG(sp.bodyShape, bc, sc, lc, ec, sp.habitat, mods.isGolden, mods.patternType);
     const img    = new window.Image(256, 256);
     img.onload   = () => { scene.textures.addImage(key, img); resolve(key); };
     img.onerror  = () => { resolve(makeMonsterTextureFallback(scene, monster)); };

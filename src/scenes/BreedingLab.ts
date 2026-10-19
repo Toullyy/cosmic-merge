@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { Game, FONT, store, sfx } from '../utils';
+import { t } from '../i18n';
 import { SPECIES, HABITATS, newEgg } from '../data';
 import { makeMonsterTexture } from '../MonsterRenderer';
 import { makeButton } from '../ui/Button';
@@ -32,25 +33,25 @@ export class BreedingLab extends Phaser.Scene {
     bg.fillGradientStyle(0x0A2060, 0x0A2060, 0x301878, 0x301878, 1);
     bg.fillRect(0, 0, W, H);
 
-    this.add.text(W/2, 46, '🧬 Breeding Lab', {
+    this.add.text(W/2, 46, t('breed.title'), {
       fontFamily: FONT, fontSize: '24px', color: '#ffffff', fontStyle: 'bold',
     }).setOrigin(0.5);
-    this.add.text(W/2, 76, 'Select 2 monsters (Level 4+) to breed', {
+    this.add.text(W/2, 76, t('breed.subtitle'), {
       fontFamily: FONT, fontSize: '15px', color: '#BBAAFF',
     }).setOrigin(0.5);
 
-    makeButton(this, W - 70, 30, 110, 40, '← Back', 0x5828A0, () => {
+    makeButton(this, W - 70, 30, 110, 40, t('btn.back'), 0x5828A0, () => {
       Ads.maybeInterstitial(() => { this.scene.start('Hub'); });
     }, 15);
 
-    this._slotA = this._buildParentSlot(W/2 - 100, 180, 'Parent A');
-    this._slotB = this._buildParentSlot(W/2 + 100, 180, 'Parent B');
+    this._slotA = this._buildParentSlot(W/2 - 100, 180, t('breed.parentA'));
+    this._slotB = this._buildParentSlot(W/2 + 100, 180, t('breed.parentB'));
     this.add.text(W/2, 190, '+', { fontFamily: FONT, fontSize: '32px', color: '#6040c0' }).setOrigin(0.5);
 
     this._listGroup = this.add.group();
     this._buildMonsterList(W, H);
 
-    this._breedBtn = makeButton(this, W/2, H - 60, 220, 54, '🧬 Breed!', 0x7030B8, () => {
+    this._breedBtn = makeButton(this, W/2, H - 60, 220, 54, t('btn.breed'), 0x7030B8, () => {
       this._doBreed();
     }, 18);
     this._breedBtn.setAlpha(0.4);
@@ -74,7 +75,7 @@ export class BreedingLab extends Phaser.Scene {
 
     if (eligible.length === 0) {
       this._listGroup.add(this.add.text(W/2, scrollY + 40,
-        'No monsters at Level 4+ yet.\nRaise your monsters to breed!', {
+        t('breed.noMonsters'), {
         fontFamily: FONT, fontSize: '16px', color: '#9988CC', align: 'center', lineSpacing: 8,
       }).setOrigin(0.5));
       return;
@@ -103,7 +104,7 @@ export class BreedingLab extends Phaser.Scene {
       this._listGroup.add(this.add.text(cx, cy + 44, sp.name, {
         fontFamily: FONT, fontSize: '13px', color: '#ccccdd', align: 'center',
       }).setOrigin(0.5));
-      this._listGroup.add(this.add.text(cx, cy + 62, 'Lv ' + mon.level, {
+      this._listGroup.add(this.add.text(cx, cy + 62, t('breed.lv', { n: mon.level }), {
         fontFamily: FONT, fontSize: '12px', color: '#ffdd55',
       }).setOrigin(0.5));
 
@@ -153,7 +154,7 @@ export class BreedingLab extends Phaser.Scene {
   private _doBreed() {
     if (!this._selectedA || !this._selectedB) return;
     const a = this._selectedA, b = this._selectedB;
-    if (a.id === b.id) { showToast(this, 'A monster cannot breed with itself!', '#ff9999'); return; }
+    if (a.id === b.id) { showToast(this, t('toast.cannotSelf'), '#ff9999'); return; }
 
     let childSpeciesId: number;
     if (a.speciesId === b.speciesId) {
@@ -175,7 +176,7 @@ export class BreedingLab extends Phaser.Scene {
     Game.state!.eggs.push(egg);
     store.setJSON('mps_state', Game.state);
     sfx.buy();
-    showToast(this, 'Breeding started! Hatch in ' + Math.ceil(finalHours) + 'h', '#aaffaa');
+    showToast(this, t('toast.breedStarted', { h: Math.ceil(finalHours) }), '#aaffaa');
 
     this._selectedA = null; this._selectedB = null;
     this._updateSlots();
