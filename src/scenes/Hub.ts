@@ -174,11 +174,11 @@ export class Hub extends Phaser.Scene {
     const signY = H * 0.68;
     this.add.text(W / 2, signY - 8, t('hub.sign'), {
       fontFamily: FONT, fontSize: '15px', fontStyle: 'bold',
-      color: '#FFE9A0', stroke: '#5A2A00', strokeThickness: 3,
+      color: '#FFFFFF', stroke: '#5A2A00', strokeThickness: 3,
     }).setOrigin(0.5).setDepth(1);
     this.add.text(W / 2, signY + 10, t('hub.tagline'), {
       fontFamily: FONT, fontSize: '12px',
-      color: '#D4AA60', stroke: '#4A2000', strokeThickness: 2,
+      color: '#FFFFFF', stroke: '#5A2A00', strokeThickness: 2,
     }).setOrigin(0.5).setDepth(1);
   }
 
@@ -310,10 +310,9 @@ export class Hub extends Phaser.Scene {
       const tabBg = this.add.graphics().setDepth(5);
       this._drawTab(tabBg, x, 76, tabW, 50, isActive, unlocked, type);
       const lbl = unlocked ? labels[type] : (labels[type] + ' 🔒');
-      const textColors: Record<string, string> = { dirt:'#FFD8A8', grass:'#C8FF88', aquatic:'#88EEFF' };
       const tabTxt = this.add.text(x + tabW/2, 101, lbl, {
         fontFamily: FONT, fontSize: '15px', fontStyle: isActive ? 'bold' : 'normal',
-        color: isActive ? textColors[type] : (unlocked ? '#CCBBAA' : '#887766'),
+        color: isActive ? '#FFFFFF' : (unlocked ? '#E8D8C8' : '#BBAA99'),
       }).setOrigin(0.5).setDepth(6);
       this._tabBtns[type] = { bg: tabBg, txt: tabTxt };
       const zone = this.add.zone(x + tabW/2, 101, tabW - 4, 46).setInteractive().setDepth(7);
@@ -354,7 +353,6 @@ export class Hub extends Phaser.Scene {
     const types: HabitatType[] = ['dirt', 'grass', 'aquatic'];
     const labels: Record<string, string> = { dirt: t('tab.dirt'), grass: t('tab.grass'), aquatic: t('tab.aquatic') };
     const W = this.scale.width, tabW = (W - 20) / 3;
-    const textColors: Record<string, string> = { dirt:'#FFD8A8', grass:'#C8FF88', aquatic:'#88EEFF' };
     types.forEach((type, i) => {
       const x = 10 + tabW * i;
       const btn = this._tabBtns[type];
@@ -362,7 +360,7 @@ export class Hub extends Phaser.Scene {
       const unlocked = Game.state!.habitats[type].unlocked;
       this._drawTab(btn.bg, x, 76, tabW, 50, isActive, unlocked, type);
       btn.txt.setStyle({
-        color: isActive ? textColors[type] : (unlocked ? '#CCBBAA' : '#887766'),
+        color: isActive ? '#FFFFFF' : (unlocked ? '#E8D8C8' : '#BBAA99'),
         fontStyle: isActive ? 'bold' : 'normal',
       });
       btn.txt.setText(unlocked ? labels[type] : (labels[type] + ' 🔒'));

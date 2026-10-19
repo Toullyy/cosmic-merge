@@ -1017,7 +1017,7 @@ export class HabitatRoom extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(20);
 
     const speciesHint = this.add.text(W / 2, 40, sp.name + ' ✏️', {
-      fontFamily: FONT, fontSize: '12px', color: '#7766aa',
+      fontFamily: FONT, fontSize: '12px', color: '#BBAAFF',
     }).setOrigin(0.5).setDepth(20).setInteractive({ useHandCursor: true });
     speciesHint.on('pointerdown', () => this._renameMonster());
 
@@ -1039,7 +1039,7 @@ export class HabitatRoom extends Phaser.Scene {
       ? t('hint.golden', { max: maxPrice })
       : t('hint.normal', { max: maxPrice });
     this.add.text(W - 72, 76, hintLabel, {
-      fontFamily: FONT, fontSize: '12px', color: isGoldenMon ? '#FFD700' : '#BBAACC',
+      fontFamily: FONT, fontSize: '12px', color: isGoldenMon ? '#FFD700' : '#DDCCFF',
     }).setOrigin(0.5).setDepth(20);
 
     this._coinTxt = this.add.text(W / 2, H * 0.72 + 5, '💰 ' + Game.state!.coins, {
@@ -1192,7 +1192,7 @@ export class HabitatRoom extends Phaser.Scene {
       fpBg.strokeRoundedRect(fpX, fpY, fpW, fpH, 14);
       this._pickerItems.push(fpBg);
       this._pickerItems.push(this.add.text(fpX + fpW/2, fpY + 13, t('toy.titleOwned', { name: ownedToy.name }), {
-        fontFamily: FONT, fontSize: '12px', color: '#aa88cc',
+        fontFamily: FONT, fontSize: '12px', color: '#CC99EE',
       }).setOrigin(0.5).setDepth(28));
       const playHapGain = Math.round(ownedToy.happinessGain * (TRAITS.find(t => t.id === this._monster.trait)?.hapGainMod ?? 1));
       const fbtn = makeButton(this, fpX + fpW/2, fpY + 60, fpW - 30, 54,
@@ -1236,7 +1236,7 @@ export class HabitatRoom extends Phaser.Scene {
       fpBg.strokeRoundedRect(fpX, fpY, fpW, fpH, 14);
       this._pickerItems.push(fpBg);
       this._pickerItems.push(this.add.text(fpX + fpW/2, fpY + 13, t('toy.titleBuy'), {
-        fontFamily: FONT, fontSize: '12px', color: '#aa88cc',
+        fontFamily: FONT, fontSize: '12px', color: '#CC99EE',
       }).setOrigin(0.5).setDepth(28));
       const btnW = Math.floor((fpW - 24) / 3);
       const btnH = 82;
@@ -1289,7 +1289,7 @@ export class HabitatRoom extends Phaser.Scene {
       fpBg.strokeRoundedRect(fpX, fpY, fpW, fpH, 14);
       this._pickerItems.push(fpBg);
       this._pickerItems.push(this.add.text(fpX + fpW/2, fpY + 13, t('tool.titleOwned', { name: ownedTool.name }), {
-        fontFamily: FONT, fontSize: '12px', color: '#88aacc',
+        fontFamily: FONT, fontSize: '12px', color: '#AACCEE',
       }).setOrigin(0.5).setDepth(28));
 
       const cleanBtn = makeButton(this, fpX + fpW/2, fpY + 60, fpW - 30, 54,
@@ -1334,7 +1334,7 @@ export class HabitatRoom extends Phaser.Scene {
       fpBg.strokeRoundedRect(fpX, fpY, fpW, fpH, 14);
       this._pickerItems.push(fpBg);
       this._pickerItems.push(this.add.text(fpX + fpW/2, fpY + 13, t('tool.titleBuy'), {
-        fontFamily: FONT, fontSize: '12px', color: '#88aacc',
+        fontFamily: FONT, fontSize: '12px', color: '#AACCEE',
       }).setOrigin(0.5).setDepth(28));
       const btnW = Math.floor((fpW - 24) / 3);
       const btnH = 82;
