@@ -41,6 +41,8 @@ export class HabitatRoom extends Phaser.Scene {
   private _bobTween!: Phaser.Tweens.Tween;
   private _hungerTimer: Phaser.Time.TimerEvent | null = null;
   private _sadTimer: Phaser.Time.TimerEvent | null = null;
+  private _moodTimer: Phaser.Time.TimerEvent | null = null;
+  private _happyGlow: Phaser.GameObjects.Graphics | null = null;
 
   constructor() { super({ key: 'HabitatRoom' }); }
 
@@ -612,16 +614,17 @@ export class HabitatRoom extends Phaser.Scene {
       yoyo: true, repeat: -1,
       onYoyo: () => { this._monImg.setFlipX(true); },
       onRepeat: () => { this._monImg.setFlipX(false); },
-      onUpdate: () => { this._updateDirtyOverlay(); },
+      onUpdate: () => { this._updateDirtyOverlay(); this._updateHappyGlow(); },
     });
 
     this._bobTween = this.tweens.add({
       targets: this._monImg, y: monY - 9, duration: 950,
       ease: 'Sine.InOut', yoyo: true, repeat: -1,
-      onUpdate: () => { this._updateDirtyOverlay(); },
+      onUpdate: () => { this._updateDirtyOverlay(); this._updateHappyGlow(); },
     });
 
     this._monY = monY;
+    this._startMoodBubble();
   }
 
   // ── STATS BARS ────────────────────────────────────────────────────────────
@@ -696,6 +699,28 @@ export class HabitatRoom extends Phaser.Scene {
     }
   }
 
+  private _updateHappyGlow() {
+    if (this._monster.happiness > 70) {
+      if (!this._happyGlow) {
+        this._happyGlow = this.add.graphics().setDepth(4);
+        this.tweens.add({
+          targets: this._happyGlow,
+          alpha: { from: 0.50, to: 0.10 },
+          duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut',
+        });
+      }
+      const col = [0xFF66AA, 0xFFCC22, 0x44CCFF, 0xCC66FF, 0xFF8833][this._monster.speciesId % 5];
+      this._happyGlow.clear();
+      this._happyGlow.lineStyle(7, col, 1.0);
+      this._happyGlow.strokeCircle(this._monImg.x, this._monImg.y - 10, 64);
+      this._happyGlow.lineStyle(3, col, 0.50);
+      this._happyGlow.strokeCircle(this._monImg.x, this._monImg.y - 10, 80);
+    } else if (this._happyGlow) {
+      this._happyGlow.destroy();
+      this._happyGlow = null;
+    }
+  }
+
   private _updateDirtyOverlay() {
     this._dirtyOverlay.clear();
     const cl = this._monster.cleanliness;
@@ -765,6 +790,50 @@ export class HabitatRoom extends Phaser.Scene {
         });
       },
     });
+  }
+
+  private _startMoodBubble() {
+    const showBubble = () => {
+      if (!this.scene?.isActive('HabitatRoom')) return;
+      const m = this._monster;
+      let emoji: string;
+      if      (m.hunger < 30)        emoji = Math.random() > 0.5 ? '🍖' : '😋';
+      else if (m.happiness < 30)     emoji = Math.random() > 0.5 ? '😢' : '💔';
+      else if (m.cleanliness < 30)   emoji = Math.random() > 0.5 ? '💨' : '🛁';
+      else if (m.happiness > 70)     emoji = ['💛','✨','😊','🌟'][Math.floor(Math.random() * 4)];
+      else                           emoji = ['💭','z z z','...'][Math.floor(Math.random() * 3)];
+
+      const bx = this._monImg.x + 54, by = this._monImg.y - 74;
+      const bubG = this.add.graphics().setDepth(8);
+      bubG.fillStyle(0xFFFFFF, 0.92);
+      bubG.fillRoundedRect(-30, -24, 60, 44, 10);
+      bubG.lineStyle(2, 0xCCCCCC, 0.70);
+      bubG.strokeRoundedRect(-30, -24, 60, 44, 10);
+      bubG.fillStyle(0xFFFFFF, 0.92);
+      bubG.fillTriangle(-8, 18, -20, 30, 6, 18);
+      bubG.setPosition(bx, by);
+      const et = this.add.text(bx, by, emoji, { fontFamily: FONT, fontSize: '22px' })
+        .setOrigin(0.5).setDepth(9);
+
+      bubG.setAlpha(0); et.setAlpha(0);
+      this.tweens.add({ targets: [bubG, et], alpha: 1, duration: 220, ease: 'Back.Out' });
+
+      this.time.delayedCall(1900, () => {
+        if (!this.scene?.isActive('HabitatRoom')) {
+          try { bubG.destroy(); et.destroy(); } catch { /* */ }
+          return;
+        }
+        this.tweens.add({
+          targets: [bubG, et], y: '-=22', alpha: 0,
+          duration: 500, ease: 'Quad.In',
+          onComplete: () => {
+            try { bubG.destroy(); et.destroy(); } catch { /* */ }
+            this._moodTimer = this.time.delayedCall(7000 + Math.random() * 5000, showBubble);
+          },
+        });
+      });
+    };
+    this._moodTimer = this.time.delayedCall(4000 + Math.random() * 3000, showBubble);
   }
 
   // ── ACTION BUTTONS ────────────────────────────────────────────────────────
@@ -861,7 +930,9 @@ export class HabitatRoom extends Phaser.Scene {
         this._renameInput = null;
       }
       if (this._hungerTimer) { this._hungerTimer.destroy(); this._hungerTimer = null; }
-      if (this._sadTimer) { this._sadTimer.destroy(); this._sadTimer = null; }
+      if (this._sadTimer)    { this._sadTimer.destroy();    this._sadTimer    = null; }
+      if (this._moodTimer)   { this._moodTimer.destroy();   this._moodTimer   = null; }
+      if (this._happyGlow)   { try { this._happyGlow.destroy(); } catch { /* */ } this._happyGlow = null; }
     });
   }
 
@@ -1603,72 +1674,159 @@ export class HabitatRoom extends Phaser.Scene {
 
   private _startAmbient(W: number, H: number, habitat: HabitatType) {
     if (habitat === 'dirt') {
-      const crystalXs = [35, 105, 195, 365, 450, 508];
-      const sparkCols = [0x6644DD, 0x4488FF, 0x8844FF];
+      // Warm amber crystal sparks (matches new cave)
+      const crystalXs = [38, 108, 200, 345, 438, 506];
+      const sparkCols = [0xFFAA00, 0xFF8800, 0xFFCC44, 0xFFDD88];
       const spawnSpark = () => {
         if (!this.scene?.isActive('HabitatRoom')) return;
         const cx = crystalXs[Math.floor(Math.random() * crystalXs.length)];
         const sg = this.add.graphics().setDepth(3);
         sg.fillStyle(sparkCols[Math.floor(Math.random() * sparkCols.length)], 0.88);
-        sg.fillCircle(0, 0, 1.5 + Math.random() * 2);
+        sg.fillCircle(0, 0, 1.5 + Math.random() * 2.5);
         sg.setPosition(cx + (Math.random() - 0.5) * 14, H * 0.70 - 18 + (Math.random() - 0.5) * 12);
         this.tweens.add({
           targets: sg,
-          x: sg.x + (Math.random() - 0.5) * 30,
-          y: sg.y - 28 - Math.random() * 20,
-          alpha: 0,
-          duration: 800 + Math.random() * 700,
-          ease: 'Sine.Out',
+          x: sg.x + (Math.random() - 0.5) * 28,
+          y: sg.y - 30 - Math.random() * 22,
+          alpha: 0, duration: 700 + Math.random() * 700, ease: 'Sine.Out',
           onComplete: (_tw: any, tg: any) => { try { tg[0].destroy(); } catch { /* */ } },
         });
       };
-      this.time.addEvent({ delay: 500, loop: true, callback: spawnSpark });
+      this.time.addEvent({ delay: 480, loop: true, callback: spawnSpark });
       for (let i = 0; i < 4; i++) spawnSpark();
-      return;
-    }
-    if (habitat === 'grass') {
-      const leafCols = [0x3A9828, 0x4CAF50, 0x2E7D32, 0x66BB6A];
-      const spawnLeaf = () => {
+
+      // Torch flicker — pulsing warm glow at each torch position
+      ([[55, H*0.30], [55, H*0.50], [W-55, H*0.30], [W-55, H*0.50]] as [number,number][]).forEach(([tx, ty]) => {
+        const tGlow = this.add.graphics().setDepth(1);
+        const flickerFn = () => {
+          if (!this.scene?.isActive('HabitatRoom')) return;
+          tGlow.clear();
+          const r = 30 + Math.random() * 16;
+          tGlow.fillStyle(0xFF8800, 0.10 + Math.random() * 0.09);
+          tGlow.fillCircle(tx, ty - 12, r);
+          tGlow.fillStyle(0xFFCC44, 0.08 + Math.random() * 0.07);
+          tGlow.fillCircle(tx, ty - 12, r * 0.50);
+        };
+        this.time.addEvent({ delay: 140, loop: true, callback: flickerFn });
+        flickerFn();
+      });
+
+      // Ember particles drifting up from torches
+      const spawnEmber = () => {
         if (!this.scene?.isActive('HabitatRoom')) return;
-        const lx = Math.random() * W;
-        const lg = this.add.graphics().setDepth(2);
-        lg.fillStyle(leafCols[Math.floor(Math.random() * leafCols.length)], 0.70);
-        lg.fillEllipse(0, 0, 10, 5);
-        lg.setPosition(lx, 0);
+        const tx = Math.random() > 0.5 ? 55 : W - 55;
+        const ty = Math.random() > 0.5 ? H * 0.30 : H * 0.50;
+        const eg = this.add.graphics().setDepth(3);
+        eg.fillStyle(Math.random() > 0.5 ? 0xFF8800 : 0xFFCC22, 0.90);
+        eg.fillCircle(0, 0, 1.5 + Math.random());
+        eg.setPosition(tx + (Math.random() - 0.5) * 8, ty - 26);
         this.tweens.add({
-          targets: lg,
-          x: lx + (Math.random() - 0.5) * 80,
-          y: H * 0.62,
-          alpha: 0,
-          angle: (Math.random() - 0.5) * 220,
-          duration: 2200 + Math.random() * 2000,
-          ease: 'Linear',
+          targets: eg,
+          x: eg.x + (Math.random() - 0.5) * 42,
+          y: eg.y - 55 - Math.random() * 38,
+          alpha: 0, duration: 800 + Math.random() * 700, ease: 'Cubic.Out',
           onComplete: (_tw: any, tg: any) => { try { tg[0].destroy(); } catch { /* */ } },
         });
       };
-      this.time.addEvent({ delay: 1000, loop: true, callback: spawnLeaf });
-      for (let i = 0; i < 3; i++) spawnLeaf();
+      this.time.addEvent({ delay: 700, loop: true, callback: spawnEmber });
       return;
     }
+
+    if (habitat === 'grass') {
+      // Colorful petals and leaves falling
+      const petalCols = [0xFF88CC, 0xFFCC44, 0xFF6699, 0xFFEE88, 0xEE88FF, 0xFF9944, 0xAAEE55];
+      const spawnPetal = () => {
+        if (!this.scene?.isActive('HabitatRoom')) return;
+        const col = petalCols[Math.floor(Math.random() * petalCols.length)];
+        const pg = this.add.graphics().setDepth(2);
+        pg.fillStyle(col, 0.78);
+        pg.fillEllipse(0, 0, 10, 6);
+        pg.setPosition(Math.random() * W, -10);
+        this.tweens.add({
+          targets: pg,
+          x: pg.x + (Math.random() - 0.5) * 130,
+          y: H * 0.65, alpha: 0,
+          angle: (Math.random() - 0.5) * 400,
+          duration: 2500 + Math.random() * 2500, ease: 'Linear',
+          onComplete: (_tw: any, tg: any) => { try { tg[0].destroy(); } catch { /* */ } },
+        });
+      };
+      this.time.addEvent({ delay: 700, loop: true, callback: spawnPetal });
+      for (let i = 0; i < 5; i++) spawnPetal();
+
+      // Sun sparkles radiating from the sun
+      const sunX = W * 0.82, sunY = H * 0.10;
+      const spawnSunSparkle = () => {
+        if (!this.scene?.isActive('HabitatRoom')) return;
+        const ang = Math.random() * Math.PI * 2;
+        const dist = 20 + Math.random() * 36;
+        const ss = this.add.graphics().setDepth(2);
+        ss.fillStyle(0xFFEE44, 0.90);
+        ss.fillCircle(0, 0, 2 + Math.random() * 1.5);
+        ss.setPosition(sunX + Math.cos(ang) * dist, sunY + Math.sin(ang) * dist);
+        this.tweens.add({
+          targets: ss,
+          x: ss.x + Math.cos(ang) * 30,
+          y: ss.y + Math.sin(ang) * 30,
+          alpha: 0, scaleX: 0.1, scaleY: 0.1,
+          duration: 500 + Math.random() * 400, ease: 'Quad.Out',
+          onComplete: (_tw: any, tg: any) => { try { tg[0].destroy(); } catch { /* */ } },
+        });
+      };
+      this.time.addEvent({ delay: 270, loop: true, callback: spawnSunSparkle });
+      return;
+    }
+
+    // Aquatic — improved bubbles with shimmer + swimming fish
     const spawnBubble = () => {
       if (!this.scene?.isActive('HabitatRoom')) return;
       const bx = 18 + Math.random() * (W - 36);
       const br = 2 + Math.random() * 5;
       const bg = this.add.graphics().setDepth(3);
-      bg.lineStyle(1.5, 0x4FC3F7, 0.65);
+      bg.lineStyle(1.5, 0x88EEFF, 0.65);
       bg.strokeCircle(0, 0, br);
+      bg.fillStyle(0xCCFFFF, 0.10);
+      bg.fillCircle(0, 0, br);
+      bg.fillStyle(0xFFFFFF, 0.45);
+      bg.fillCircle(-br * 0.30, -br * 0.30, br * 0.35);
       bg.x = bx; bg.y = H * 0.70;
       this.tweens.add({
         targets: bg,
-        y: bg.y - (180 + Math.random() * 260),
-        alpha: 0,
-        duration: 1800 + Math.random() * 2000,
-        ease: 'Linear',
-        onComplete: (_tw: any, tg: any) => { try { tg[0].destroy(); } catch { /* ignore */ } },
+        x: bx + (Math.random() - 0.5) * 55,
+        y: bg.y - (190 + Math.random() * 270),
+        alpha: 0, duration: 1800 + Math.random() * 2200, ease: 'Linear',
+        onComplete: (_tw: any, tg: any) => { try { tg[0].destroy(); } catch { /* */ } },
       });
     };
+
+    const spawnFish = () => {
+      if (!this.scene?.isActive('HabitatRoom')) return;
+      const fy = H * 0.12 + Math.random() * H * 0.38;
+      const goRight = Math.random() > 0.5;
+      const fs = 0.65 + Math.random() * 0.80;
+      const fc = [0x44AADD, 0xFF9966, 0xFFDD66, 0x88DDAA, 0xCC88FF][Math.floor(Math.random() * 5)];
+      const fish = this.add.graphics().setDepth(3);
+      fish.fillStyle(fc, 0.50);
+      fish.fillEllipse(0, 0, 30 * fs, 14 * fs);
+      fish.fillTriangle(-15*fs, 0, -23*fs, -7*fs, -23*fs, 7*fs);
+      fish.fillStyle(0xFFFFFF, 0.22);
+      fish.fillEllipse(5*fs, -2*fs, 10*fs, 7*fs);
+      fish.setScale(goRight ? 1 : -1, 1);
+      fish.x = goRight ? -40 : W + 40;
+      fish.y = fy;
+      this.tweens.add({
+        targets: fish,
+        x: goRight ? W + 40 : -40,
+        y: fy + (Math.random() - 0.5) * 28,
+        duration: 5500 + Math.random() * 4000, ease: 'Linear',
+        onComplete: (_tw: any, tg: any) => { try { tg[0].destroy(); } catch { /* */ } },
+      });
+    };
+
     this.time.addEvent({ delay: 420, loop: true, callback: spawnBubble });
-    for (let i = 0; i < 5; i++) spawnBubble();
+    this.time.addEvent({ delay: 5500, loop: true, callback: spawnFish });
+    for (let i = 0; i < 5; i++) this.time.delayedCall(i * 360, spawnBubble);
+    spawnFish();
   }
 
   // ── UTILS ─────────────────────────────────────────────────────────────────
