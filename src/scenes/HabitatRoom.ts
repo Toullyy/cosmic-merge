@@ -642,7 +642,7 @@ export class HabitatRoom extends Phaser.Scene {
     this._bowlY = H * 0.704;
     this._bowlGfx = this.add.graphics().setDepth(4);
     this._bowlLabelTxt = this.add.text(this._bowlX, this._bowlY + 20, '', {
-      fontFamily: FONT, fontSize: '11px', color: '#DDBB88',
+      fontFamily: FONT, fontSize: '13px', color: '#DDBB88',
       stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5).setDepth(5);
     this._drawBowl();
@@ -1039,7 +1039,7 @@ export class HabitatRoom extends Phaser.Scene {
       ? t('hint.golden', { max: maxPrice })
       : t('hint.normal', { max: maxPrice });
     this.add.text(W - 72, 76, hintLabel, {
-      fontFamily: FONT, fontSize: '10px', color: isGoldenMon ? '#FFD700' : '#BBAACC',
+      fontFamily: FONT, fontSize: '12px', color: isGoldenMon ? '#FFD700' : '#BBAACC',
     }).setOrigin(0.5).setDepth(20);
 
     this._coinTxt = this.add.text(W / 2, H * 0.72 + 5, '💰 ' + Game.state!.coins, {
@@ -1697,7 +1697,7 @@ export class HabitatRoom extends Phaser.Scene {
       stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5));
     popup.add(this.add.text(W/2, H/2 - 16, t('sell.watchAd'), {
-      fontFamily: FONT, fontSize: '11px', color: '#FFD700',
+      fontFamily: FONT, fontSize: '13px', color: '#FFD700',
     }).setOrigin(0.5));
 
     const finalize = (price: number) => {

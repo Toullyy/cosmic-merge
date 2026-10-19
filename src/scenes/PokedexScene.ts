@@ -146,7 +146,7 @@ export class PokedexScene extends Phaser.Scene {
         // star badge for rare breeding-only species
         if (sp.id >= 15) {
           this.add.text(cx - cellW / 2 + 12, cy - cellH / 2 + 14, '★', {
-            fontFamily: FONT, fontSize: '10px', color: '#FFD700',
+            fontFamily: FONT, fontSize: '12px', color: '#FFD700',
           }).setOrigin(0.5).setDepth(5);
         }
         // NEW badge

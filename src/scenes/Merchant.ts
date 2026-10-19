@@ -33,7 +33,7 @@ export class Merchant extends Phaser.Scene {
     }
 
     this._refreshTxt = this.add.text(W / 2, 122, this._refreshLabel(), {
-      fontFamily: FONT, fontSize: '11px', color: '#9988BB', align: 'center',
+      fontFamily: FONT, fontSize: '13px', color: '#9988BB', align: 'center',
     }).setOrigin(0.5).setDepth(5);
 
     this._filter = 'dirt';

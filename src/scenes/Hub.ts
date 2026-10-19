@@ -177,7 +177,7 @@ export class Hub extends Phaser.Scene {
       color: '#FFE9A0', stroke: '#5A2A00', strokeThickness: 3,
     }).setOrigin(0.5).setDepth(1);
     this.add.text(W / 2, signY + 10, t('hub.tagline'), {
-      fontFamily: FONT, fontSize: '10px',
+      fontFamily: FONT, fontSize: '12px',
       color: '#D4AA60', stroke: '#4A2000', strokeThickness: 2,
     }).setOrigin(0.5).setDepth(1);
   }
@@ -475,7 +475,7 @@ export class Hub extends Phaser.Scene {
     }, 14).setDepth(10);
     this._dexDot = this.add.graphics().setDepth(12);
     this._dexDotTxt = this.add.text(xs[2] + bw / 2 - 6, btnY - bh / 2 + 2, '!', {
-      fontFamily: FONT, fontSize: '10px', fontStyle: 'bold', color: '#ffffff',
+      fontFamily: FONT, fontSize: '12px', fontStyle: 'bold', color: '#ffffff',
     }).setOrigin(0.5).setDepth(13);
     this._updateDexDot(xs[2], bw, btnY, bh, hasNew);
 
@@ -651,7 +651,7 @@ export class Hub extends Phaser.Scene {
     const resetAt = state.questResetAt ?? 0;
     const minsLeft = Math.max(0, Math.floor((resetAt - Date.now()) / 60000));
     const hLeft = Math.floor(minsLeft / 60), mLeft = minsLeft % 60;
-    popup.add(this.add.text(W/2, panY + 42, t('quests.resets', { h: hLeft, m: mLeft }), { fontFamily: FONT, fontSize: '11px', color: '#AA9944' }).setOrigin(0.5));
+    popup.add(this.add.text(W/2, panY + 42, t('quests.resets', { h: hLeft, m: mLeft }), { fontFamily: FONT, fontSize: '13px', color: '#AA9944' }).setOrigin(0.5));
 
     quests.forEach((q, qi) => {
       const qy = panY + 58 + qi * 90;
@@ -676,7 +676,7 @@ export class Hub extends Phaser.Scene {
         barBg.fillRoundedRect(W/2 - 145, qy + 54, barW * fill, barH, 4);
       }
       popup.add(barBg);
-      popup.add(this.add.text(W/2 + 20, qy + 59, q.progress + '/' + q.target, { fontFamily: FONT, fontSize: '10px', color: '#CCCCCC' }).setOrigin(0, 0.5));
+      popup.add(this.add.text(W/2 + 20, qy + 59, q.progress + '/' + q.target, { fontFamily: FONT, fontSize: '12px', color: '#CCCCCC' }).setOrigin(0, 0.5));
 
       if (done && !clmd) {
         const claimBtn = makeButton(this, W/2 + 105, qy + 40, 90, 36, t('quests.claim'), 0x2A7A10, () => {
@@ -735,7 +735,7 @@ export class Hub extends Phaser.Scene {
       fontFamily: FONT, fontSize: '19px', fontStyle: 'bold', color: '#88EEFF',
     }).setOrigin(0.5));
     popup.add(this.add.text(W / 2, panY + 44, t('ach.earned', { earned: earned.size, total: ACHIEVEMENTS.length }), {
-      fontFamily: FONT, fontSize: '11px', color: '#5588AA',
+      fontFamily: FONT, fontSize: '13px', color: '#5588AA',
     }).setOrigin(0.5));
 
     ACHIEVEMENTS.forEach((a, i) => {
@@ -756,11 +756,11 @@ export class Hub extends Phaser.Scene {
         color: done ? '#FFFFFF' : '#445566',
       }).setOrigin(0, 0.5));
       popup.add(this.add.text(cx + 12, cy + 36, done ? a.desc : '???', {
-        fontFamily: FONT, fontSize: '10px',
+        fontFamily: FONT, fontSize: '12px',
         color: done ? '#88AABB' : '#334455',
       }).setOrigin(0, 0.5));
       popup.add(this.add.text(cx + cardW - 8, cy + 18, done ? ('+' + a.diamonds + '💎') : '💎', {
-        fontFamily: FONT, fontSize: '11px',
+        fontFamily: FONT, fontSize: '13px',
         color: done ? '#88EEFF' : '#334455',
       }).setOrigin(1, 0.5));
     });
@@ -1000,10 +1000,10 @@ export class Hub extends Phaser.Scene {
     // Level badge top-left
     const lvlLabel = getLevelName(mon.level);
     const lvlBg = this.add.graphics().setDepth(23);
-    lvlBg.fillStyle(0x000000, 0.72); lvlBg.fillRoundedRect(vpX + 3, vpY + 3, lvlLabel.length*6.5 + 12, 18, 5);
+    lvlBg.fillStyle(0x000000, 0.72); lvlBg.fillRoundedRect(vpX + 3, vpY + 3, lvlLabel.length*7.5 + 12, 20, 5);
     this._displayGroup.add(lvlBg);
     this._displayGroup.add(this.add.text(vpX + 7, vpY + 12, lvlLabel, {
-      fontFamily: FONT, fontSize: '10px', color: '#FFE066', fontStyle: 'bold',
+      fontFamily: FONT, fontSize: '12px', color: '#FFE066', fontStyle: 'bold',
     }).setOrigin(0, 0.5).setDepth(24));
 
     const monTrait = TRAITS.find(t => t.id === mon.trait);
@@ -1038,7 +1038,7 @@ export class Hub extends Phaser.Scene {
       banner.strokeRoundedRect(vpX, vpY, vpW, 22, { tl: 2, tr: 2, bl: 0, br: 0 });
       this._displayGroup.add(banner);
       this._displayGroup.add(this.add.text(cx, vpY + 11, ready ? '✓ READY - Tap to collect' : '🏷 For Sale', {
-        fontFamily: FONT, fontSize: '10px', color: '#ffffff', fontStyle: 'bold',
+        fontFamily: FONT, fontSize: '12px', color: '#ffffff', fontStyle: 'bold',
         stroke: '#000000', strokeThickness: 1,
       }).setOrigin(0.5).setDepth(26));
     }
@@ -1131,7 +1131,7 @@ export class Hub extends Phaser.Scene {
 
     if (!isReady) {
       this._displayGroup.add(this.add.text(vpX + 7, vpY + 7, sp.habitat.charAt(0).toUpperCase() + sp.habitat.slice(1), {
-        fontFamily: FONT, fontSize: '10px', color: '#CCBBAA',
+        fontFamily: FONT, fontSize: '12px', color: '#CCBBAA',
       }).setOrigin(0, 0).setDepth(24));
     }
 

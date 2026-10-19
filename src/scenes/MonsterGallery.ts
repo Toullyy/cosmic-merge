@@ -153,13 +153,13 @@ export class MonsterGallery extends Phaser.Scene {
       // Habitat / rare icon (top-left)
       this._cards.add(this.add.text(cx - CELL_W / 2 + 6, cy - CELL_H / 2 + 6,
         isRare ? '⭐' : (HAB_ICON[sp.habitat] ?? ''), {
-          fontFamily: FONT, fontSize: '11px',
+          fontFamily: FONT, fontSize: '13px',
         }).setDepth(3));
 
       // Species # (top-right)
       this._cards.add(this.add.text(cx + CELL_W / 2 - 6, cy - CELL_H / 2 + 8,
         '#' + String(sp.id).padStart(2, '0'), {
-          fontFamily: FONT, fontSize: '10px', color: '#443366',
+          fontFamily: FONT, fontSize: '12px', color: '#443366',
         }).setOrigin(1, 0).setDepth(3));
 
       // Sprite
@@ -176,7 +176,7 @@ export class MonsterGallery extends Phaser.Scene {
 
       // Stats
       this._cards.add(this.add.text(cx, cy + 64, '⏱' + sp.hatchHours + 'h  💰' + sp.price, {
-        fontFamily: FONT, fontSize: '10px', color: '#776699',
+        fontFamily: FONT, fontSize: '12px', color: '#776699',
       }).setOrigin(0.5).setDepth(3));
     });
   }
