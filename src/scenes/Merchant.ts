@@ -1,4 +1,4 @@
-import Phaser from 'phaser';
+﻿import Phaser from 'phaser';
 import { Game, FONT, store, sfx } from '../utils';
 import { CATALOG, HABITATS, newEgg, SPECIES, generateMerchantStock, MERCHANT_REFRESH_MS, TANK_CAPACITY, DECORATIONS } from '../data';
 import { shiftHue } from '../MonsterRenderer';
@@ -30,7 +30,7 @@ export class Merchant extends Phaser.Scene {
     const coinBg = this.add.graphics();
     coinBg.fillStyle(0x00000066, 1);
     coinBg.fillRoundedRect(10, 10, 150, 40, 10);
-    this.add.text(28, 30, '🪙', { fontFamily: FONT, fontSize: '20px', color: '#FFD700' }).setOrigin(0, 0.5);
+    this.add.text(28, 30, '💰', { fontFamily: FONT, fontSize: '20px', color: '#FFD700' }).setOrigin(0, 0.5);
     this._coinTxt = this.add.text(52, 30, String(Game.state!.coins), {
       fontFamily: FONT, fontSize: '18px', color: '#ffffff', fontStyle: 'bold',
     }).setOrigin(0, 0.5);
@@ -190,7 +190,7 @@ export class Merchant extends Phaser.Scene {
         fontFamily: FONT, fontSize: '13px', color: unlocked ? '#BBAAFF' : '#776699',
       }).setOrigin(0.5));
 
-      const btnLabel = unlocked ? ('Buy  ' + sp.price + '🪙') : (HABITATS[sp.habitat].unlockCost + '🪙 Unlock');
+      const btnLabel = unlocked ? ('Buy  ' + sp.price + '💰') : (HABITATS[sp.habitat].unlockCost + '💰 Unlock');
       const btnCol = unlocked ? 0x30A040 : 0x4A1878;
       const btn = makeButton(this, cx, cy + 66, 160, 36, btnLabel, btnCol, () => {
         this._handleBuy(sp.id, unlocked);
@@ -243,7 +243,7 @@ export class Merchant extends Phaser.Scene {
           fontFamily: FONT, fontSize: '14px', fontStyle: 'bold', color: '#66CC66',
         }).setOrigin(0.5));
       } else {
-        const btn = makeButton(this, cx, cy + 36, 160, 34, 'Buy  ' + dec.cost + '🪙', 0x4A1878, () => {
+        const btn = makeButton(this, cx, cy + 36, 160, 34, 'Buy  ' + dec.cost + '💰', 0x4A1878, () => {
           this._handleBuyDecor(dec.id);
         }, 13);
         this._gridGroup.add(btn);
@@ -264,7 +264,7 @@ export class Merchant extends Phaser.Scene {
       return;
     }
     if (state.coins < dec.cost) {
-      showToast(this, 'Need ' + dec.cost + '🪙', '#ffaaaa');
+      showToast(this, 'Need ' + dec.cost + '💰', '#ffaaaa');
       return;
     }
     state.coins -= dec.cost;
@@ -282,7 +282,7 @@ export class Merchant extends Phaser.Scene {
     if (!unlocked) {
       const cost = HABITATS[sp.habitat].unlockCost;
       if (state.coins < cost) {
-        showToast(this, 'Need ' + cost + '🪙 to unlock ' + HABITATS[sp.habitat].label, '#ff9999');
+        showToast(this, 'Need ' + cost + '💰 to unlock ' + HABITATS[sp.habitat].label, '#ff9999');
         return;
       }
       state.coins -= cost;
@@ -297,7 +297,7 @@ export class Merchant extends Phaser.Scene {
       return;
     }
     if (state.coins < sp.price) {
-      showToast(this, 'Not enough coins! Need ' + sp.price + '🪙', '#ff9999');
+      showToast(this, 'Not enough coins! Need ' + sp.price + '💰', '#ff9999');
       return;
     }
     const tankCount = state.tanks?.[sp.habitat] ?? 0;

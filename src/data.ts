@@ -221,7 +221,7 @@ export const TRAITS: Trait[] = [
   { id:'lazy',     name:'Lazy',     emoji:'😴', desc:'Easygoing, slow to tire',      decayMod:{ happiness: 0.80, hunger: 0.80, cleanliness: 0.80 } },
   { id:'lucky',    name:'Lucky',    emoji:'🍀', desc:'+20% sell price',              sellMod: 1.20 },
   { id:'fierce',   name:'Fierce',   emoji:'🔥', desc:'+35% sell, gets dirty fast',   sellMod: 1.35, decayMod:{ cleanliness: 1.40 } },
-  { id:'playful',  name:'Playful',  emoji:'🎾', desc:'Stays happy; +30% play bonus', decayMod:{ happiness: 0.75 }, hapGainMod: 1.30 },
+  { id:'playful',  name:'Playful',  emoji:'⚽', desc:'Stays happy; +30% play bonus', decayMod:{ happiness: 0.75 }, hapGainMod: 1.30 },
   { id:'pristine', name:'Pristine', emoji:'✨', desc:'Self-grooming, stays clean',   decayMod:{ cleanliness: 0.40 } },
 ];
 

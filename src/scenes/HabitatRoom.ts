@@ -1,4 +1,4 @@
-import Phaser from 'phaser';
+﻿import Phaser from 'phaser';
 import { Game, FONT, store, sfx, recordQuestProgress } from '../utils';
 import { SPECIES, HABITATS, FOOD_TYPES, TOY_TYPES, CLEAN_TOOLS, XP_TABLE, getLevelName, randomBuyer, randomListingDuration, TRAITS } from '../data';
 import { makeMonsterTexture, getVariantModifiers, lighten, darken } from '../MonsterRenderer';
@@ -91,216 +91,418 @@ export class HabitatRoom extends Phaser.Scene {
     const g = this.add.graphics().setDepth(0);
 
     if (habitat === 'dirt') {
-      // Dark stone cave background
-      g.fillGradientStyle(0x1E1E2E, 0x1E1E2E, 0x141422, 0x141422, 1);
-      g.fillRect(0, 0, W, H);
+      // ── Warm Amber Crystal Cave ───────────────────────────────────────────
+      // Rich warm background gradient: deep amber cave
+      g.fillGradientStyle(0x3D1A08, 0x3D1A08, 0x6B3010, 0x6B3010, 1);
+      g.fillRect(0, 0, W, H * 0.5);
+      g.fillGradientStyle(0x6B3010, 0x6B3010, 0x8B4520, 0x8B4520, 1);
+      g.fillRect(0, H * 0.5, W, H * 0.5);
 
-      // Subtle stone texture patches
-      [[40,180,60,32],[140,320,50,28],[280,200,66,34],[390,350,54,30],[500,260,44,26],[80,480,58,32],[330,450,62,34]].forEach((s2, i) => {
-        g.fillStyle([0x2A2A3E, 0x222234, 0x303048][i % 3], 0.45);
-        g.fillEllipse(s2[0], s2[1], s2[2], s2[3]);
-      });
-
-      // Stone arch alcoves (decorative background slots)
-      const totalSlots = Math.min(4, (Game.state?.tanks?.[habitat as 'dirt'] ?? 4));
-      const occupiedSlots = Game.state?.monsters.filter(m => m.habitatType === habitat).length ?? 0;
-      const alcovePositions: [number, number][] = [
-        [72, 310], [468, 310], [72, 520], [468, 520],
-      ].slice(0, totalSlots) as [number, number][];
-
-      alcovePositions.forEach(([ax, ay], idx) => {
-        const isEmpty = idx >= occupiedSlots;
-        g.fillStyle(0x0A0A16, 0.80);
-        g.fillEllipse(ax + 3, ay + 3, 88, 44);
-        g.fillRect(ax - 41, ay, 88, 38);
-        g.fillStyle(0x3A3A52, 1);
-        g.fillEllipse(ax, ay, 90, 46);
-        g.fillRect(ax - 44, ay, 90, 40);
-        g.fillStyle(0x0E0E1C, 1);
-        g.fillEllipse(ax, ay, 74, 38);
-        g.fillRect(ax - 36, ay, 74, 36);
-        g.lineStyle(2, 0x5A5A7A, 0.65);
-        g.beginPath();
-        g.arc(ax, ay, 38, Math.PI, 0, false);
-        g.strokePath();
-        if (isEmpty) {
-          g.fillStyle(0x8844FF, 0.18);
-          g.fillCircle(ax, ay + 16, 20);
-          g.lineStyle(3, 0xAA66FF, 0.85);
-          g.beginPath(); g.moveTo(ax, ay + 6); g.lineTo(ax, ay + 26); g.strokePath();
-          g.beginPath(); g.moveTo(ax - 10, ay + 16); g.lineTo(ax + 10, ay + 16); g.strokePath();
+      // Warm stone block wall texture (sandstone tone)
+      const bW = 72, bH = 36;
+      g.lineStyle(1.2, 0x2A0E04, 0.45);
+      for (let brow = 0; brow < Math.ceil(H * 0.72 / bH) + 1; brow++) {
+        const wy = brow * bH;
+        const bOff = (brow % 2 === 0) ? 0 : bW / 2;
+        for (let wx = -bW / 2 + bOff; wx < W + bW; wx += bW) {
+          g.strokeRect(wx, wy, bW - 1, bH - 1);
         }
+      }
+      // Warm mortar highlights on stones
+      g.lineStyle(0.8, 0xC07040, 0.12);
+      for (let brow = 0; brow < Math.ceil(H * 0.72 / bH) + 1; brow++) {
+        const wy = brow * bH;
+        const bOff = (brow % 2 === 0) ? 0 : bW / 2;
+        for (let wx = -bW / 2 + bOff; wx < W + bW; wx += bW) {
+          g.strokeRect(wx + 2, wy + 2, bW - 5, bH - 5);
+        }
+      }
+
+      // Ceiling stalactites
+      ([[50,0,18,58],[120,0,12,40],[210,0,22,72],[310,0,14,48],[395,0,20,65],[470,0,10,35],[530,0,16,52]] as [number,number,number,number][]).forEach(([sx,_sy,sw,sh]) => {
+        g.fillStyle(0x5A2A10, 1);
+        g.fillTriangle(sx - sw, 0, sx + sw, 0, sx, sh);
+        g.fillStyle(0x7A3A18, 0.6);
+        g.fillTriangle(sx - sw * 0.5, 0, sx + sw * 0.3, 0, sx + sw * 0.1, sh * 0.55);
+        g.fillStyle(0xFFCC66, 0.18); g.fillCircle(sx, sh - 4, 5);
       });
 
-      // Purple portal arch center-back
-      const pax = W / 2, pay = 165;
-      g.fillStyle(0x4400AA, 0.12); g.fillEllipse(pax, pay, 180, 90);
-      g.fillStyle(0x6600CC, 0.08); g.fillEllipse(pax, pay, 220, 110);
-      g.lineStyle(5, 0x7722EE, 0.35);
-      g.beginPath(); g.arc(pax, pay, 96, Math.PI, 0, false); g.strokePath();
-      g.lineStyle(3, 0xBB44FF, 0.28);
-      g.beginPath(); g.arc(pax, pay, 108, Math.PI, 0, false); g.strokePath();
-      g.fillStyle(0x3300AA, 0.55);
-      g.fillEllipse(pax, pay, 180, 90);
-      g.fillRect(pax - 90, pay, 180, 55);
-      g.fillStyle(0x5500CC, 0.28);
-      g.fillEllipse(pax, pay, 158, 78);
-      g.lineStyle(4, 0x9933FF, 0.75);
-      g.beginPath(); g.arc(pax, pay, 88, Math.PI, 0, false); g.strokePath();
-      g.lineStyle(2, 0xCC88FF, 0.55);
-      g.beginPath(); g.arc(pax, pay, 80, Math.PI, 0, false); g.strokePath();
-      g.fillStyle(0x7722EE, 0.06); g.fillEllipse(pax, pay - 10, 140, 65);
-
-      // Hanging crystal lantern at top center
-      const lx = W / 2, ly = 55;
-      g.lineStyle(2, 0x445566, 0.85);
-      g.beginPath(); g.moveTo(lx, 0); g.lineTo(lx, ly - 22); g.strokePath();
-      g.fillStyle(0x0A2230, 0.95);
-      g.fillRect(lx - 14, ly - 22, 28, 38);
-      g.fillStyle(0x00CCCC, 0.12); g.fillCircle(lx, ly, 40);
-      g.fillStyle(0x00EECC, 0.22); g.fillCircle(lx, ly, 24);
-      g.fillStyle(0x44FFEE, 0.85); g.fillCircle(lx, ly, 10);
-      g.fillStyle(0xAAFFF0, 0.70); g.fillCircle(lx - 3, ly - 3, 4);
-      g.lineStyle(1.5, 0x00CCCC, 0.60);
-      g.strokeRect(lx - 14, ly - 22, 28, 38);
-      g.fillStyle(0x445566, 1);
-      g.fillTriangle(lx - 17, ly - 22, lx + 17, ly - 22, lx, ly - 36);
-      g.fillRect(lx - 14, ly + 16, 28, 6);
-
-      // Large tropical leaves — left side
-      g.fillStyle(0x1B5E20, 0.90); g.fillEllipse(86, H*0.48, 120, 28);
-      g.fillStyle(0x2E7D32, 0.65); g.fillEllipse(76, H*0.48 - 6, 80, 14);
-      g.lineStyle(2, 0x1B5E20, 0.5);
-      g.beginPath(); g.moveTo(8, H*0.48); g.lineTo(128, H*0.48); g.strokePath();
-      g.fillStyle(0x1A6018, 0.90); g.fillEllipse(74, H*0.56, 120, 28);
-      g.fillStyle(0x2A7028, 0.65); g.fillEllipse(64, H*0.56 - 6, 80, 14);
-      g.lineStyle(2, 0x1A6018, 0.5);
-      g.beginPath(); g.moveTo(8, H*0.56); g.lineTo(118, H*0.56); g.strokePath();
-      // Large tropical leaves — right side
-      g.fillStyle(0x1B5E20, 0.90); g.fillEllipse(W - 86, H*0.48, 120, 28);
-      g.fillStyle(0x2E7D32, 0.65); g.fillEllipse(W - 76, H*0.48 - 6, 80, 14);
-      g.lineStyle(2, 0x1B5E20, 0.5);
-      g.beginPath(); g.moveTo(W - 8, H*0.48); g.lineTo(W - 128, H*0.48); g.strokePath();
-      g.fillStyle(0x1A6018, 0.90); g.fillEllipse(W - 74, H*0.56, 120, 28);
-      g.fillStyle(0x2A7028, 0.65); g.fillEllipse(W - 64, H*0.56 - 6, 80, 14);
-      g.lineStyle(2, 0x1A6018, 0.5);
-      g.beginPath(); g.moveTo(W - 8, H*0.56); g.lineTo(W - 118, H*0.56); g.strokePath();
-
-      // Ground — cool stone earth
-      g.fillStyle(0x2A1E10, 1); g.fillRect(0, H*0.695, W, H*0.305);
-      g.fillStyle(0x3A2A18, 1); g.fillRect(0, H*0.695, W, H*0.075);
-      g.fillStyle(0x4A3420, 1); g.fillRect(0, H*0.695, W, 14);
-      g.fillStyle(0x5E4228, 1); g.fillRect(0, H*0.695, W, 6);
-      g.fillStyle(0x7A5830, 0.45); g.fillRect(0, H*0.695, W, 2.5);
-
-      // Ground rocks
-      [[50,H*0.755,52,30],[170,H*0.74,40,24],[318,H*0.77,58,32],[440,H*0.75,44,26],[498,H*0.78,36,22]].forEach((r, i) => {
-        const rc = [0x3A2A14, 0x2E2010, 0x4A3418][i % 3];
-        g.fillStyle(darken(rc, 12), 0.70); g.fillEllipse(r[0]+2, r[1]+3, r[2] as number, r[3] as number);
-        g.fillStyle(rc, 1); g.fillEllipse(r[0], r[1], r[2] as number, r[3] as number);
-        g.fillStyle(lighten(rc, 22), 0.35); g.fillEllipse(r[0]-r[2]*0.14, r[1]-r[3]*0.27, r[2]*0.50, r[3]*0.42);
+      // Central ornate arch gateway (warm amber/gold)
+      const pax = W / 2, pay = 170;
+      // Outer glow
+      g.fillStyle(0xFF8C00, 0.06); g.fillEllipse(pax, pay, 240, 120);
+      g.fillStyle(0xFFAA22, 0.10); g.fillEllipse(pax, pay, 190, 94);
+      // Arch base fill (warm dark amber)
+      g.fillStyle(0x4A1E06, 1);
+      g.fillEllipse(pax, pay, 178, 90); g.fillRect(pax - 89, pay, 178, 60);
+      // Arch glow interior
+      g.fillStyle(0xFF6600, 0.22); g.fillEllipse(pax, pay, 158, 78);
+      g.fillStyle(0xFF8800, 0.14); g.fillEllipse(pax, pay, 130, 65);
+      g.fillStyle(0xFFAA44, 0.08); g.fillEllipse(pax, pay, 100, 50);
+      // Arch border rings
+      g.lineStyle(5, 0xCC6600, 0.90);
+      g.beginPath(); g.arc(pax, pay, 90, Math.PI, 0, false); g.strokePath();
+      g.lineStyle(3, 0xFFAA33, 0.80);
+      g.beginPath(); g.arc(pax, pay, 82, Math.PI, 0, false); g.strokePath();
+      g.lineStyle(1.5, 0xFFDD88, 0.55);
+      g.beginPath(); g.arc(pax, pay, 74, Math.PI, 0, false); g.strokePath();
+      // Arch pillars
+      [[pax - 90, pay], [pax + 90, pay]].forEach(([px, py]) => {
+        g.fillStyle(0x5A2A0A, 1); g.fillRect(px - 8, py, 16, 52);
+        g.fillStyle(0x8B4A18, 0.7); g.fillRect(px - 5, py, 5, 52);
+        g.fillStyle(0xCC7722, 0.40); g.fillRect(px - 6, py + 4, 3, 44);
       });
 
-      // Blue/purple crystal formations
-      ([[35,H*0.70,0x6644DD],[105,H*0.71,0x4488FF],[195,H*0.705,0x8844FF],[365,H*0.70,0x4466EE],[450,H*0.715,0x6644DD],[508,H*0.705,0x5566FF]] as [number,number,number][]).forEach(([cx2,cy2,cc]) => {
-        g.fillStyle(cc, 0.10); g.fillCircle(cx2, cy2, 22);
-        g.fillStyle(cc, 0.25); g.fillCircle(cx2, cy2, 13);
-        g.fillStyle(cc, 0.92); g.fillCircle(cx2, cy2, 6);
-        g.fillStyle(0xffffff, 0.60); g.fillCircle(cx2 - 1.5, cy2 - 1.5, 2);
-        g.fillStyle(cc, 0.70);
-        g.fillTriangle(cx2 - 5, cy2, cx2 + 5, cy2, cx2, cy2 - 16);
-        g.fillTriangle(cx2 - 10, cy2 + 2, cx2 - 2, cy2 + 2, cx2 - 6, cy2 - 12);
-        g.fillTriangle(cx2 + 2, cy2 + 2, cx2 + 10, cy2 + 2, cx2 + 6, cy2 - 12);
+      // Wall-mounted amber gem sconces with torch glow
+      ([[55, H*0.30], [55, H*0.50], [W-55, H*0.30], [W-55, H*0.50]] as [number,number][]).forEach(([tx, ty]) => {
+        // Glow radius
+        g.fillStyle(0xFF8800, 0.10); g.fillCircle(tx, ty - 12, 55);
+        g.fillStyle(0xFFAA22, 0.16); g.fillCircle(tx, ty - 12, 35);
+        g.fillStyle(0xFFCC44, 0.25); g.fillCircle(tx, ty - 12, 20);
+        // Torch bracket
+        g.fillStyle(0x4A2A0A, 1); g.fillRect(tx - 4, ty - 8, 8, 22);
+        g.fillStyle(0x7A4A18, 1); g.fillRect(tx - 3, ty - 7, 6, 20);
+        // Flame
+        g.fillStyle(0xFF4400, 0.85); g.fillEllipse(tx, ty - 14, 10, 18);
+        g.fillStyle(0xFF8800, 0.90); g.fillEllipse(tx, ty - 18, 8, 14);
+        g.fillStyle(0xFFCC00, 0.95); g.fillEllipse(tx, ty - 22, 5, 10);
+        g.fillStyle(0xFFFFAA, 1);   g.fillEllipse(tx, ty - 24, 3, 6);
       });
 
-      // Ceramic vase decoration
-      const vx = W * 0.76, vy = H * 0.712;
-      g.fillStyle(0x6A3820, 1); g.fillEllipse(vx, vy, 36, 10);
-      g.fillStyle(0x8B4A28, 1);
-      g.fillRect(vx - 14, vy - 44, 28, 44);
-      g.fillEllipse(vx, vy - 44, 36, 14);
-      g.fillEllipse(vx, vy - 44, 30, 10);
-      g.fillStyle(0xAA6035, 0.45); g.fillEllipse(vx - 5, vy - 56, 14, 22);
-      g.lineStyle(1.5, 0x5A2C14, 0.60);
-      g.strokeRect(vx - 14, vy - 44, 28, 44);
-      g.lineStyle(1, 0xCC7040, 0.30);
-      [[vy - 36, 24], [vy - 24, 26], [vy - 12, 24]].forEach(([y2, w2]) => {
-        g.beginPath(); g.moveTo(vx - w2/2, y2); g.lineTo(vx + w2/2, y2); g.strokePath();
+      // Large amber gem clusters embedded in side walls
+      ([[28, H*0.42, 0xFFB300], [28, H*0.60, 0xFF6600], [W-28, H*0.38, 0xFFCC00], [W-28, H*0.55, 0xFF8800]] as [number,number,number][]).forEach(([gx, gy, gc]) => {
+        g.fillStyle(gc, 0.15); g.fillCircle(gx, gy, 28);
+        g.fillStyle(gc, 0.28); g.fillCircle(gx, gy, 16);
+        g.fillStyle(gc, 0.90); g.fillCircle(gx, gy, 8);
+        g.fillStyle(0xFFFFDD, 0.70); g.fillCircle(gx - 2, gy - 2, 3);
+        // Crystal facets
+        g.fillStyle(gc, 0.85);
+        g.fillTriangle(gx - 6, gy, gx + 6, gy, gx, gy - 18);
+        g.fillTriangle(gx - 10, gy + 2, gx - 1, gy + 2, gx - 5.5, gy - 12);
+        g.fillTriangle(gx + 1,  gy + 2, gx + 10, gy + 2, gx + 5.5, gy - 12);
+        g.lineStyle(1, 0xFFFFAA, 0.45);
+        g.beginPath(); g.moveTo(gx - 6, gy); g.lineTo(gx, gy - 18); g.lineTo(gx + 6, gy); g.strokePath();
+      });
+
+      // 3D perspective amber stone floor
+      this._drawPerspectiveFloor(g, W, H, H * 0.695, 6, 9, 0x7A4520, 0x6A3818, 0x2E1408, 0.50);
+
+      // Glowing mushroom clusters at floor edges
+      ([[30, H*0.715, 0xFF6622], [65, H*0.700, 0xFFAA00], [480, H*0.718, 0xFF4400], [510, H*0.705, 0xFF8800]] as [number,number,number][]).forEach(([mx, my, mc]) => {
+        // Stem
+        g.fillStyle(0xDDCC88, 1); g.fillRect(mx - 3, my - 16, 6, 18);
+        // Cap glow
+        g.fillStyle(mc, 0.20); g.fillCircle(mx, my - 20, 20);
+        g.fillStyle(mc, 0.40); g.fillCircle(mx, my - 20, 13);
+        // Cap
+        g.fillStyle(mc, 1);
+        g.fillEllipse(mx, my - 22, 22, 16);
+        g.fillStyle(lighten(mc, 50), 0.55); g.fillEllipse(mx - 3, my - 26, 10, 7);
+        // Spots
+        g.fillStyle(0xFFEECC, 0.80); g.fillCircle(mx - 4, my - 22, 2); g.fillCircle(mx + 3, my - 25, 1.5);
+        // Gills
+        g.fillStyle(darken(mc, 20), 0.65); g.fillEllipse(mx, my - 14, 18, 6);
+      });
+
+      // Warm amber crystal formations at floor
+      ([[38,H*0.700,0xFFAA00],[108,H*0.710,0xFF8800],[200,H*0.695,0xFFCC22],[345,H*0.700,0xFF9900],[438,H*0.710,0xFFAA00],[506,H*0.698,0xFF7700]] as [number,number,number][]).forEach(([cx2,cy2,cc]) => {
+        g.fillStyle(cc, 0.18); g.fillCircle(cx2, cy2, 20);
+        g.fillStyle(cc, 0.35); g.fillCircle(cx2, cy2, 11);
+        g.fillStyle(cc, 1); g.fillCircle(cx2, cy2, 5);
+        g.fillStyle(0xFFFFCC, 0.75); g.fillCircle(cx2 - 1, cy2 - 1, 2);
+        g.fillStyle(cc, 0.85);
+        g.fillTriangle(cx2-4, cy2, cx2+4, cy2, cx2, cy2-14);
+        g.fillTriangle(cx2-8, cy2+2, cx2-1, cy2+2, cx2-4.5, cy2-10);
+        g.fillTriangle(cx2+1, cy2+2, cx2+8, cy2+2, cx2+4.5, cy2-10);
+        g.lineStyle(1, 0xFFFFAA, 0.50);
+        g.beginPath(); g.moveTo(cx2-4,cy2); g.lineTo(cx2,cy2-14); g.lineTo(cx2+4,cy2); g.strokePath();
       });
 
     } else if (habitat === 'grass') {
-      // Bright sunlit forest
-      g.fillGradientStyle(0x2A9820, 0x2A9820, 0x48CC30, 0x48CC30, 1);
-      g.fillRect(0, 0, W, H * 0.5);
-      g.fillGradientStyle(0x48CC30, 0x48CC30, 0x3AAA28, 0x3AAA28, 1);
-      g.fillRect(0, H * 0.5, W, H * 0.5);
-      const farTrees = [[38,H*0.54,58],[155,H*0.50,68],[318,H*0.52,63],[435,H*0.53,55],[515,H*0.55,48]];
-      farTrees.forEach(t => {
-        g.fillStyle(0x1A6018, 1);
-        g.fillRect(t[0] - 5, t[1] + 10, 10, H - t[1]);
-        g.fillStyle(0x1E7020, 0.85);
-        g.fillCircle(t[0], t[1], t[2] * 0.48);
-        g.fillCircle(t[0] - t[2]*0.26, t[1] + t[2]*0.26, t[2]*0.38);
-        g.fillCircle(t[0] + t[2]*0.22, t[1] + t[2]*0.18, t[2]*0.36);
-      });
-      g.fillStyle(0x40B830, 1); g.fillRect(0, H * 0.70, W, H * 0.30);
-      g.fillStyle(0x5ACC40, 1); g.fillRect(0, H * 0.70, W, 8);
-      g.fillStyle(0x80E060, 0.4); g.fillRect(0, H * 0.703, W, 4);
-      for (let gi = 0; gi < 9; gi++) {
-        const gx = 28 + gi * 58, gy = H * 0.702;
-        g.fillStyle(0x4CAF50, 1);
-        g.fillTriangle(gx, gy, gx - 6, gy + 16, gx + 6, gy + 16);
-        g.fillTriangle(gx + 10, gy + 3, gx + 4, gy + 17, gx + 16, gy + 17);
-        g.fillStyle(0x66BB6A, 0.7);
-        g.fillTriangle(gx + 2, gy - 3, gx - 2, gy + 10, gx + 6, gy + 10);
+      // ── Enchanted Sunlit Garden ───────────────────────────────────────────
+      // Sky: vivid azure to warm golden horizon
+      g.fillGradientStyle(0x1A8BC4, 0x1A8BC4, 0x4FC8F0, 0x4FC8F0, 1);
+      g.fillRect(0, 0, W, H * 0.28);
+      g.fillGradientStyle(0x4FC8F0, 0x4FC8F0, 0xA8E4F8, 0xA8E4F8, 1);
+      g.fillRect(0, H * 0.28, W, H * 0.12);
+      // Warm horizon glow
+      g.fillGradientStyle(0xA8E4F8, 0xA8E4F8, 0xFFF0C8, 0xFFF0C8, 1);
+      g.fillRect(0, H * 0.40, W, H * 0.08);
+
+      // Sun with multi-layer glow
+      const sx = W * 0.82, sy = H * 0.10;
+      g.fillStyle(0xFFFF88, 0.08); g.fillCircle(sx, sy, 70);
+      g.fillStyle(0xFFEE44, 0.14); g.fillCircle(sx, sy, 50);
+      g.fillStyle(0xFFDD22, 0.28); g.fillCircle(sx, sy, 35);
+      g.fillStyle(0xFFCC00, 0.65); g.fillCircle(sx, sy, 24);
+      g.fillStyle(0xFFEE88, 1);    g.fillCircle(sx, sy, 16);
+      g.fillStyle(0xFFFFCC, 1);    g.fillCircle(sx, sy, 9);
+
+      // Sunbeam rays (light shafts)
+      for (let ri = 0; ri < 6; ri++) {
+        const angle = (ri / 6) * Math.PI * 2 + 0.3;
+        const rlen = 180 + (ri % 3) * 50;
+        const rw = 18 + (ri % 2) * 10;
+        g.fillStyle(0xFFEE44, 0.04 + (ri % 2) * 0.02);
+        g.fillTriangle(
+          sx + Math.cos(angle - 0.08) * 28, sy + Math.sin(angle - 0.08) * 28,
+          sx + Math.cos(angle + 0.08) * 28, sy + Math.sin(angle + 0.08) * 28,
+          sx + Math.cos(angle) * rlen + Math.sin(angle) * rw, sy + Math.sin(angle) * rlen - Math.cos(angle) * rw,
+        );
       }
-      const flowers = [[75,H*0.755,0xFF9800],[195,H*0.745,0xFFEB3B],[325,H*0.760,0xFF5722],[448,H*0.750,0xE91E63]];
-      flowers.forEach(fl => {
-        g.fillStyle(fl[2], 1);
-        for (let pi = 0; pi < 5; pi++) {
-          const pa = (pi / 5) * Math.PI * 2;
-          g.fillCircle(fl[0] + Math.cos(pa) * 5, fl[1] + Math.sin(pa) * 5, 4);
+
+      // Fluffy clouds
+      ([[80, H*0.09, 90, 34], [260, H*0.06, 72, 27], [420, H*0.11, 100, 38]] as [number,number,number,number][]).forEach(([cx, cy, cw, ch]) => {
+        // Shadow
+        g.fillStyle(0xCCE8F0, 0.45); g.fillEllipse(cx + 4, cy + 4, cw, ch * 0.7);
+        // Main puffs
+        g.fillStyle(0xFFFFFF, 0.95); g.fillEllipse(cx, cy, cw, ch);
+        g.fillStyle(0xFFFFFF, 0.90); g.fillEllipse(cx - cw*0.28, cy + ch*0.10, cw*0.68, ch*0.76);
+        g.fillStyle(0xFFFFFF, 0.90); g.fillEllipse(cx + cw*0.28, cy + ch*0.08, cw*0.62, ch*0.72);
+        g.fillStyle(0xFFFFFF, 0.80); g.fillEllipse(cx - cw*0.12, cy - ch*0.20, cw*0.50, ch*0.65);
+        g.fillStyle(0xFFFFFF, 0.80); g.fillEllipse(cx + cw*0.15, cy - ch*0.15, cw*0.45, ch*0.60);
+        // Highlight
+        g.fillStyle(0xFFFFFF, 0.50); g.fillEllipse(cx - cw*0.08, cy - ch*0.15, cw*0.30, ch*0.35);
+      });
+
+      // Far forest silhouette (dark layer)
+      g.fillGradientStyle(0x1A5C14, 0x1A5C14, 0x2A7A20, 0x2A7A20, 1);
+      g.fillRect(0, H * 0.48, W, H * 0.08);
+      ([[0,H*0.54,48],[70,H*0.50,62],[160,H*0.52,55],[260,H*0.49,68],[360,H*0.52,58],[460,H*0.50,65],[530,H*0.55,44]] as [number,number,number][]).forEach(([tx, ty, tr]) => {
+        g.fillStyle(0x194A12, 1); g.fillRect(tx - 5, ty + 12, 10, H);
+        g.fillStyle(0x1E5A18, 0.95); g.fillCircle(tx, ty, tr * 0.46);
+        g.fillStyle(0x245E1C, 0.85); g.fillCircle(tx - tr*0.22, ty + tr*0.22, tr*0.36);
+        g.fillStyle(0x1E5A18, 0.85); g.fillCircle(tx + tr*0.20, ty + tr*0.18, tr*0.34);
+      });
+
+      // Bright mid-ground trees
+      ([[40,H*0.58,54],[145,H*0.55,64],[300,H*0.57,60],[420,H*0.56,58],[510,H*0.60,46]] as [number,number,number][]).forEach(([tx, ty, tr]) => {
+        g.fillStyle(0x2A6E18, 1); g.fillRect(tx - 6, ty + 14, 12, H);
+        g.fillStyle(0x388E2A, 1); g.fillCircle(tx, ty, tr * 0.50);
+        g.fillStyle(0x44AA30, 0.80); g.fillCircle(tx - tr*0.24, ty + tr*0.20, tr*0.40);
+        g.fillStyle(0x44AA30, 0.80); g.fillCircle(tx + tr*0.22, ty + tr*0.16, tr*0.38);
+        g.fillStyle(0x66CC40, 0.45); g.fillCircle(tx - tr*0.08, ty - tr*0.20, tr*0.30);
+        // Light highlight on top
+        g.fillStyle(0x88EE55, 0.25); g.fillEllipse(tx, ty - tr*0.25, tr*0.55, tr*0.40);
+      });
+
+      // Rolling green hill band
+      g.fillGradientStyle(0x4CAF35, 0x4CAF35, 0x66CC44, 0x66CC44, 1);
+      g.fillRect(0, H * 0.65, W, H * 0.07);
+      g.fillStyle(0x55BB3A, 1);
+      for (let hi = 0; hi <= 6; hi++) {
+        g.fillEllipse(hi * 95 - 20, H * 0.66, 130, 40);
+      }
+
+      // 3D perspective grass floor (rich green wood)
+      this._drawPerspectiveFloor(g, W, H, H * 0.70, 6, 8, 0x558832, 0x447228, 0x1A3A0A, 0.35);
+      // Bright grass edge strip
+      g.fillStyle(0x66CC40, 1); g.fillRect(0, H * 0.700, W, 10);
+      g.fillStyle(0x88EE55, 0.50); g.fillRect(0, H * 0.700, W, 4);
+      // Grass blade tufts
+      for (let gi = 0; gi < 12; gi++) {
+        const gx = 14 + gi * 44, gy = H * 0.702;
+        g.fillStyle(0x44BB22, 1);
+        g.fillTriangle(gx, gy, gx-5, gy+14, gx+5, gy+14);
+        g.fillTriangle(gx+8, gy+2, gx+3, gy+16, gx+13, gy+16);
+        g.fillStyle(0x66DD33, 0.80);
+        g.fillTriangle(gx+2, gy-2, gx-1, gy+9, gx+5, gy+9);
+      }
+
+      // Colourful flower bed at floor level
+      ([[55,H*0.752,0xFF3A8A,6],[115,H*0.742,0xFFCC00,5],[175,H*0.756,0xFF6600,6],[240,H*0.748,0xCC44FF,5],[315,H*0.754,0xFF1A6A,6],[385,H*0.744,0xFFDD00,5],[448,H*0.750,0xFF5500,6],[510,H*0.746,0x8844FF,5]] as [number,number,number,number][]).forEach(([fx,fy,fc,fr]) => {
+        for (let pi = 0; pi < 6; pi++) {
+          const pa = (pi / 6) * Math.PI * 2;
+          g.fillStyle(fc, 1); g.fillCircle(fx + Math.cos(pa) * fr, fy + Math.sin(pa) * fr, fr * 0.85);
         }
-        g.fillStyle(0xFFFDE7, 1); g.fillCircle(fl[0], fl[1], 3.5);
+        g.fillStyle(0xFFFF88, 1); g.fillCircle(fx, fy, fr * 0.60);
+        g.fillStyle(0xFFFFCC, 0.70); g.fillCircle(fx - fr*0.20, fy - fr*0.20, fr * 0.30);
+        // Stem
+        g.fillStyle(0x3A8822, 1); g.fillRect(fx - 1, fy + fr, 2, 10);
+      });
+
+      // Butterfly silhouettes in mid-air
+      ([[160, H*0.42, 0xFF88DD], [380, H*0.38, 0xFFAA44], [470, H*0.45, 0x88DDFF]] as [number,number,number][]).forEach(([bx, by, bc]) => {
+        g.fillStyle(bc, 0.70);
+        g.fillEllipse(bx - 7, by - 3, 14, 9);
+        g.fillEllipse(bx + 7, by - 3, 14, 9);
+        g.fillEllipse(bx - 5, by + 4, 10, 7);
+        g.fillEllipse(bx + 5, by + 4, 10, 7);
+        g.fillStyle(0x442200, 0.70); g.fillRect(bx - 1, by - 7, 2, 14);
+        g.fillStyle(0xFFFFFF, 0.45); g.fillEllipse(bx - 6, by - 4, 5, 4);
       });
 
     } else if (habitat === 'aquatic') {
-      // Bright tropical ocean
-      g.fillGradientStyle(0x0898D8, 0x0898D8, 0x0568B0, 0x0568B0, 1);
-      g.fillRect(0, 0, W, H);
-      for (let ri = 0; ri < 7; ri++) {
-        const rx = 20 + ri * 78;
-        g.fillStyle(0x4FC3F7, 0.035); g.fillTriangle(rx, 0, rx + 18, 0, rx + 55, H * 0.62);
-        g.fillStyle(0x81D4FA, 0.025); g.fillTriangle(rx + 8, 0, rx + 24, 0, rx + 20, H * 0.48);
+      // ── Vibrant Coral Kingdom ────────────────────────────────────────────
+      // Deep layered ocean gradient
+      g.fillGradientStyle(0x0BBDDE, 0x0BBDDE, 0x0688B8, 0x0688B8, 1);
+      g.fillRect(0, 0, W, H * 0.25);
+      g.fillGradientStyle(0x0688B8, 0x0688B8, 0x045090, 0x045090, 1);
+      g.fillRect(0, H * 0.25, W, H * 0.25);
+      g.fillGradientStyle(0x045090, 0x045090, 0x022860, 0x022860, 1);
+      g.fillRect(0, H * 0.50, W, H * 0.22);
+
+      // Ocean surface shimmer at very top
+      g.fillStyle(0x88EEFF, 0.25); g.fillRect(0, 0, W, 12);
+      g.fillStyle(0xAAFFFF, 0.18); g.fillRect(0, 0, W, 6);
+      for (let si = 0; si < 16; si++) {
+        const sx2 = si * 36 + (si % 3) * 8;
+        g.fillStyle(0xCCFFFF, 0.30);
+        g.fillEllipse(sx2, 5, 26 + (si % 3) * 10, 4);
       }
-      g.fillStyle(0xC2A05C, 1); g.fillRect(0, H * 0.72, W, H * 0.28);
-      g.fillStyle(0xD4B483, 1); g.fillRect(0, H * 0.72, W, 9);
-      g.fillStyle(0xE0C898, 0.35); g.fillRect(0, H * 0.724, W, 4);
-      const pebbles = [[48,H*0.74],[118,H*0.72],[202,H*0.745],[298,H*0.73],[385,H*0.74],[458,H*0.72],[505,H*0.745]];
-      pebbles.forEach((pb, i) => {
-        const pc = [0xA08060, 0x8B7355, 0xC4A882][i % 3];
-        g.fillStyle(pc, 1); g.fillEllipse(pb[0], pb[1], 18, 11);
-        g.fillStyle(lighten(pc, 20), 0.35); g.fillEllipse(pb[0] - 3, pb[1] - 2, 8, 5);
-      });
-      const corals = [[88,H*0.695,0xFF5252],[245,H*0.705,0xFF9800],[375,H*0.690,0xE91E63],[490,H*0.700,0x7C4DFF]];
-      corals.forEach(cr => {
-        g.fillStyle(cr[2], 1);
-        g.fillRect(cr[0] - 4, cr[1], 8, 44);
-        g.fillCircle(cr[0], cr[1], 15); g.fillCircle(cr[0] - 11, cr[1] + 9, 11); g.fillCircle(cr[0] + 11, cr[1] + 11, 12);
-        g.fillStyle(lighten(cr[2], 35), 0.45); g.fillCircle(cr[0] - 4, cr[1] - 5, 6);
-      });
-      for (let swi = 0; swi < 5; swi++) {
-        const swx = 28 + swi * 108, swBase = H * 0.72;
-        g.lineStyle(4, 0x1B5E20, 0.8);
-        g.beginPath(); g.moveTo(swx, swBase); g.lineTo(swx + 13, swBase - 52);
-        g.lineTo(swx - 7, swBase - 105); g.lineTo(swx + 11, swBase - 155); g.strokePath();
-        g.lineStyle(3, 0x388E3C, 0.55);
-        g.beginPath(); g.moveTo(swx + 18, swBase - 8); g.lineTo(swx + 7, swBase - 65);
-        g.lineTo(swx + 20, swBase - 115); g.strokePath();
+
+      // Light shafts from surface (bright caustic columns)
+      for (let ci = 0; ci < 9; ci++) {
+        const cx3 = 28 + ci * 58;
+        const cAlpha = 0.06 + (ci % 3) * 0.03;
+        g.fillStyle(0x88EEFF, cAlpha);
+        g.fillTriangle(cx3 - 8, 0, cx3 + 8, 0, cx3 + 38, H * 0.68);
+        g.fillStyle(0xAAFFFF, cAlpha * 0.5);
+        g.fillTriangle(cx3 + 2, 0, cx3 + 14, 0, cx3 + 22, H * 0.50);
       }
+
+      // Fish silhouettes in background
+      ([[80, H*0.32, 1.0], [200, H*0.22, 0.8], [360, H*0.28, 1.2], [450, H*0.18, 0.7], [520, H*0.35, 0.9]] as [number,number,number][]).forEach(([fx, fy, fs]) => {
+        g.fillStyle(0x0055AA, 0.30);
+        g.fillEllipse(fx, fy, 28*fs, 14*fs);
+        g.fillTriangle(fx - 14*fs, fy, fx - 22*fs, fy - 7*fs, fx - 22*fs, fy + 7*fs);
+        g.fillStyle(0x2288CC, 0.20); g.fillEllipse(fx + 4*fs, fy - 2*fs, 10*fs, 7*fs);
+      });
+
+      // Background kelp forest silhouettes
+      for (let ki = 0; ki < 6; ki++) {
+        const kx = 22 + ki * 92, kBase = H * 0.72;
+        g.lineStyle(5, 0x1A6B20, 0.60);
+        g.beginPath(); g.moveTo(kx, kBase);
+        g.lineTo(kx+16, kBase-65); g.lineTo(kx-10, kBase-130); g.lineTo(kx+14, kBase-195);
+        g.strokePath();
+        g.lineStyle(4, 0x2A8A28, 0.40);
+        g.beginPath(); g.moveTo(kx+20, kBase-12);
+        g.lineTo(kx+8, kBase-78); g.lineTo(kx+24, kBase-145);
+        g.strokePath();
+        // Kelp leaf tips
+        g.fillStyle(0x44BB30, 0.55);
+        [[kx, kBase-195],[kx-10, kBase-130],[kx+16, kBase-65]].forEach(([lx, ly]) => {
+          g.fillEllipse(lx, ly, 22, 10);
+        });
+      }
+
+      // 3D perspective sandy sea floor (golden sand)
+      this._drawPerspectiveFloor(g, W, H, H * 0.72, 6, 8, 0xE8C878, 0xD4B060, 0xA07838, 0.32);
+
+      // Sand ripple marks
+      g.lineStyle(1.2, 0xF0D890, 0.35);
+      for (let rr = 0; rr < 10; rr++) {
+        const ry4 = H * 0.726 + rr * 14;
+        g.beginPath();
+        for (let rx4 = 0; rx4 <= W; rx4 += 3) {
+          const sy4 = ry4 + Math.sin(rx4 * 0.065 + rr * 1.3) * 3;
+          if (rx4 === 0) g.moveTo(rx4, sy4); else g.lineTo(rx4, sy4);
+        }
+        g.strokePath();
+      }
+
+      // Large branching coral formations
+      ([[48, H*0.700, 0xFF5252], [180, H*0.690, 0xFF9800], [290, H*0.705, 0xFF3D8A], [420, H*0.695, 0x7C4DFF], [510, H*0.700, 0xFF5722]] as [number,number,number][]).forEach(([crx, cry, crc]) => {
+        // Main trunk
+        g.fillStyle(crc, 1);
+        g.fillRect(crx - 5, cry, 10, 50);
+        // Branches
+        [[crx - 18, cry + 12, crx, cry + 6], [crx + 18, cry + 18, crx, cry + 10]].forEach(([bx2, by2, sx3, sy5]) => {
+          g.fillRect(Math.min(bx2,sx3)-3, Math.min(by2,sy5), Math.abs(bx2-sx3)+6, Math.abs(by2-sy5)+5);
+        });
+        // Flower head clusters
+        [[crx, cry], [crx-18, cry+12], [crx+18, cry+18]].forEach(([hx, hy]) => {
+          g.fillStyle(crc, 1); g.fillCircle(hx, hy, 14);
+          g.fillCircle(hx - 10, hy + 7, 10); g.fillCircle(hx + 10, hy + 9, 11);
+          g.fillCircle(hx - 5, hy - 10, 8);
+          g.fillStyle(lighten(crc, 45), 0.55); g.fillCircle(hx - 4, hy - 4, 6);
+          // Polyp dots
+          g.fillStyle(lighten(crc, 60), 0.80);
+          for (let di = 0; di < 5; di++) {
+            const da = (di / 5) * Math.PI * 2;
+            g.fillCircle(hx + Math.cos(da)*8, hy + Math.sin(da)*8, 2.5);
+          }
+        });
+      });
+
+      // Sea anemones with tentacles
+      ([[110, H*0.715, 0xFF6B9D], [350, H*0.718, 0xFFAA44], [490, H*0.712, 0x88CCFF]] as [number,number,number][]).forEach(([anx, any, anc]) => {
+        g.fillStyle(anc, 0.25); g.fillCircle(anx, any + 5, 18);
+        g.fillStyle(anc, 0.90); g.fillEllipse(anx, any + 8, 24, 14);
+        g.fillStyle(lighten(anc, 30), 0.60); g.fillEllipse(anx - 4, any + 4, 10, 8);
+        // Tentacles
+        g.lineStyle(3, anc, 0.85);
+        [[-14,-28],[-7,-32],[0,-34],[7,-32],[14,-28],[-10,-20],[10,-20]].forEach(([dx, dy]) => {
+          g.beginPath(); g.moveTo(anx, any + 8); g.lineTo(anx + dx, any + 8 + dy); g.strokePath();
+          g.fillStyle(lighten(anc, 50), 0.90); g.fillCircle(anx + dx, any + 8 + dy, 3);
+        });
+      });
+
+      // Starfish on sea floor
+      ([[88, H*0.748, 0xFF8800], [258, H*0.742, 0xFF5252], [465, H*0.750, 0xFFAA22]] as [number,number,number][]).forEach(([sfx, sfy, sfc]) => {
+        g.fillStyle(sfc, 1);
+        for (let arm = 0; arm < 5; arm++) {
+          const a = (arm / 5) * Math.PI * 2 - Math.PI / 2;
+          const a2 = ((arm + 0.5) / 5) * Math.PI * 2 - Math.PI / 2;
+          g.fillTriangle(sfx + Math.cos(a)*14, sfy + Math.sin(a)*14, sfx + Math.cos(a2)*6, sfy + Math.sin(a2)*6, sfx + Math.cos(a2+0.63)*6, sfy + Math.sin(a2+0.63)*6);
+        }
+        g.fillStyle(lighten(sfc, 40), 0.60); g.fillCircle(sfx, sfy, 5);
+        g.fillStyle(0xFFFFDD, 0.55); g.fillCircle(sfx - 1, sfy - 1, 3);
+      });
+
+      // Sunken ruin column
+      const rcx = W * 0.78, rcy = H * 0.60;
+      g.fillStyle(0x4A6080, 0.80); g.fillRect(rcx - 10, rcy, 20, H * 0.12);
+      g.fillStyle(0x607090, 0.90); g.fillRect(rcx - 13, rcy - 8, 26, 12);
+      g.fillStyle(0x708AA0, 0.60); g.fillRect(rcx - 13, rcy + H*0.12 - 2, 26, 10);
+      g.lineStyle(1, 0x88AACC, 0.35);
+      for (let cr2 = 0; cr2 < 5; cr2++) g.strokeRect(rcx - 10, rcy + cr2*16, 20, 16);
     }
 
     this._drawDecorations(g, W, H, habitat);
+  }
+
+  private _drawPerspectiveFloor(
+    g: Phaser.GameObjects.Graphics,
+    W: number, H: number, groundY: number,
+    numCols: number, numRows: number,
+    tileColA: number, tileColB: number,
+    gridCol: number, gridAlpha: number
+  ): void {
+    const vpX = W / 2;
+    for (let row = 0; row < numRows; row++) {
+      const t0 = Math.pow(row / numRows, 1.6);
+      const t1 = Math.pow((row + 1) / numRows, 1.6);
+      const y0 = groundY + (H - groundY) * t0;
+      const y1 = groundY + (H - groundY) * t1;
+      const fade = 0.55 + t0 * 0.45;
+      for (let col = 0; col < numCols; col++) {
+        const bc = (row + col) % 2 === 0 ? tileColA : tileColB;
+        const tr = Math.round(((bc >> 16) & 0xFF) * fade);
+        const tg = Math.round(((bc >> 8)  & 0xFF) * fade);
+        const tb = Math.round((bc & 0xFF) * fade);
+        g.fillStyle((tr << 16) | (tg << 8) | tb, 1);
+        const x0L = vpX + (col / numCols - 0.5) * W * t0;
+        const x0R = vpX + ((col + 1) / numCols - 0.5) * W * t0;
+        const x1L = vpX + (col / numCols - 0.5) * W * t1;
+        const x1R = vpX + ((col + 1) / numCols - 0.5) * W * t1;
+        g.fillTriangle(x0L, y0, x0R, y0, x1R, y1);
+        g.fillTriangle(x0L, y0, x1R, y1, x1L, y1);
+      }
+    }
+    g.lineStyle(1.2, gridCol, gridAlpha);
+    for (let col = 0; col <= numCols; col++) {
+      g.beginPath(); g.moveTo(vpX, groundY); g.lineTo((col / numCols) * W, H); g.strokePath();
+    }
+    for (let row = 1; row <= numRows; row++) {
+      const t = Math.pow(row / numRows, 1.6);
+      const y = groundY + (H - groundY) * t;
+      g.beginPath(); g.moveTo(vpX * (1 - t), y); g.lineTo(vpX + (W - vpX) * t, y); g.strokePath();
+    }
+    // Depth-shadow at wall/floor junction
+    g.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0.50, 0.50, 0, 0);
+    g.fillRect(0, groundY, W, 26);
   }
 
   private _drawDecorations(g: Phaser.GameObjects.Graphics, W: number, H: number, habitat: HabitatType) {
@@ -397,11 +599,12 @@ export class HabitatRoom extends Phaser.Scene {
     const leftX = 112, rightX = W - 112;
 
     const shadowG = this.add.graphics().setDepth(4);
-    shadowG.fillStyle(0x000000, 0.22);
-    shadowG.fillEllipse(W / 2, groundY - 2, 115, 22);
+    shadowG.fillStyle(0x000000, 0.08); shadowG.fillEllipse(W / 2, groundY, 190, 32);
+    shadowG.fillStyle(0x000000, 0.16); shadowG.fillEllipse(W / 2, groundY - 3, 130, 20);
+    shadowG.fillStyle(0x000000, 0.22); shadowG.fillEllipse(W / 2, groundY - 6, 85, 13);
 
     const texKey = makeMonsterTexture(this, this._monster);
-    this._monImg = this.add.image(leftX, monY, texKey).setDisplaySize(152, 152).setDepth(5);
+    this._monImg = this.add.image(leftX, monY, texKey).setDisplaySize(182, 182).setDepth(5);
     this._dirtyOverlay = this.add.graphics().setDepth(6);
 
     this._walkTween = this.tweens.add({
@@ -424,26 +627,36 @@ export class HabitatRoom extends Phaser.Scene {
   // ── STATS BARS ────────────────────────────────────────────────────────────
 
   private _buildStats(W: number, H: number) {
-    const statsY = H * 0.72 + 16;
+    const statsY = H * 0.72 + 18;
     const defs = [
       { key: 'hunger',      label: '🍖', col: 0xF57C00 },
-      { key: 'happiness',   label: '💛', col: 0xFDD835 },
-      { key: 'cleanliness', label: '✨', col: 0x42A5F5 },
+      { key: 'happiness',   label: '❤️', col: 0xFDD835 },
+      { key: 'cleanliness', label: '💧', col: 0x42A5F5 },
     ];
-    const barW = W - 90;
+    const barW = W - 92;
     this._bars = {};
 
     defs.forEach((d, i) => {
       const by = statsY + i * 44;
-      this.add.text(24, by, d.label, { fontFamily: FONT, fontSize: '22px' }).setOrigin(0, 0.5).setDepth(10);
+
+      // Icon with drop shadow for depth
+      this.add.text(26, by + 2, d.label, { fontFamily: FONT, fontSize: '20px', color: '#000000' })
+        .setOrigin(0, 0.5).setDepth(10).setAlpha(0.5);
+      this.add.text(24, by, d.label, { fontFamily: FONT, fontSize: '20px' }).setOrigin(0, 0.5).setDepth(10);
+
+      // Bar track: dark outer border + inset dark fill
       const bg = this.add.graphics().setDepth(10);
-      bg.fillStyle(0x00000055, 1);
+      bg.fillStyle(0x000000, 0.50);
+      bg.fillRoundedRect(52, by - 12, barW + 2, 24, 12);
+      bg.fillStyle(0x111122, 0.85);
       bg.fillRoundedRect(54, by - 11, barW, 22, 11);
+
       const fill = this.add.graphics().setDepth(11);
-      const val = this.add.text(W - 18, by, '0%', {
-        fontFamily: FONT, fontSize: '13px', color: '#eeeeee',
+      const val = this.add.text(W - 16, by, '0%', {
+        fontFamily: FONT, fontSize: '12px', color: '#ffffff',
         stroke: '#000000', strokeThickness: 2,
-      }).setOrigin(1, 0.5).setDepth(12);
+      }).setOrigin(1, 0.5).setDepth(13);
+
       this._bars[d.key] = { fill, col: d.col, bx: 54, by: by - 11, bw: barW, val };
     });
 
@@ -456,9 +669,14 @@ export class HabitatRoom extends Phaser.Scene {
       const e = this._bars[k];
       if (!e) return;
       const pct = Math.max(0, Math.min(1, m[k] / 100));
+      const fillW = Math.max(16, e.bw * pct);
       e.fill.clear();
+      // Main fill
       e.fill.fillStyle(e.col, 1);
-      e.fill.fillRoundedRect(e.bx, e.by, Math.max(16, e.bw * pct), 20, 10);
+      e.fill.fillRoundedRect(e.bx, e.by, fillW, 20, 10);
+      // Shine highlight strip on top half of bar
+      e.fill.fillStyle(0xffffff, 0.22);
+      e.fill.fillRoundedRect(e.bx + 2, e.by + 1, Math.max(10, fillW - 4), 8, { tl: 8, tr: 8, bl: 0, br: 0 });
       e.val.setText(Math.round(m[k]) + '%');
     });
     if (this._dirtyOverlay) this._updateDirtyOverlay();
@@ -554,7 +772,7 @@ export class HabitatRoom extends Phaser.Scene {
   private _buildActions(W: number, H: number) {
     const btnY = H - 72;
     const positions = [W/2 - 148, W/2, W/2 + 148];
-    const icons = ['🍽', '🎾', '🧹'];
+    const icons = ['🍽', '⚽', '🚿'];
     const labels = ['Feed', 'Play', 'Clean'];
     const colors = [0xC83800, 0x9030C8, 0x2080C0];
     const callbacks = [
@@ -618,7 +836,7 @@ export class HabitatRoom extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(20);
 
     this._sellBtn = makeButton(this, W - 72, 34, 116, 44,
-      'Sell  ' + this._sellPrice + '🪙', 0x8B6000, () => this._handleListBtn(), 13);
+      'Sell  ' + this._sellPrice + '💰', 0x8B6000, () => this._handleListBtn(), 13);
     this._sellBtn.setDepth(20);
 
     const isGoldenMon = mods.isGolden;
@@ -626,13 +844,13 @@ export class HabitatRoom extends Phaser.Scene {
     const traitSellMod = trait?.sellMod ?? 1;
     const maxPrice = Math.max(10, Math.round(sp.price * (1 + 10 * 0.2) * 0.8 * goldenMult * traitSellMod));
     const hintLabel = isGoldenMon
-      ? '✨ Golden +50%  ·  max: ' + maxPrice + '🪙'
-      : 'Lv10 max: ' + maxPrice + '🪙  ·  ❤️';
+      ? '✨ Golden +50%  ·  max: ' + maxPrice + '💰'
+      : 'Lv10 max: ' + maxPrice + '💰  ·  ❤️';
     this.add.text(W - 72, 62, hintLabel, {
       fontFamily: FONT, fontSize: '10px', color: isGoldenMon ? '#FFD700' : '#BBAACC',
     }).setOrigin(0.5).setDepth(20);
 
-    this._coinTxt = this.add.text(W / 2, H * 0.72 + 5, '🪙 ' + Game.state!.coins, {
+    this._coinTxt = this.add.text(W / 2, H * 0.72 + 5, '💰 ' + Game.state!.coins, {
       fontFamily: FONT, fontSize: '15px', color: '#FFD700',
       stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5).setDepth(20);
@@ -720,7 +938,7 @@ export class HabitatRoom extends Phaser.Scene {
       const by = fpY + 28 + row * (btnH + 10) + btnH / 2;
       const canAfford = Game.state!.coins >= food.cost;
       const stars = '★'.repeat(food.tier);
-      const lbl = food.name + ' ' + stars + '\n+' + food.hungerGain + '🍖 +' + food.happinessGain + '💛\n' + food.cost + '🪙';
+      const lbl = food.name + ' ' + stars + '\n+' + food.hungerGain + '🍖 +' + food.happinessGain + '💛\n' + food.cost + '💰';
       const tierColors = [0x2A4A18, 0x2A4A28, 0x3A3010];
       const fbtn = makeButton(this, bx, by, btnW - 2, btnH, lbl,
         canAfford ? tierColors[food.tier - 1] : 0x1A1A2A, () => {
@@ -766,7 +984,7 @@ export class HabitatRoom extends Phaser.Scene {
       fpBg.lineStyle(1, 0x7030b0, 0.9);
       fpBg.strokeRoundedRect(fpX, fpY, fpW, fpH, 14);
       this._pickerItems.push(fpBg);
-      this._pickerItems.push(this.add.text(fpX + fpW/2, fpY + 13, '🎾 ' + ownedToy.name, {
+      this._pickerItems.push(this.add.text(fpX + fpW/2, fpY + 13, '⚽ ' + ownedToy.name, {
         fontFamily: FONT, fontSize: '12px', color: '#aa88cc',
       }).setOrigin(0.5).setDepth(28));
       const playHapGain = Math.round(ownedToy.happinessGain * (TRAITS.find(t => t.id === this._monster.trait)?.hapGainMod ?? 1));
@@ -788,7 +1006,7 @@ export class HabitatRoom extends Phaser.Scene {
       if (hasUpgrade && nextToy) {
         const canAfford = Game.state!.coins >= nextToy.cost;
         const upgradeBtn = makeButton(this, fpX + fpW/2, fpY + 120, fpW - 30, 30,
-          'Upgrade → ' + nextToy.name + '  ' + nextToy.cost + '🪙',
+          'Upgrade → ' + nextToy.name + '  ' + nextToy.cost + '💰',
           canAfford ? 0x7040B0 : 0x2A1A40, () => {
             if (Game.state!.coins < nextToy.cost) { showToast(this, 'Not enough coins!', '#ff9999'); return; }
             Game.state!.coins -= nextToy.cost;
@@ -810,7 +1028,7 @@ export class HabitatRoom extends Phaser.Scene {
       fpBg.lineStyle(1, 0x7030b0, 0.9);
       fpBg.strokeRoundedRect(fpX, fpY, fpW, fpH, 14);
       this._pickerItems.push(fpBg);
-      this._pickerItems.push(this.add.text(fpX + fpW/2, fpY + 13, '🎾 Buy a toy (kept forever)', {
+      this._pickerItems.push(this.add.text(fpX + fpW/2, fpY + 13, '⚽ Buy a toy (kept forever)', {
         fontFamily: FONT, fontSize: '12px', color: '#aa88cc',
       }).setOrigin(0.5).setDepth(28));
       const btnW = Math.floor((fpW - 24) / 3);
@@ -819,7 +1037,7 @@ export class HabitatRoom extends Phaser.Scene {
         const bx = fpX + 12 + i * (btnW + 4) + btnW / 2;
         const by = fpY + 27 + btnH / 2;
         const canAfford = Game.state!.coins >= toy.cost;
-        const lbl = toy.name + ' ' + '★'.repeat(toy.tier) + '\n+' + toy.happinessGain + '💛\n' + toy.cost + '🪙';
+        const lbl = toy.name + ' ' + '★'.repeat(toy.tier) + '\n+' + toy.happinessGain + '💛\n' + toy.cost + '💰';
         const fbtn = makeButton(this, bx, by, btnW - 2, btnH, lbl,
           canAfford ? 0x6030A0 : 0x2A1A40, () => {
             if (Game.state!.coins < toy.cost) { showToast(this, 'Not enough coins!', '#ff9999'); return; }
@@ -863,7 +1081,7 @@ export class HabitatRoom extends Phaser.Scene {
       fpBg.lineStyle(1, 0x1060b0, 0.9);
       fpBg.strokeRoundedRect(fpX, fpY, fpW, fpH, 14);
       this._pickerItems.push(fpBg);
-      this._pickerItems.push(this.add.text(fpX + fpW/2, fpY + 13, '🧹 ' + ownedTool.name, {
+      this._pickerItems.push(this.add.text(fpX + fpW/2, fpY + 13, '🚿 ' + ownedTool.name, {
         fontFamily: FONT, fontSize: '12px', color: '#88aacc',
       }).setOrigin(0.5).setDepth(28));
 
@@ -886,7 +1104,7 @@ export class HabitatRoom extends Phaser.Scene {
       if (hasUpgrade && nextTool) {
         const canAfford = Game.state!.coins >= nextTool.cost;
         const upgradeBtn = makeButton(this, fpX + fpW/2, fpY + 120, fpW - 30, 30,
-          'Upgrade → ' + nextTool.name + '  ' + nextTool.cost + '🪙',
+          'Upgrade → ' + nextTool.name + '  ' + nextTool.cost + '💰',
           canAfford ? 0x1070C0 : 0x0A2840, () => {
             if (Game.state!.coins < nextTool.cost) { showToast(this, 'Not enough coins!', '#ff9999'); return; }
             Game.state!.coins -= nextTool.cost;
@@ -908,7 +1126,7 @@ export class HabitatRoom extends Phaser.Scene {
       fpBg.lineStyle(1, 0x1060b0, 0.9);
       fpBg.strokeRoundedRect(fpX, fpY, fpW, fpH, 14);
       this._pickerItems.push(fpBg);
-      this._pickerItems.push(this.add.text(fpX + fpW/2, fpY + 13, '🧹 Buy cleaning tool (kept forever)', {
+      this._pickerItems.push(this.add.text(fpX + fpW/2, fpY + 13, '🚿 Buy cleaning tool (kept forever)', {
         fontFamily: FONT, fontSize: '12px', color: '#88aacc',
       }).setOrigin(0.5).setDepth(28));
       const btnW = Math.floor((fpW - 24) / 3);
@@ -917,7 +1135,7 @@ export class HabitatRoom extends Phaser.Scene {
         const bx = fpX + 12 + i * (btnW + 4) + btnW / 2;
         const by = fpY + 27 + btnH / 2;
         const canAfford = Game.state!.coins >= tool.cost;
-        const lbl = tool.name + ' ' + '★'.repeat(tool.tier) + '\n+' + tool.cleanGain + '✨\n' + tool.cost + '🪙';
+        const lbl = tool.name + ' ' + '★'.repeat(tool.tier) + '\n+' + tool.cleanGain + '✨\n' + tool.cost + '💰';
         const fbtn = makeButton(this, bx, by, btnW - 2, btnH, lbl,
           canAfford ? 0x1060A0 : 0x0A2840, () => {
             if (Game.state!.coins < tool.cost) { showToast(this, 'Not enough coins!', '#ff9999'); return; }
@@ -1232,7 +1450,7 @@ export class HabitatRoom extends Phaser.Scene {
       (this._monster.nickname ?? this._sp.name) + '!', {
       fontFamily: FONT, fontSize: '13px', color: '#aaccaa',
     }).setOrigin(0.5));
-    popup.add(this.add.text(W/2, H/2 - 40, 'Offered: ' + basePrice + ' 🪙', {
+    popup.add(this.add.text(W/2, H/2 - 40, 'Offered: ' + basePrice + ' 💰', {
       fontFamily: FONT, fontSize: '17px', fontStyle: 'bold', color: '#FFD700',
       stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5));
@@ -1251,14 +1469,14 @@ export class HabitatRoom extends Phaser.Scene {
       store.setJSON('mps_state', Game.state);
       sfx.sell();
       this._spawnParticles(W/2, H/2 - 80, 0xFFD700, 26);
-      showFloat(this, W/2, H/2 - 120, '+' + price + ' 🪙', '#ffd700');
+      showFloat(this, W/2, H/2 - 120, '+' + price + ' 💰', '#ffd700');
       this.time.delayedCall(950, () => this.scene.start('Hub'));
     };
 
-    popup.add(makeButton(this, W/2, H/2 + 30, 210, 50, 'Collect ' + basePrice + '🪙', 0x2A8840, () => {
+    popup.add(makeButton(this, W/2, H/2 + 30, 210, 50, 'Collect ' + basePrice + '💰', 0x2A8840, () => {
       finalize(basePrice);
     }, 15));
-    popup.add(makeButton(this, W/2, H/2 + 92, 270, 50, 'Ad x2 → ' + (basePrice * 2) + '🪙', 0x7A4A00, () => {
+    popup.add(makeButton(this, W/2, H/2 + 92, 270, 50, 'Ad x2 → ' + (basePrice * 2) + '💰', 0x7A4A00, () => {
       Ads.showRewarded(res => { finalize(res.rewarded ? basePrice * 2 : basePrice); });
     }, 14));
     popup.add(makeButton(this, W/2, H/2 + 148, 120, 38, 'Cancel', 0x4A2890, () => {
@@ -1284,7 +1502,7 @@ export class HabitatRoom extends Phaser.Scene {
     panel.strokeRoundedRect(W/2 - 135, H/2 - 100, 270, 200, 16);
     popup.add(panel);
 
-    popup.add(this.add.text(W/2, H/2 - 68, 'Sell price: ' + listing.price + '🪙', {
+    popup.add(this.add.text(W/2, H/2 - 68, 'Sell price: ' + listing.price + '💰', {
       fontFamily: FONT, fontSize: '18px', fontStyle: 'bold', color: '#ffffff',
     }).setOrigin(0.5));
     popup.add(this.add.text(W/2, H/2 - 40, 'Ready in ~' + mins + ' min', {
@@ -1311,13 +1529,13 @@ export class HabitatRoom extends Phaser.Scene {
   private _updateListBtnState() {
     const listing = Game.state!.listings.find(l => l.monsterId === this._monster.id);
     if (!listing) {
-      setButtonLabel(this._sellBtn, 'Sell  ' + this._sellPrice + '🪙');
+      setButtonLabel(this._sellBtn, 'Sell  ' + this._sellPrice + '💰');
       setButtonColor(this._sellBtn, 0x8B6000);
       return;
     }
     const remaining = listing.readyAt - Date.now();
     if (remaining <= 0) {
-      setButtonLabel(this._sellBtn, 'Collect ' + listing.price + '🪙');
+      setButtonLabel(this._sellBtn, 'Collect ' + listing.price + '💰');
       setButtonColor(this._sellBtn, 0x1A7040);
       if (!this.tweens.isTweening(this._sellBtn)) {
         this.tweens.add({
@@ -1384,7 +1602,54 @@ export class HabitatRoom extends Phaser.Scene {
   // ── AMBIENT ───────────────────────────────────────────────────────────────
 
   private _startAmbient(W: number, H: number, habitat: HabitatType) {
-    if (habitat !== 'aquatic') return;
+    if (habitat === 'dirt') {
+      const crystalXs = [35, 105, 195, 365, 450, 508];
+      const sparkCols = [0x6644DD, 0x4488FF, 0x8844FF];
+      const spawnSpark = () => {
+        if (!this.scene?.isActive('HabitatRoom')) return;
+        const cx = crystalXs[Math.floor(Math.random() * crystalXs.length)];
+        const sg = this.add.graphics().setDepth(3);
+        sg.fillStyle(sparkCols[Math.floor(Math.random() * sparkCols.length)], 0.88);
+        sg.fillCircle(0, 0, 1.5 + Math.random() * 2);
+        sg.setPosition(cx + (Math.random() - 0.5) * 14, H * 0.70 - 18 + (Math.random() - 0.5) * 12);
+        this.tweens.add({
+          targets: sg,
+          x: sg.x + (Math.random() - 0.5) * 30,
+          y: sg.y - 28 - Math.random() * 20,
+          alpha: 0,
+          duration: 800 + Math.random() * 700,
+          ease: 'Sine.Out',
+          onComplete: (_tw: any, tg: any) => { try { tg[0].destroy(); } catch { /* */ } },
+        });
+      };
+      this.time.addEvent({ delay: 500, loop: true, callback: spawnSpark });
+      for (let i = 0; i < 4; i++) spawnSpark();
+      return;
+    }
+    if (habitat === 'grass') {
+      const leafCols = [0x3A9828, 0x4CAF50, 0x2E7D32, 0x66BB6A];
+      const spawnLeaf = () => {
+        if (!this.scene?.isActive('HabitatRoom')) return;
+        const lx = Math.random() * W;
+        const lg = this.add.graphics().setDepth(2);
+        lg.fillStyle(leafCols[Math.floor(Math.random() * leafCols.length)], 0.70);
+        lg.fillEllipse(0, 0, 10, 5);
+        lg.setPosition(lx, 0);
+        this.tweens.add({
+          targets: lg,
+          x: lx + (Math.random() - 0.5) * 80,
+          y: H * 0.62,
+          alpha: 0,
+          angle: (Math.random() - 0.5) * 220,
+          duration: 2200 + Math.random() * 2000,
+          ease: 'Linear',
+          onComplete: (_tw: any, tg: any) => { try { tg[0].destroy(); } catch { /* */ } },
+        });
+      };
+      this.time.addEvent({ delay: 1000, loop: true, callback: spawnLeaf });
+      for (let i = 0; i < 3; i++) spawnLeaf();
+      return;
+    }
     const spawnBubble = () => {
       if (!this.scene?.isActive('HabitatRoom')) return;
       const bx = 18 + Math.random() * (W - 36);
@@ -1409,6 +1674,6 @@ export class HabitatRoom extends Phaser.Scene {
   // ── UTILS ─────────────────────────────────────────────────────────────────
 
   private _updateCoinDisplay() {
-    if (this._coinTxt) this._coinTxt.setText('🪙 ' + Game.state!.coins);
+    if (this._coinTxt) this._coinTxt.setText('💰 ' + Game.state!.coins);
   }
 }

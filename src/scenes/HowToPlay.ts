@@ -17,8 +17,8 @@ const PAGES = [
     lines: [
       'Tap a monster to enter its habitat room.',
       '🍽 Feed — increases hunger & happiness.',
-      '🎾 Play — boosts happiness.',
-      '🧹 Clean — improves cleanliness.',
+      '⚽ Play — boosts happiness.',
+      '🚿 Clean — improves cleanliness.',
       'A happier monster sells for more!',
     ],
   },
