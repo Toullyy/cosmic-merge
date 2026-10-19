@@ -1,6 +1,6 @@
 ﻿import Phaser from 'phaser';
 import { Game, FONT, store, sfx, recordQuestProgress } from '../utils';
-import { SPECIES, HABITATS, FOOD_TYPES, TOY_TYPES, CLEAN_TOOLS, XP_TABLE, getLevelName, randomBuyer, randomListingDuration, TRAITS } from '../data';
+import { SPECIES, HABITATS, FOOD_TYPES, TOY_TYPES, CLEAN_TOOLS, XP_TABLE, getLevelName, randomBuyer, randomListingDuration, TRAITS, BOWL_EAT_RATE } from '../data';
 import { makeMonsterTexture, getVariantModifiers, lighten, darken } from '../MonsterRenderer';
 import { makeButton, setButtonLabel, setButtonColor } from '../ui/Button';
 import { showToast, showFloat } from '../ui/Toast';
@@ -43,6 +43,12 @@ export class HabitatRoom extends Phaser.Scene {
   private _sadTimer: Phaser.Time.TimerEvent | null = null;
   private _moodTimer: Phaser.Time.TimerEvent | null = null;
   private _happyGlow: Phaser.GameObjects.Graphics | null = null;
+  private _bowlGfx: Phaser.GameObjects.Graphics | null = null;
+  private _bowlLabelTxt: Phaser.GameObjects.Text | null = null;
+  private _bowlSteamTimer: Phaser.Time.TimerEvent | null = null;
+  private _eatTimer: Phaser.Time.TimerEvent | null = null;
+  private _bowlX: number = 0;
+  private _bowlY: number = 0;
 
   constructor() { super({ key: 'HabitatRoom' }); }
 
@@ -62,6 +68,7 @@ export class HabitatRoom extends Phaser.Scene {
     this._drawBackground(W, H, this._sp.habitat);
     this._drawVignette(W, H);
     this._buildMonsterArea(W, H, this._sp);
+    this._buildBowl(W, H);
     this._buildStats(W, H);
     this._buildActions(W, H);
     this._buildHUD(W, H, this._sp);
@@ -627,6 +634,121 @@ export class HabitatRoom extends Phaser.Scene {
     this._startMoodBubble();
   }
 
+  // ── FOOD BOWL ─────────────────────────────────────────────────────────────
+
+  private _buildBowl(W: number, H: number) {
+    this._bowlX = W * 0.72;
+    this._bowlY = H * 0.704;
+    this._bowlGfx = this.add.graphics().setDepth(4);
+    this._bowlLabelTxt = this.add.text(this._bowlX, this._bowlY + 20, '', {
+      fontFamily: FONT, fontSize: '11px', color: '#DDBB88',
+      stroke: '#000000', strokeThickness: 2,
+    }).setOrigin(0.5).setDepth(5);
+    this._drawBowl();
+
+    // Steam particles when bowl has food
+    this._bowlSteamTimer = this.time.addEvent({
+      delay: 900, loop: true,
+      callback: () => {
+        if (!this._monster.bowl || this._monster.bowl.remaining <= 0) return;
+        if (!this.scene?.isActive('HabitatRoom')) return;
+        const sg = this.add.graphics().setDepth(6);
+        sg.fillStyle(0xFFFFFF, 0.42);
+        sg.fillEllipse(0, 0, 5 + Math.random() * 4, 7 + Math.random() * 5);
+        sg.setPosition(this._bowlX + (Math.random() - 0.5) * 24, this._bowlY - 16);
+        this.tweens.add({
+          targets: sg,
+          y: this._bowlY - 50 - Math.random() * 20,
+          x: sg.x + (Math.random() - 0.5) * 18,
+          alpha: 0, scaleX: 1.6, scaleY: 1.6,
+          duration: 800 + Math.random() * 400, ease: 'Sine.Out',
+          onComplete: (_tw: any, tg: any) => { try { tg[0].destroy(); } catch { /* */ } },
+        });
+      },
+    });
+
+    // Eating beat every 20 seconds — visible nom animation + real numeric update
+    this._eatTimer = this.time.addEvent({
+      delay: 20000, loop: true,
+      callback: () => {
+        if (!this._monster.bowl || this._monster.bowl.remaining <= 0) return;
+        if (!this.scene?.isActive('HabitatRoom')) return;
+        const deltaHours = 20 / 3600;
+        const ate = Math.min(this._monster.bowl.remaining, BOWL_EAT_RATE * deltaHours);
+        this._monster.bowl.remaining -= ate;
+        if (this._monster.bowl.remaining < 0.01) this._monster.bowl = null;
+        this._monster.hunger = Math.min(100, this._monster.hunger + ate);
+        store.setJSON('mps_state', Game.state);
+        this._drawBowl();
+        this._refreshStats();
+        showFloat(this, this._bowlX, this._bowlY - 30, 'nom~', '#FFAA44');
+        this._spawnParticles(this._bowlX, this._bowlY - 8, this._monster.bowl?.color ?? 0xFFB300, 5);
+      },
+    });
+  }
+
+  private _drawBowl() {
+    const bx = this._bowlX, by = this._bowlY;
+    const g = this._bowlGfx;
+    if (!g) return;
+    g.clear();
+
+    const bowl = this._monster.bowl;
+    const hasFood = !!(bowl && bowl.remaining > 0);
+
+    // Drop shadow
+    g.fillStyle(0x000000, 0.22);
+    g.fillEllipse(bx + 3, by + 12, 76, 18);
+
+    // Bowl body (ceramic cream)
+    g.fillStyle(0xEEE8D8, 1);
+    g.fillEllipse(bx, by + 4, 72, 16);   // bottom rounded
+    g.fillRect(bx - 34, by - 12, 68, 16); // sides
+    g.fillEllipse(bx, by - 12, 72, 16);   // top opening
+
+    // Food fill inside
+    if (hasFood) {
+      const pct = Math.min(1, bowl!.remaining / bowl!.maxAmount);
+      const fw = 56 * pct + 8;
+      const fh = 11 * pct + 3;
+      g.fillStyle(bowl!.color, 1);
+      g.fillEllipse(bx, by - 12, fw, fh);
+      g.fillStyle(0xFFFFFF, 0.38);
+      g.fillEllipse(bx - 8, by - 15, fw * 0.36, fh * 0.55);
+      if (pct > 0.45) {
+        g.lineStyle(2, bowl!.color, 0.30);
+        g.strokeEllipse(bx, by - 12, fw + 20, fh + 14);
+      }
+    }
+
+    // Bowl inner shadow
+    g.fillStyle(0x000000, 0.10);
+    g.fillEllipse(bx, by - 12, 54, 10);
+
+    // Rim stroke
+    g.lineStyle(2.5, 0xC8BEA8, 1);
+    g.strokeEllipse(bx, by - 12, 72, 16);
+    g.lineStyle(1.5, 0xC8BEA8, 0.55);
+    g.strokeEllipse(bx, by + 4, 72, 16);
+
+    // Highlight arc
+    g.lineStyle(1.5, 0xFFFFFF, 0.50);
+    g.beginPath();
+    g.arc(bx - 10, by - 12, 35, Math.PI + 0.38, Math.PI * 2 - 0.38, false);
+    g.strokePath();
+
+    // Label
+    if (this._bowlLabelTxt) {
+      if (hasFood) {
+        this._bowlLabelTxt.setText(Math.round(bowl!.remaining) + '/' + bowl!.maxAmount);
+        this._bowlLabelTxt.setColor('#DDBB88');
+      } else {
+        this._bowlLabelTxt.setText('empty');
+        this._bowlLabelTxt.setColor('#887766');
+      }
+    }
+  }
+
   // ── STATS BARS ────────────────────────────────────────────────────────────
 
   private _buildStats(W: number, H: number) {
@@ -929,10 +1051,12 @@ export class HabitatRoom extends Phaser.Scene {
         try { document.body.removeChild(this._renameInput); } catch { /* ignore */ }
         this._renameInput = null;
       }
-      if (this._hungerTimer) { this._hungerTimer.destroy(); this._hungerTimer = null; }
-      if (this._sadTimer)    { this._sadTimer.destroy();    this._sadTimer    = null; }
-      if (this._moodTimer)   { this._moodTimer.destroy();   this._moodTimer   = null; }
-      if (this._happyGlow)   { try { this._happyGlow.destroy(); } catch { /* */ } this._happyGlow = null; }
+      if (this._hungerTimer)    { this._hungerTimer.destroy();    this._hungerTimer    = null; }
+      if (this._sadTimer)       { this._sadTimer.destroy();       this._sadTimer       = null; }
+      if (this._moodTimer)      { this._moodTimer.destroy();      this._moodTimer      = null; }
+      if (this._happyGlow)      { try { this._happyGlow.destroy(); } catch { /* */ } this._happyGlow = null; }
+      if (this._bowlSteamTimer) { this._bowlSteamTimer.destroy(); this._bowlSteamTimer = null; }
+      if (this._eatTimer)       { this._eatTimer.destroy();       this._eatTimer       = null; }
     });
   }
 
@@ -1009,13 +1133,24 @@ export class HabitatRoom extends Phaser.Scene {
       const by = fpY + 28 + row * (btnH + 10) + btnH / 2;
       const canAfford = Game.state!.coins >= food.cost;
       const stars = '★'.repeat(food.tier);
-      const lbl = food.name + ' ' + stars + '\n+' + food.hungerGain + '🍖 +' + food.happinessGain + '💛\n' + food.cost + '💰';
+      const lbl = food.name + ' ' + stars + '\n' + food.hungerGain + ' bowl +' + food.happinessGain + '💛\n' + food.cost + '💰';
       const tierColors = [0x2A4A18, 0x2A4A28, 0x3A3010];
       const fbtn = makeButton(this, bx, by, btnW - 2, btnH, lbl,
         canAfford ? tierColors[food.tier - 1] : 0x1A1A2A, () => {
           if (Game.state!.coins < food.cost) { showToast(this, 'Not enough coins!', '#ff9999'); return; }
           Game.state!.coins -= food.cost;
-          this._monster.hunger    = Math.min(100, this._monster.hunger    + food.hungerGain);
+          // Food goes into bowl; happiness gained immediately (seeing food makes them happy)
+          const bowlColor = FOOD_COLORS[food.id] ?? 0xFFB300;
+          if (this._monster.bowl && this._monster.bowl.remaining > 0) {
+            const space = 100 - this._monster.bowl.remaining;
+            const added = Math.min(food.hungerGain, Math.max(0, space));
+            this._monster.bowl.remaining += added;
+            this._monster.bowl.maxAmount = this._monster.bowl.remaining;
+            this._monster.bowl.color = bowlColor;
+            if (added < food.hungerGain) showToast(this, 'Bowl topped up!', '#ffcc88');
+          } else {
+            this._monster.bowl = { foodId: food.id, remaining: food.hungerGain, maxAmount: food.hungerGain, color: bowlColor };
+          }
           this._monster.happiness = Math.min(100, this._monster.happiness + food.happinessGain);
           this._monster.lastCaredAt = Date.now();
           const feedXpBonus = TRAITS.find(t => t.id === this._monster.trait)?.xpMod ?? 0;
@@ -1023,10 +1158,10 @@ export class HabitatRoom extends Phaser.Scene {
           recordQuestProgress('feed');
           store.setJSON('mps_state', Game.state);
           sfx.feed();
-          this._playFeedAnim(food.id, food.tier);
-          showFloat(this, this._monImg.x, this._monImg.y - 85,
-            '+' + food.hungerGain + '🍖 +' + food.happinessGain + '💛', '#ffcc44');
+          this._playBowlFeedAnim(food.id, food.tier);
+          showFloat(this, this._bowlX, this._bowlY - 42, '+' + food.happinessGain + '💛  yum!', '#ffcc44');
           this._refreshStats();
+          this._drawBowl();
           this._updateCoinDisplay();
           this._clearPicker();
         }, 10);
@@ -1327,6 +1462,43 @@ export class HabitatRoom extends Phaser.Scene {
                 });
               },
             });
+          },
+        });
+      },
+    });
+  }
+
+  private _playBowlFeedAnim(foodId: string, tier: number) {
+    const color = FOOD_COLORS[foodId] ?? 0xFFB300;
+    const r = 10 + tier * 3;
+    const mx = this._monImg.x;
+
+    const foodG = this.add.graphics().setDepth(30);
+    foodG.fillStyle(color, 1);
+    foodG.fillCircle(0, 0, r);
+    foodG.fillStyle(0xFFFFFF, 0.50);
+    foodG.fillCircle(-r * 0.35, -r * 0.40, r * 0.38);
+    foodG.setPosition(mx, this._monImg.y - 70).setScale(0);
+
+    this.tweens.add({
+      targets: foodG, scaleX: 1, scaleY: 1,
+      duration: 200, ease: 'Back.Out',
+      onComplete: () => {
+        this.tweens.add({
+          targets: foodG,
+          x: this._bowlX, y: this._bowlY - 14,
+          scaleX: 0.55, scaleY: 0.55, angle: 180,
+          duration: 380, ease: 'Quad.In',
+          onComplete: () => {
+            foodG.destroy();
+            this._spawnParticles(this._bowlX, this._bowlY - 10, color, 7 + tier * 3);
+            // Bowl pop
+            if (this._bowlGfx) {
+              this.tweens.add({
+                targets: this._bowlGfx, scaleX: 1.08, scaleY: 1.08,
+                duration: 90, ease: 'Quad.Out', yoyo: true,
+              });
+            }
           },
         });
       },

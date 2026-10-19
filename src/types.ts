@@ -27,6 +27,7 @@ export interface Monster {
   ownedToy?: string;
   ownedTool?: string;
   trait?: string;
+  bowl?: { foodId: string; remaining: number; maxAmount: number; color: number } | null;
 }
 
 export interface Egg {

@@ -77,6 +77,7 @@ export const CLEAN_TOOLS: CleanTool[] = [
 ];
 
 export const DECAY = { happiness: -2, hunger: -5, cleanliness: -3 };
+export const BOWL_EAT_RATE = 8; // hunger units per hour monster eats from bowl
 
 export const HABITATS: Record<HabitatType, HabitatConfig> = {
   dirt:    { label:'Dirt Den',    bgColor:0x3E2723, wallColor:0x5D4037, unlockCost:0    },
