@@ -1037,7 +1037,7 @@ export class HabitatRoom extends Phaser.Scene {
     const hintLabel = isGoldenMon
       ? '✨ Golden +50%  ·  max: ' + maxPrice + '💰'
       : 'Lv10 max: ' + maxPrice + '💰  ·  ❤️';
-    this.add.text(W - 72, 62, hintLabel, {
+    this.add.text(W - 72, 76, hintLabel, {
       fontFamily: FONT, fontSize: '10px', color: isGoldenMon ? '#FFD700' : '#BBAACC',
     }).setOrigin(0.5).setDepth(20);
 

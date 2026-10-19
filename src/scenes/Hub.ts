@@ -214,7 +214,7 @@ export class Hub extends Phaser.Scene {
       stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0, 0.5).setDepth(11);
 
-    this._coinTxt = this.add.text(52, 34, String(Game.state!.coins), {
+    this._coinTxt = this.add.text(62, 34, String(Game.state!.coins), {
       fontFamily: FONT, fontSize: '21px', color: '#ffffff', fontStyle: 'bold',
       stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0, 0.5).setDepth(11);

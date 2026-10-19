@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { Game, FONT, store, sfx } from '../utils';
-import { CATALOG, HABITATS, newEgg, SPECIES, generateMerchantStock, MERCHANT_REFRESH_MS, TANK_CAPACITY, DECORATIONS } from '../data';
+import { CATALOG, HABITATS, newEgg, SPECIES, generateMerchantStock, MERCHANT_REFRESH_MS, TANK_CAPACITY, DECORATIONS, TOY_TYPES } from '../data';
+import type { Monster } from '../types';
 import { shiftHue } from '../MonsterRenderer';
 import { makeButton } from '../ui/Button';
 import { showToast } from '../ui/Toast';
@@ -12,6 +13,8 @@ export class Merchant extends Phaser.Scene {
   private _coinTxt!: Phaser.GameObjects.Text;
   private _refreshTxt!: Phaser.GameObjects.Text;
   private _refreshTimer: Phaser.Time.TimerEvent | null = null;
+  private _toyHabitat = 'dirt';
+  private _toyPickerGroup: Phaser.GameObjects.Group | null = null;
 
   constructor() { super({ key: 'Merchant' }); }
 
@@ -66,8 +69,8 @@ export class Merchant extends Phaser.Scene {
     bg.fillStyle(0x6622BB, 0.28);
     bg.fillRect(0, 163, W, 2);
 
-    // Bottom floor fade
-    bg.fillGradientStyle(0x000000, 0x000000, 0x080220, 0x080220, 1);
+    // Bottom fade — same purple family, no black
+    bg.fillGradientStyle(0x100436, 0x100436, 0x080220, 0x080220, 1);
     bg.fillRect(0, H - 70, W, 70);
 
     // Sign board (wooden)
@@ -108,7 +111,7 @@ export class Merchant extends Phaser.Scene {
     coinBg.lineStyle(1.5, 0xFFCC00, 0.65);
     coinBg.strokeRoundedRect(8, 8, 148, 40, 20);
     this.add.text(26, 28, '💰', { fontFamily: FONT, fontSize: '18px' }).setOrigin(0, 0.5).setDepth(5);
-    this._coinTxt = this.add.text(50, 28, String(Game.state!.coins), {
+    this._coinTxt = this.add.text(57, 28, String(Game.state!.coins), {
       fontFamily: FONT, fontSize: '17px', color: '#FFD700', fontStyle: 'bold',
     }).setOrigin(0, 0.5).setDepth(5);
 
@@ -198,12 +201,12 @@ export class Merchant extends Phaser.Scene {
   }
 
   private _buildFilterTabs(W: number) {
-    const filters = ['dirt', 'grass', 'aquatic', 'decor'];
+    const filters = ['dirt', 'grass', 'aquatic', 'decor', 'toys'];
     const labels: Record<string, string> = {
       dirt: '⛰ Dirt', grass: '🌿 Grass',
-      aquatic: '🌊 Aqua', decor: '🎨 Decor',
+      aquatic: '🌊 Aqua', decor: '🎨 Decor', toys: '🧸 Toys',
     };
-    const tabW = (W - 20) / 4;
+    const tabW = (W - 20) / 5;
     filters.forEach((f, i) => {
       const x = 10 + tabW * i;
       const g = this.add.graphics().setDepth(4);
@@ -227,10 +230,10 @@ export class Merchant extends Phaser.Scene {
 
   private _updateFilterTabs() {
     const W = this.scale.width;
-    const filters = ['dirt', 'grass', 'aquatic', 'decor'];
-    const tabW = (W - 20) / 4;
-    const activeCol: Record<string, number> = { dirt: 0x7A3808, grass: 0x286020, aquatic: 0x0E5A90, decor: 0x702808 };
-    const glowCol: Record<string, number>   = { dirt: 0xFFAA44, grass: 0x66DD33, aquatic: 0x44CCFF, decor: 0xFFAA22 };
+    const filters = ['dirt', 'grass', 'aquatic', 'decor', 'toys'];
+    const tabW = (W - 20) / filters.length;
+    const activeCol: Record<string, number> = { dirt: 0x7A3808, grass: 0x286020, aquatic: 0x0E5A90, decor: 0x702808, toys: 0x4A1878 };
+    const glowCol: Record<string, number>   = { dirt: 0xFFAA44, grass: 0x66DD33, aquatic: 0x44CCFF, decor: 0xFFAA22, toys: 0xCC88FF };
 
     this._filterGroup.getChildren().forEach(child => {
       const key = (child as any)._filterKey;
@@ -268,8 +271,14 @@ export class Merchant extends Phaser.Scene {
   // ── GRID ───────────────────────────────────────────────────────────────────
 
   private _buildGrid(W: number, H: number) {
+    this._closeToyPicker();
     this._gridGroup.clear(true, true);
+    this._refreshTxt.setVisible(this._filter !== 'toys');
 
+    if (this._filter === 'toys') {
+      this._buildToyGrid(W, H);
+      return;
+    }
     if (this._filter === 'decor') {
       this._buildDecorGrid(W, H);
       return;
@@ -518,6 +527,205 @@ export class Merchant extends Phaser.Scene {
     this._coinTxt.setText(String(state.coins));
     sfx.buy();
     showToast(this, sp.name + ' egg added! Hatch in ' + sp.hatchHours + 'h', '#aaffaa');
+    this._buildGrid(this.scale.width, this.scale.height);
+  }
+
+  // ── TOYS TAB ──────────────────────────────────────────────────────────────
+
+  private _buildToyGrid(W: number, H: number) {
+    const habitats = ['dirt', 'grass', 'aquatic'] as const;
+    const habLabels = { dirt: '⛰ Dirt', grass: '🌿 Grass', aquatic: '🌊 Aqua' };
+    const habCols   = { dirt: 0xFFAA44, grass: 0x66DD33, aquatic: 0x44CCFF };
+    const subTabW = (W - 20) / 3;
+
+    // Habitat sub-tabs
+    habitats.forEach((h, i) => {
+      const tx = 10 + subTabW * i;
+      const cx = tx + subTabW / 2;
+      const active = h === this._toyHabitat;
+      const col = habCols[h];
+
+      const bg = this.add.graphics().setDepth(4);
+      if (active) {
+        bg.fillStyle(col, 0.18);
+        bg.fillRoundedRect(tx + 1, 175, subTabW - 4, 28, 7);
+        bg.lineStyle(1.5, col, 0.80);
+        bg.strokeRoundedRect(tx + 1, 175, subTabW - 4, 28, 7);
+      } else {
+        bg.fillStyle(0x160638, 0.75);
+        bg.fillRoundedRect(tx + 1, 175, subTabW - 4, 28, 7);
+        bg.lineStyle(1, 0x3A1668, 0.50);
+        bg.strokeRoundedRect(tx + 1, 175, subTabW - 4, 28, 7);
+      }
+      this._gridGroup.add(bg);
+
+      const hexCol = '#' + col.toString(16).padStart(6, '0');
+      this._gridGroup.add(this.add.text(cx, 189, habLabels[h], {
+        fontFamily: FONT, fontSize: '13px',
+        color: active ? hexCol : '#776699',
+        fontStyle: active ? 'bold' : 'normal',
+      }).setOrigin(0.5).setDepth(5));
+
+      const zone = this.add.zone(cx, 189, subTabW - 4, 28).setInteractive().setDepth(5);
+      zone.on('pointerdown', () => { this._toyHabitat = h; this._buildGrid(W, H); });
+      this._gridGroup.add(zone);
+    });
+
+    // Toy cards
+    const toyEmojis: Record<string, string> = { yarn: '🧶', stick: '🪄', gem: '💎' };
+    const cardW = W - 40;
+    const cardH = 96;
+    const startY = 220;
+
+    TOY_TYPES.forEach((toy, idx) => {
+      const cy = startY + idx * (cardH + 10) + cardH / 2;
+      const cx = W / 2;
+
+      const card = this.add.graphics().setDepth(3);
+      card.fillStyle(0x000000, 0.32);
+      card.fillRoundedRect(cx - cardW / 2 + 3, cy - cardH / 2 + 3, cardW, cardH, 12);
+      card.fillGradientStyle(0x1A0840, 0x1A0840, 0x2A1060, 0x2A1060, 1);
+      card.fillRoundedRect(cx - cardW / 2, cy - cardH / 2, cardW, cardH, 12);
+      card.lineStyle(1.5, 0x6644AA, 0.50);
+      card.strokeRoundedRect(cx - cardW / 2, cy - cardH / 2, cardW, cardH, 12);
+      this._gridGroup.add(card);
+
+      this._gridGroup.add(this.add.text(cx - cardW / 2 + 26, cy, toyEmojis[toy.id] ?? '🎁', {
+        fontFamily: FONT, fontSize: '32px',
+      }).setOrigin(0.5).setDepth(4));
+
+      this._gridGroup.add(this.add.text(cx - cardW / 2 + 58, cy - 22, toy.name, {
+        fontFamily: FONT, fontSize: '15px', fontStyle: 'bold', color: '#FFFFFF',
+      }).setOrigin(0, 0.5).setDepth(4));
+
+      const tierStars = '★'.repeat(toy.tier) + '☆'.repeat(3 - toy.tier);
+      this._gridGroup.add(this.add.text(cx - cardW / 2 + 58, cy - 2, tierStars + '   +' + toy.happinessGain + ' ❤', {
+        fontFamily: FONT, fontSize: '12px', color: '#FFCC88',
+      }).setOrigin(0, 0.5).setDepth(4));
+
+      this._gridGroup.add(this.add.text(cx - cardW / 2 + 58, cy + 20, toy.cost + ' 💰', {
+        fontFamily: FONT, fontSize: '13px', color: '#FFD700', fontStyle: 'bold',
+      }).setOrigin(0, 0.5).setDepth(4));
+
+      const btn = makeButton(this, cx + cardW / 2 - 66, cy, 112, 36, 'Give to ▾', 0x341278, () => {
+        this._showMonsterPicker(toy.id, toy.name, toy.cost, toy.tier);
+      }, 13).setDepth(4);
+      this._gridGroup.add(btn);
+    });
+  }
+
+  private _showMonsterPicker(toyId: string, toyName: string, toyCost: number, toyTier: number) {
+    this._closeToyPicker();
+    this._toyPickerGroup = this.add.group();
+
+    const W = this.scale.width, H = this.scale.height;
+    const state = Game.state!;
+    const monsters = state.monsters.filter(m => m.habitatType === this._toyHabitat);
+    const habIcons: Record<string, string> = { dirt: '⛰', grass: '🌿', aquatic: '🌊' };
+    const toyEmojis: Record<string, string> = { yarn: '🧶', stick: '🪄', gem: '💎' };
+
+    const backdrop = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.65)
+      .setDepth(28).setInteractive();
+    backdrop.on('pointerdown', () => this._closeToyPicker());
+    this._toyPickerGroup.add(backdrop);
+
+    const panelW = Math.min(470, W - 30);
+    const rowH = 76;
+    const panelH = Math.min(560, 80 + Math.max(1, monsters.length) * rowH + 16);
+    const panelX = W / 2 - panelW / 2;
+    const panelY = Math.max(60, H / 2 - panelH / 2);
+
+    const panel = this.add.graphics().setDepth(29);
+    panel.fillStyle(0x12063A, 1);
+    panel.fillRoundedRect(panelX, panelY, panelW, panelH, 18);
+    panel.lineStyle(2, 0x8844DD, 0.85);
+    panel.strokeRoundedRect(panelX, panelY, panelW, panelH, 18);
+    this._toyPickerGroup.add(panel);
+
+    const titleEmoji = toyEmojis[toyId] ?? '🎁';
+    const habIcon = habIcons[this._toyHabitat] ?? '';
+    this._toyPickerGroup.add(this.add.text(W / 2 - 16, panelY + 28,
+      titleEmoji + ' ' + toyName + ' → ' + habIcon + ' monster', {
+      fontFamily: FONT, fontSize: '14px', fontStyle: 'bold', color: '#CC88FF',
+    }).setOrigin(0.5).setDepth(29));
+
+    this._toyPickerGroup.add(makeButton(this, panelX + panelW - 24, panelY + 22, 36, 28, '✕', 0x4A1270, () => {
+      this._closeToyPicker();
+    }, 13).setDepth(29));
+
+    if (monsters.length === 0) {
+      this._toyPickerGroup.add(this.add.text(W / 2, panelY + panelH / 2 + 10,
+        'No ' + this._toyHabitat + ' monsters yet!', {
+        fontFamily: FONT, fontSize: '15px', color: '#7766AA',
+      }).setOrigin(0.5).setDepth(29));
+      return;
+    }
+
+    monsters.forEach((mon, idx) => {
+      const sp = SPECIES[mon.speciesId];
+      const ry = panelY + 56 + idx * rowH;
+      const currentToy = TOY_TYPES.find(t => t.id === mon.ownedToy);
+      const currentTier = currentToy?.tier ?? 0;
+
+      const rowBg = this.add.graphics().setDepth(29);
+      rowBg.fillStyle(0x1E0A4A, 0.80);
+      rowBg.fillRoundedRect(panelX + 10, ry, panelW - 20, rowH - 6, 10);
+      this._toyPickerGroup!.add(rowBg);
+
+      const displayName = (sp?.name ?? 'Monster') + (mon.nickname ? ' "' + mon.nickname + '"' : '') + '  Lv.' + mon.level;
+      this._toyPickerGroup!.add(this.add.text(panelX + 22, ry + 14, displayName, {
+        fontFamily: FONT, fontSize: '14px', fontStyle: 'bold', color: '#FFFFFF',
+      }).setDepth(29));
+
+      const curLabel = currentToy
+        ? ('Has: ' + (toyEmojis[mon.ownedToy!] ?? '') + ' ' + currentToy.name)
+        : 'No toy yet';
+      this._toyPickerGroup!.add(this.add.text(panelX + 22, ry + 34, curLabel, {
+        fontFamily: FONT, fontSize: '12px', color: '#9988BB',
+      }).setDepth(29));
+
+      const btnX = panelX + panelW - 80;
+      const btnY = ry + rowH / 2 - 6;
+      if (toyTier === currentTier) {
+        const badge = this.add.graphics().setDepth(29);
+        badge.fillStyle(0x2A2A2A, 0.70);
+        badge.fillRoundedRect(btnX - 56, btnY - 13, 112, 26, 8);
+        this._toyPickerGroup!.add(badge);
+        this._toyPickerGroup!.add(this.add.text(btnX, btnY, '✓ Same tier', {
+          fontFamily: FONT, fontSize: '12px', color: '#667766',
+        }).setOrigin(0.5).setDepth(29));
+      } else {
+        const isUpgrade = toyTier > currentTier;
+        const btnLabel = (isUpgrade ? '▲ ' : '▼ ') + toyCost + '💰';
+        const btnCol = isUpgrade ? 0x1A5A18 : 0x5A2A12;
+        this._toyPickerGroup!.add(makeButton(this, btnX, btnY, 112, 26, btnLabel, btnCol, () => {
+          this._handleBuyToy(mon, toyId, toyName, toyCost);
+        }, 12).setDepth(29));
+      }
+    });
+  }
+
+  private _closeToyPicker() {
+    if (this._toyPickerGroup) {
+      this._toyPickerGroup.clear(true, true);
+      this._toyPickerGroup = null;
+    }
+  }
+
+  private _handleBuyToy(mon: Monster, toyId: string, toyName: string, toyCost: number) {
+    const state = Game.state!;
+    if (state.coins < toyCost) {
+      showToast(this, 'Need ' + toyCost + ' 💰!', '#ffaaaa');
+      return;
+    }
+    state.coins -= toyCost;
+    mon.ownedToy = toyId;
+    store.setJSON('mps_state', state);
+    this._coinTxt.setText(String(state.coins));
+    sfx.buy();
+    const spName = SPECIES[mon.speciesId]?.name ?? 'monster';
+    showToast(this, toyName + ' given to ' + spName + '!', '#aaffaa');
+    this._closeToyPicker();
     this._buildGrid(this.scale.width, this.scale.height);
   }
 }
