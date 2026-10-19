@@ -46,65 +46,29 @@ export class Merchant extends Phaser.Scene {
   private _buildBackground(W: number, H: number) {
     const bg = this.add.graphics().setDepth(0);
 
-    // Deep indigo sky gradient
-    bg.fillGradientStyle(0x08041A, 0x08041A, 0x160838, 0x160838, 1);
-    bg.fillRect(0, 0, W, H * 0.55);
-    bg.fillGradientStyle(0x160838, 0x160838, 0x1C0A44, 0x1C0A44, 1);
-    bg.fillRect(0, H * 0.55, W, H * 0.45);
+    // Base: full deep indigo gradient
+    bg.fillGradientStyle(0x06021C, 0x06021C, 0x100436, 0x100436, 1);
+    bg.fillRect(0, 0, W, H);
 
-    // Star field
-    for (let i = 0; i < 56; i++) {
-      const sx = Math.random() * W, sy = Math.random() * H * 0.88;
-      bg.fillStyle(0xFFFFFF, 0.25 + Math.random() * 0.55);
-      bg.fillCircle(sx, sy, 0.7 + Math.random() * 1.2);
+    // Header band slightly richer purple
+    bg.fillGradientStyle(0x1C0650, 0x1C0650, 0x080220, 0x080220, 1);
+    bg.fillRect(0, 0, W, 165);
+
+    // Stars — only in the header zone (y < 165) so they never overlap cards
+    for (let i = 0; i < 38; i++) {
+      const sx = Math.random() * W;
+      const sy = Math.random() * 162;
+      bg.fillStyle(0xFFFFFF, 0.18 + Math.random() * 0.50);
+      bg.fillCircle(sx, sy, 0.6 + Math.random() * 1.1);
     }
 
-    // Header band (darker for sign area)
-    bg.fillGradientStyle(0x200858, 0x200858, 0x140430, 0x140430, 1);
-    bg.fillRect(0, 0, W, 130);
+    // Subtle divider line between header and card zone
+    bg.fillStyle(0x6622BB, 0.28);
+    bg.fillRect(0, 163, W, 2);
 
-    // Left corner: small potions on a shelf
-    bg.fillStyle(0x280A58, 1);
-    bg.fillRect(0, H * 0.48, 36, H * 0.16);
-    bg.lineStyle(1.5, 0x3A1070, 1);
-    bg.strokeRect(0, H * 0.48, 36, 1);
-    bg.strokeRect(0, H * 0.64, 36, 1);
-    ([
-      [14, H * 0.52, 0xFF4488, 0xFF88BB],
-      [24, H * 0.56, 0x44AAFF, 0x88CCFF],
-      [10, H * 0.60, 0xFFCC00, 0xFFEE88],
-    ] as [number, number, number, number][]).forEach(([px, py, col, sheen]) => {
-      bg.fillStyle(col, 0.85);
-      bg.fillRect(px - 4, py - 10, 8, 13);
-      bg.fillEllipse(px, py - 10, 10, 8);
-      bg.fillStyle(0x000000, 0.25);
-      bg.fillRect(px - 2, py - 12, 4, 5);
-      bg.fillStyle(sheen, 0.45);
-      bg.fillRect(px - 2, py - 9, 3, 8);
-    });
-
-    // Right corner: crystal cluster
-    bg.fillStyle(0x280A58, 1);
-    bg.fillRect(W - 36, H * 0.48, 36, H * 0.16);
-    bg.lineStyle(1.5, 0x3A1070, 1);
-    bg.strokeRect(W - 36, H * 0.48, 36, 1);
-    bg.strokeRect(W - 36, H * 0.64, 36, 1);
-    ([
-      [W - 22, H * 0.52, 0xCC44FF, 16],
-      [W - 12, H * 0.55, 0x88AAFF, 13],
-      [W - 28, H * 0.60, 0xFF66CC, 12],
-    ] as [number, number, number, number][]).forEach(([cx, cy, cc, ch]) => {
-      bg.fillStyle(cc, 0.88);
-      bg.fillTriangle(cx - 4, cy, cx + 4, cy, cx, cy - ch);
-      bg.fillTriangle(cx - 7, cy, cx - 1, cy, cx - 4, cy - ch * 0.72);
-      bg.fillTriangle(cx + 1, cy, cx + 7, cy, cx + 4, cy - ch * 0.72);
-      bg.fillStyle(0xFFFFFF, 0.35);
-      bg.fillTriangle(cx - 1, cy - 2, cx + 1, cy - 2, cx, cy - ch * 0.78);
-    });
-
-    // Floor gradient hint
-    bg.fillGradientStyle(0x0A0220, 0x0A0220, 0x18064A, 0x18064A, 1);
-    bg.fillRect(0, H * 0.92, W, H * 0.08);
+    // Bottom floor fade
+    bg.fillGradientStyle(0x000000, 0x000000, 0x080220, 0x080220, 1);
+    bg.fillRect(0, H - 70, W, 70);
 
     // Sign board (wooden)
     const sg = this.add.graphics().setDepth(3);
@@ -168,45 +132,43 @@ export class Merchant extends Phaser.Scene {
   // ── AMBIENT ────────────────────────────────────────────────────────────────
 
   private _startAmbient(W: number, H: number) {
-    // Glowing orbs at corners/sides
+    // Orbs confined to the header zone (y < 155) — never behind cards
     ([
-      [W * 0.06, H * 0.28, 0x7722FF, 44],
-      [W * 0.92, H * 0.22, 0x2266FF, 40],
-      [W * 0.04, H * 0.68, 0xFF3388, 36],
-      [W * 0.94, H * 0.72, 0x22DDFF, 36],
-      [W * 0.50, H * 0.90, 0xAA33FF, 28],
+      [W * 0.12, 62, 0x8833FF, 30],
+      [W * 0.88, 58, 0x3366FF, 26],
+      [W * 0.50, 140, 0xAA33FF, 20],
     ] as [number, number, number, number][]).forEach(([ox, oy, oc, or]) => {
       const og = this.add.graphics().setDepth(1);
-      og.fillStyle(oc, 0.09);
+      og.fillStyle(oc, 0.10);
       og.fillCircle(ox, oy, or);
-      og.fillStyle(oc, 0.15);
-      og.fillCircle(ox, oy, or * 0.5);
+      og.fillStyle(oc, 0.18);
+      og.fillCircle(ox, oy, or * 0.45);
       this.tweens.add({
-        targets: og, alpha: { from: 0.6, to: 0.2 },
-        duration: 1800 + Math.random() * 1400, yoyo: true, repeat: -1, ease: 'Sine.InOut',
+        targets: og, alpha: { from: 0.55, to: 0.15 },
+        duration: 2000 + Math.random() * 1200, yoyo: true, repeat: -1, ease: 'Sine.InOut',
       });
     });
 
-    // Floating magic sparkles
-    const sparkleColors = [0xFFCC44, 0xCC66FF, 0x66DDFF, 0xFF88CC, 0xAAFF88];
+    // Sparkles: header-only (y < 160), depth 1 so grid cards (depth 3) always win
+    const sparkleColors = [0xFFCC44, 0xCC66FF, 0x66DDFF, 0xFF88CC];
     const spawnSparkle = () => {
       if (!this.scene?.isActive('Merchant')) return;
-      const sx = 26 + Math.random() * (W - 52);
-      const sy = 148 + Math.random() * (H - 200);
+      const sx = 12 + Math.random() * (W - 24);
+      const sy = 8 + Math.random() * 150;   // header band only
       const sc = sparkleColors[Math.floor(Math.random() * sparkleColors.length)];
-      const sg = this.add.graphics().setDepth(2);
-      sg.fillStyle(sc, 0.88);
+      const sg = this.add.graphics().setDepth(1);
+      sg.fillStyle(sc, 0.90);
       sg.fillCircle(0, 0, 1.5 + Math.random() * 2);
       sg.setPosition(sx, sy);
       this.tweens.add({
         targets: sg,
-        y: sy - 36 - Math.random() * 36,
+        y: sy - 28 - Math.random() * 24,
         alpha: 0, scaleX: 0.2, scaleY: 0.2,
-        duration: 850 + Math.random() * 650, ease: 'Sine.Out',
+        duration: 700 + Math.random() * 500, ease: 'Sine.Out',
         onComplete: (_tw: any, tg: any) => { try { tg[0].destroy(); } catch { /* */ } },
       });
     };
-    this.time.addEvent({ delay: 380, loop: true, callback: spawnSparkle });
+    this.time.addEvent({ delay: 480, loop: true, callback: spawnSparkle });
   }
 
   // ── FILTER TABS ────────────────────────────────────────────────────────────
@@ -342,7 +304,7 @@ export class Merchant extends Phaser.Scene {
       const borderCol = HABITATS[sp.habitat].wallColor;
 
       // Card shadow
-      const card = this.add.graphics();
+      const card = this.add.graphics().setDepth(3);
       card.fillStyle(0x000000, 0.38);
       card.fillRoundedRect(cx - cardW / 2 + 4, cy - cardH / 2 + 4, cardW, cardH, 16);
       // Card body
@@ -358,7 +320,7 @@ export class Merchant extends Phaser.Scene {
       this._gridGroup.add(card);
 
       // Egg with glow
-      const eggG = this.add.graphics();
+      const eggG = this.add.graphics().setDepth(4);
       const eggColor = shiftHue(sp.baseColor, ((sp.id * 13) % 12 - 6) * 15);
       if (unlocked) {
         eggG.fillStyle(eggColor, 0.10); eggG.fillEllipse(cx, cy - 46, 84, 96);
@@ -382,18 +344,18 @@ export class Merchant extends Phaser.Scene {
       this._gridGroup.add(this.add.text(cx, cy - 6, unlocked ? sp.name : '???', {
         fontFamily: FONT, fontSize: '16px', fontStyle: 'bold',
         color: unlocked ? '#FFFFFF' : '#665588',
-      }).setOrigin(0.5));
+      }).setOrigin(0.5).setDepth(4));
 
       // Stats row
       const statRow = unlocked ? ('⏱ ' + sp.hatchHours + 'h  ·  💰 ' + sp.price) : '🔒 Locked';
       this._gridGroup.add(this.add.text(cx, cy + 15, statRow, {
         fontFamily: FONT, fontSize: '12px', color: unlocked ? '#CCBBEE' : '#443366',
-      }).setOrigin(0.5));
+      }).setOrigin(0.5).setDepth(4));
 
       // Tier dots
       const dots = Math.min(5, Math.max(1, Math.ceil(sp.hatchHours / 5)));
       for (let d = 0; d < 5; d++) {
-        const dg = this.add.graphics();
+        const dg = this.add.graphics().setDepth(4);
         dg.fillStyle(d < dots ? (unlocked ? 0xFFCC44 : 0x443366) : 0x1A0A3A, 1);
         dg.fillCircle(cx - 16 + d * 8, cy + 34, 3.5);
         this._gridGroup.add(dg);
@@ -406,7 +368,7 @@ export class Merchant extends Phaser.Scene {
       const btnCol = unlocked ? 0x1E6828 : 0x480E78;
       const btn = makeButton(this, cx, cy + 62, unlocked ? 148 : 195, 38, btnLabel, btnCol, () => {
         this._handleBuy(sp.id, unlocked);
-      }, 13);
+      }, 13).setDepth(4);
       btn.setAlpha(unlocked ? 1.0 : 0.60);
       this._gridGroup.add(btn);
     });
@@ -434,7 +396,7 @@ export class Merchant extends Phaser.Scene {
       const cy = startY + 14 + row * (cardH + 14) + cardH / 2;
       const isOwned = ownedAll.includes(dec.id);
 
-      const card = this.add.graphics();
+      const card = this.add.graphics().setDepth(3);
       card.fillStyle(0x000000, 0.32);
       card.fillRoundedRect(cx - cardW / 2 + 3, cy - cardH / 2 + 3, cardW, cardH, 14);
       if (isOwned) {
@@ -452,21 +414,21 @@ export class Merchant extends Phaser.Scene {
 
       this._gridGroup.add(this.add.text(cx - cardW / 2 + 12, cy - cardH / 2 + 13, habIcons[dec.habitat], {
         fontFamily: FONT, fontSize: '14px',
-      }).setDepth(1));
+      }).setDepth(4));
       this._gridGroup.add(this.add.text(cx + cardW / 2 - 12, cy - cardH / 2 + 15, tierStars, {
         fontFamily: FONT, fontSize: '12px', color: isOwned ? '#88EE88' : '#CCBB88',
-      }).setOrigin(1, 0.5));
+      }).setOrigin(1, 0.5).setDepth(4));
       this._gridGroup.add(this.add.text(cx, cy - 22, dec.name, {
         fontFamily: FONT, fontSize: '15px', fontStyle: 'bold',
         color: isOwned ? '#AAFFAA' : '#FFFFFF',
-      }).setOrigin(0.5));
+      }).setOrigin(0.5).setDepth(4));
       this._gridGroup.add(this.add.text(cx, cy - 2, dec.desc, {
         fontFamily: FONT, fontSize: '12px', color: '#CCBBEE',
         wordWrap: { width: cardW - 24 }, align: 'center',
-      }).setOrigin(0.5));
+      }).setOrigin(0.5).setDepth(4));
 
       if (isOwned) {
-        const oBadge = this.add.graphics();
+        const oBadge = this.add.graphics().setDepth(4);
         oBadge.fillStyle(0x44AA44, 0.20);
         oBadge.fillRoundedRect(cx - 44, cy + 24, 88, 28, 14);
         oBadge.lineStyle(1.5, 0x66CC66, 0.80);
@@ -474,11 +436,11 @@ export class Merchant extends Phaser.Scene {
         this._gridGroup.add(oBadge);
         this._gridGroup.add(this.add.text(cx, cy + 38, '✓ Installed', {
           fontFamily: FONT, fontSize: '13px', fontStyle: 'bold', color: '#66CC66',
-        }).setOrigin(0.5));
+        }).setOrigin(0.5).setDepth(4));
       } else {
         const btn = makeButton(this, cx, cy + 40, 158, 36, 'Buy  ' + dec.cost + '💰', 0x461070, () => {
           this._handleBuyDecor(dec.id);
-        }, 13);
+        }, 13).setDepth(4);
         this._gridGroup.add(btn);
       }
     });
