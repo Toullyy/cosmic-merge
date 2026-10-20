@@ -40,10 +40,14 @@ export class HabitatRoom extends Phaser.Scene {
   private _renameInput: HTMLInputElement | null = null;
   private _dirtyOverlay!: Phaser.GameObjects.Graphics;
   private _bobTween!: Phaser.Tweens.Tween;
+  private _breatheTween!: Phaser.Tweens.Tween;
   private _hungerTimer: Phaser.Time.TimerEvent | null = null;
   private _sadTimer: Phaser.Time.TimerEvent | null = null;
   private _moodTimer: Phaser.Time.TimerEvent | null = null;
   private _happyGlow: Phaser.GameObjects.Graphics | null = null;
+  private _happyTimer: Phaser.Time.TimerEvent | null = null;
+  private _stinkTimer: Phaser.Time.TimerEvent | null = null;
+  private _monBaseScale: number = 1;
   private _platformG: Phaser.GameObjects.Graphics | null = null;
   private _bowlGfx: Phaser.GameObjects.Graphics | null = null;
   private _bowlLabelTxt: Phaser.GameObjects.Text | null = null;
@@ -806,22 +810,23 @@ export class HabitatRoom extends Phaser.Scene {
       onUpdate: () => { this._updateDirtyOverlay(); this._updateHappyGlow(); if (this._platformG) this._platformG.x = this._monImg.x; },
     });
 
+    this._monBaseScale = this._monImg.scaleX;
     this._bobTween = this.tweens.add({
       targets: this._monImg, y: monY - 9, duration: 950,
       ease: 'Sine.InOut', yoyo: true, repeat: -1,
       onUpdate: () => { this._updateDirtyOverlay(); this._updateHappyGlow(); if (this._platformG) this._platformG.x = this._monImg.x; },
       onRepeat: () => {
-        const sx = this._monImg.scaleX, sy = this._monImg.scaleY;
+        const bs = this._monBaseScale;
         this.tweens.add({
           targets: this._monImg,
-          scaleX: sx * 1.06, scaleY: sy * 0.94,
+          scaleX: bs * 1.06, scaleY: bs * 0.94,
           duration: 70, ease: 'Quad.Out', yoyo: true,
         });
       },
     });
 
-    const bs = this._monImg.scaleX;
-    this.tweens.add({
+    const bs = this._monBaseScale;
+    this._breatheTween = this.tweens.add({
       targets: this._monImg,
       scaleX: bs * 1.035,
       scaleY: bs * 1.035,
@@ -1013,32 +1018,62 @@ export class HabitatRoom extends Phaser.Scene {
       this._startSadEffect();
       if (this._walkTween) this._walkTween.timeScale = 0.45;
       if (this._bobTween) this._bobTween.timeScale = 0.45;
+      if (this._breatheTween) this._breatheTween.timeScale = 0.45;
     } else {
       if (this._sadTimer) { this._sadTimer.destroy(); this._sadTimer = null; }
       if (this._walkTween) this._walkTween.timeScale = 1.0;
       if (this._bobTween) this._bobTween.timeScale = 1.0;
+      if (this._breatheTween) this._breatheTween.timeScale = 1.0;
     }
   }
 
   private _updateHappyGlow() {
+    const hab = this._sp.habitat;
+    const col = hab === 'dirt' ? 0xFFAA44 : hab === 'grass' ? 0x88FF44 : 0x44EEFF;
     if (this._monster.happiness > 70) {
       if (!this._happyGlow) {
         this._happyGlow = this.add.graphics().setDepth(4);
         this.tweens.add({
           targets: this._happyGlow,
-          alpha: { from: 0.50, to: 0.10 },
-          duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut',
+          alpha: { from: 0.55, to: 0.12 },
+          duration: 800, yoyo: true, repeat: -1, ease: 'Sine.InOut',
         });
       }
-      const col = [0xFF66AA, 0xFFCC22, 0x44CCFF, 0xCC66FF, 0xFF8833][this._monster.speciesId % 5];
+      const gx = this._monImg.x, gy = this._monImg.y - 10;
       this._happyGlow.clear();
-      this._happyGlow.lineStyle(7, col, 1.0);
-      this._happyGlow.strokeCircle(this._monImg.x, this._monImg.y - 10, 64);
-      this._happyGlow.lineStyle(3, col, 0.50);
-      this._happyGlow.strokeCircle(this._monImg.x, this._monImg.y - 10, 80);
-    } else if (this._happyGlow) {
-      this._happyGlow.destroy();
-      this._happyGlow = null;
+      this._happyGlow.fillStyle(col, 0.06); this._happyGlow.fillCircle(gx, gy, 90);
+      this._happyGlow.lineStyle(8, col, 1.0); this._happyGlow.strokeCircle(gx, gy, 66);
+      this._happyGlow.lineStyle(3, col, 0.55); this._happyGlow.strokeCircle(gx, gy, 84);
+      if (this._monster.happiness > 85) {
+        this._happyGlow.lineStyle(2, 0xFFFFFF, 0.22); this._happyGlow.strokeCircle(gx, gy, 100);
+      }
+      if (!this._happyTimer && this._monster.happiness > 85) {
+        this._happyTimer = this.time.addEvent({
+          delay: 420, loop: true,
+          callback: () => {
+            if (this._monster.happiness <= 85 || !this.scene?.isActive('HabitatRoom')) {
+              this._happyTimer?.destroy(); this._happyTimer = null; return;
+            }
+            const ang = Math.random() * Math.PI * 2;
+            const r = 48 + Math.random() * 36;
+            const px = this._monImg.x + Math.cos(ang) * r;
+            const py = (this._monImg.y - 10) + Math.sin(ang) * r * 0.55;
+            const icons = ['💛', '✨', '💖', '⭐', '🌟'];
+            const icon = icons[Math.floor(Math.random() * icons.length)];
+            const pt = this.add.text(px, py, icon, {
+              fontFamily: FONT, fontSize: (12 + Math.random() * 10) + 'px',
+            }).setOrigin(0.5).setDepth(7).setAlpha(0);
+            this.tweens.add({
+              targets: pt, y: py - 32 - Math.random() * 24, alpha: { from: 1, to: 0 },
+              duration: 900 + Math.random() * 500, ease: 'Sine.Out',
+              onComplete: () => { try { pt.destroy(); } catch { /**/ } },
+            });
+          },
+        });
+      }
+    } else {
+      if (this._happyGlow) { this._happyGlow.destroy(); this._happyGlow = null; }
+      if (this._happyTimer) { this._happyTimer.destroy(); this._happyTimer = null; }
     }
   }
 
@@ -1056,6 +1091,29 @@ export class HabitatRoom extends Phaser.Scene {
       this._dirtyOverlay.fillStyle(0x5C3A1A, strength * 0.75);
       this._dirtyOverlay.fillCircle(mx + dx, my + dy, r);
     });
+    if (cl < 30 && !this._stinkTimer) {
+      this._stinkTimer = this.time.addEvent({
+        delay: 1100, loop: true,
+        callback: () => {
+          if (this._monster.cleanliness >= 30 || !this.scene?.isActive('HabitatRoom')) {
+            this._stinkTimer?.destroy(); this._stinkTimer = null; return;
+          }
+          const side = Math.random() > 0.5 ? 1 : -1;
+          const sx = this._monImg.x + side * (24 + Math.random() * 18);
+          const sg = this.add.graphics().setDepth(7);
+          sg.lineStyle(2.5, 0x88CC44, 0.72);
+          sg.beginPath(); sg.moveTo(0, 0); sg.lineTo(side * 6, -10); sg.lineTo(side * -2, -20); sg.strokePath();
+          sg.setPosition(sx, this._monImg.y + 10);
+          this.tweens.add({
+            targets: sg, y: sg.y - 30, alpha: 0,
+            duration: 1000 + Math.random() * 400, ease: 'Sine.Out',
+            onComplete: () => { try { sg.destroy(); } catch { /**/ } },
+          });
+        },
+      });
+    } else if (cl >= 30 && this._stinkTimer) {
+      this._stinkTimer.destroy(); this._stinkTimer = null;
+    }
   }
 
   private _startHungerEffect() {
@@ -1255,6 +1313,8 @@ export class HabitatRoom extends Phaser.Scene {
       if (this._hungerTimer)    { this._hungerTimer.destroy();    this._hungerTimer    = null; }
       if (this._sadTimer)       { this._sadTimer.destroy();       this._sadTimer       = null; }
       if (this._moodTimer)      { this._moodTimer.destroy();      this._moodTimer      = null; }
+      if (this._happyTimer)     { this._happyTimer.destroy();     this._happyTimer     = null; }
+      if (this._stinkTimer)     { this._stinkTimer.destroy();     this._stinkTimer     = null; }
       if (this._happyGlow)      { try { this._happyGlow.destroy(); } catch { /* */ } this._happyGlow = null; }
       if (this._platformG)     { try { this._platformG.destroy(); } catch { /* */ } this._platformG = null; }
       if (this._bowlSteamTimer) { this._bowlSteamTimer.destroy(); this._bowlSteamTimer = null; }

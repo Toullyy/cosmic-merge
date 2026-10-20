@@ -94,17 +94,17 @@ export class BreedingLab extends Phaser.Scene {
     midG.fillStyle(0xEEBBFF, 1);
     midG.fillRect(W/2 - 6, 186, 12, 8);   // horizontal bar
     midG.fillRect(W/2 - 1, 181, 2, 18);   // vertical bar
-    // DNA connector lines
+    // DNA connector lines (slot rim at ±56 from center, merge symbol at ±20)
     midG.lineStyle(1.5, 0x9955DD, 0.45);
-    midG.beginPath(); midG.moveTo(W/2 - 100, 190); midG.lineTo(W/2 - 20, 190); midG.strokePath();
-    midG.beginPath(); midG.moveTo(W/2 + 20, 190); midG.lineTo(W/2 + 100, 190); midG.strokePath();
-    midG.lineStyle(1, 0xBB77FF, 0.20);
-    for (let di = 0; di < 5; di++) {
-      const dx = W/2 - 90 + di * 18;
+    midG.beginPath(); midG.moveTo(W/2 - 56, 190); midG.lineTo(W/2 - 20, 190); midG.strokePath();
+    midG.beginPath(); midG.moveTo(W/2 + 20, 190); midG.lineTo(W/2 + 56, 190); midG.strokePath();
+    midG.lineStyle(1, 0xBB77FF, 0.28);
+    for (let di = 0; di < 3; di++) {
+      const dx = W/2 - 54 + di * 12;
       midG.beginPath(); midG.moveTo(dx, 183); midG.lineTo(dx + 9, 197); midG.strokePath();
     }
-    for (let di = 0; di < 5; di++) {
-      const dx = W/2 + 22 + di * 18;
+    for (let di = 0; di < 3; di++) {
+      const dx = W/2 + 22 + di * 12;
       midG.beginPath(); midG.moveTo(dx, 183); midG.lineTo(dx + 9, 197); midG.strokePath();
     }
 
