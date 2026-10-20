@@ -9,6 +9,12 @@ import { showToast } from '../ui/Toast';
 import { Ads } from '../ads';
 import type { Monster, Egg, HabitatType } from '../types';
 
+const HAB_PLATE: Record<string, [number, string]> = {
+  dirt:    [0x4A2808, '#FFD8A8'],
+  grass:   [0x0D3008, '#AAFFAA'],
+  aquatic: [0x062030, '#88EEFF'],
+};
+
 export class Hub extends Phaser.Scene {
   private _currentHabitat: HabitatType = 'dirt';
   private _eggTimer: Phaser.Time.TimerEvent | null = null;
@@ -881,12 +887,7 @@ export class Hub extends Phaser.Scene {
 
     const plateY = cy - CH/2 + vpPad + vpH + 2;
     const plateH = nameH - 4;
-    const tankHabPlate: Record<string, [number, string]> = {
-      dirt:    [0x4A2808, '#FFD8A8'],
-      grass:   [0x0D3008, '#AAFFAA'],
-      aquatic: [0x062030, '#88EEFF'],
-    };
-    const [tankPlateColor, tankNameColor] = tankHabPlate[this._currentHabitat] ?? [0x4A2808, '#FFD8A8'];
+    const [tankPlateColor, tankNameColor] = HAB_PLATE[this._currentHabitat] ?? [0x4A2808, '#FFD8A8'];
     const plateG = this.add.graphics().setDepth(22);
     plateG.fillStyle(tankPlateColor, 1); plateG.fillRoundedRect(vpX, plateY, vpW, plateH, 4);
     plateG.lineStyle(1.5, 0x000000, 0.50); plateG.strokeRoundedRect(vpX, plateY, vpW, plateH, 4);
@@ -972,12 +973,7 @@ export class Hub extends Phaser.Scene {
 
     const plateY = cy - CH/2 + vpPad + vpH + 2;
     const plateH = nameH - 4;
-    const habPlate: Record<string, [number, string]> = {
-      dirt:    [0x4A2808, '#FFD8A8'],
-      grass:   [0x0D3008, '#AAFFAA'],
-      aquatic: [0x062030, '#88EEFF'],
-    };
-    const [plateColor, nameColor] = habPlate[sp.habitat] ?? [0x4A2808, '#FFD8A8'];
+    const [plateColor, nameColor] = HAB_PLATE[sp.habitat] ?? [0x4A2808, '#FFD8A8'];
     const plateG = this.add.graphics().setDepth(22);
     plateG.fillStyle(plateColor, 1); plateG.fillRoundedRect(vpX, plateY, vpW, plateH, 4);
     plateG.lineStyle(1.5, 0x000000, 0.50); plateG.strokeRoundedRect(vpX, plateY, vpW, plateH, 4);
@@ -1088,12 +1084,7 @@ export class Hub extends Phaser.Scene {
 
     const plateY = cy - CH/2 + vpPad + vpH + 2;
     const plateH = nameH - 4;
-    const eggHabPlate: Record<string, [number, string]> = {
-      dirt:    [0x4A2808, '#FFD8A8'],
-      grass:   [0x0D3008, '#AAFFAA'],
-      aquatic: [0x062030, '#88EEFF'],
-    };
-    const [ePlateColor, eNameColor] = eggHabPlate[sp.habitat] ?? [0x4A2808, '#FFD8A8'];
+    const [ePlateColor, eNameColor] = HAB_PLATE[sp.habitat] ?? [0x4A2808, '#FFD8A8'];
     const plateG = this.add.graphics().setDepth(22);
     plateG.fillStyle(isReady ? 0x2A5A18 : ePlateColor, 1); plateG.fillRoundedRect(vpX, plateY, vpW, plateH, 4);
     plateG.lineStyle(1.5, 0x000000, 0.50); plateG.strokeRoundedRect(vpX, plateY, vpW, plateH, 4);

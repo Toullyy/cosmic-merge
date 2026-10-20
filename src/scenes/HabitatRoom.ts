@@ -678,7 +678,6 @@ export class HabitatRoom extends Phaser.Scene {
         const ate = Math.min(this._monster.bowl.remaining, BOWL_EAT_RATE * deltaHours);
         this._monster.bowl.remaining -= ate;
         if (this._monster.bowl.remaining < 0.01) this._monster.bowl = null;
-        this._monster.hunger = Math.min(100, this._monster.hunger + ate);
         store.setJSON('mps_state', Game.state);
         this._drawBowl();
         this._refreshStats();
@@ -1148,11 +1147,12 @@ export class HabitatRoom extends Phaser.Scene {
             this._monster.bowl.remaining += added;
             this._monster.bowl.maxAmount = this._monster.bowl.remaining;
             this._monster.bowl.color = bowlColor;
+            this._monster.hunger = Math.min(100, this._monster.hunger + added);
             if (added < food.hungerGain) showToast(this, t('toast.bowlTopped'), '#ffcc88');
           } else {
             this._monster.bowl = { foodId: food.id, remaining: food.hungerGain, maxAmount: food.hungerGain, color: bowlColor };
+            this._monster.hunger = Math.min(100, this._monster.hunger + food.hungerGain);
           }
-          this._monster.hunger = Math.min(100, this._monster.hunger + food.hungerGain);
           this._monster.happiness = Math.min(100, this._monster.happiness + food.happinessGain);
           this._monster.lastCaredAt = Date.now();
           const feedXpBonus = TRAITS.find(t => t.id === this._monster.trait)?.xpMod ?? 0;

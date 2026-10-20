@@ -4,22 +4,16 @@ import { FONT, sfx } from '../utils';
 function _drawBg(g: Phaser.GameObjects.Graphics, w: number, h: number, fill: number) {
   g.clear();
   const r = 12;
-  // Drop shadow
   g.fillStyle(0x000000, 0.28);
   g.fillRoundedRect(-w/2 + 2, -h/2 + 3, w, h, r);
-  // Main body
   g.fillStyle(fill, 1);
   g.fillRoundedRect(-w/2, -h/2, w, h, r);
-  // Bottom depth edge
   g.fillStyle(0x000000, 0.22);
   g.fillRoundedRect(-w/2 + 2, h/2 - 5, w - 4, 4, { tl: 0, tr: 0, bl: r - 2, br: r - 2 });
-  // Top highlight
   g.fillStyle(0xffffff, 0.17);
   g.fillRoundedRect(-w/2 + 3, -h/2 + 2, w - 6, h * 0.44, { tl: r - 2, tr: r - 2, bl: 0, br: 0 });
-  // Bright top edge line
   g.fillStyle(0xffffff, 0.25);
   g.fillRoundedRect(-w/2 + 5, -h/2 + 2, w - 10, 2, 1);
-  // Outer border
   g.lineStyle(1.5, 0xffffff, 0.28);
   g.strokeRoundedRect(-w/2, -h/2, w, h, r);
 }
