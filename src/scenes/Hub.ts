@@ -200,27 +200,25 @@ export class Hub extends Phaser.Scene {
   private _buildHUD(W: number) {
     const hud = this.add.graphics().setDepth(10);
 
-    // Coin box — warm dark wood tone
-    hud.fillStyle(0x3A1808, 0.92);
+    // Coin box — vivid amber
+    hud.fillStyle(0x000000, 0.30);
+    hud.fillRoundedRect(10, 11, 168, 52, 14);
+    hud.fillStyle(0xB86000, 1);
     hud.fillRoundedRect(8, 8, 168, 52, 14);
-    hud.lineStyle(2, 0xFFD700, 0.85);
+    hud.lineStyle(3, 0xFFE050, 1);
     hud.strokeRoundedRect(8, 8, 168, 52, 14);
-    hud.lineStyle(4, 0xFFD700, 0.18);
-    hud.strokeRoundedRect(5, 5, 174, 58, 17);
+    hud.fillStyle(0xffffff, 0.22);
+    hud.fillRoundedRect(9, 9, 166, 22, { tl: 13, tr: 13, bl: 0, br: 0 });
 
-    // Diamond box — warm dark wood tone
-    hud.fillStyle(0x0A1E38, 0.92);
+    // Diamond box — vivid cyan
+    hud.fillStyle(0x000000, 0.30);
+    hud.fillRoundedRect(184, 11, 120, 52, 14);
+    hud.fillStyle(0x0468A8, 1);
     hud.fillRoundedRect(182, 8, 120, 52, 14);
-    hud.lineStyle(2, 0x55EEFF, 0.85);
+    hud.lineStyle(3, 0x55EEFF, 1);
     hud.strokeRoundedRect(182, 8, 120, 52, 14);
-    hud.lineStyle(4, 0x55EEFF, 0.18);
-    hud.strokeRoundedRect(179, 5, 126, 58, 17);
-
-    // Inner top-edge shine on both HUD boxes
-    hud.fillStyle(0xFFD700, 0.10);
-    hud.fillRoundedRect(9, 9, 166, 24, { tl: 13, tr: 13, bl: 0, br: 0 });
-    hud.fillStyle(0x55EEFF, 0.10);
-    hud.fillRoundedRect(183, 9, 118, 24, { tl: 13, tr: 13, bl: 0, br: 0 });
+    hud.fillStyle(0xffffff, 0.22);
+    hud.fillRoundedRect(183, 9, 118, 22, { tl: 13, tr: 13, bl: 0, br: 0 });
 
     this.add.text(26, 34, '💰', {
       fontFamily: FONT, fontSize: '26px', color: '#FFD700',
@@ -242,7 +240,7 @@ export class Hub extends Phaser.Scene {
     }).setOrigin(0, 0.5).setDepth(11);
 
     // Free-coins ad button (sits between diamond box and sound icon)
-    this._adBtn = makeButton(this, 370, 34, 108, 40, this._adBtnLabel(), 0x2A7818, () => {
+    this._adBtn = makeButton(this, 370, 34, 108, 40, this._adBtnLabel(), 0x1EA040, () => {
       this._handleAdCoins();
     }, 12).setDepth(11);
     this.time.addEvent({
@@ -453,20 +451,22 @@ export class Hub extends Phaser.Scene {
     const btnY = H - 54, bw = 118, bh = 52;
     const xs = [W/8, W*3/8, W*5/8, W*7/8];
 
-    // Dark nav backing strip
+    // Vibrant nav backing strip
     const navBg = this.add.graphics().setDepth(9);
-    navBg.fillStyle(0x06040E, 0.93);
-    navBg.fillRoundedRect(0, H - 110, W, 112, { tl: 18, tr: 18, bl: 0, br: 0 });
-    navBg.lineStyle(1.5, 0x3A2070, 0.50);
-    navBg.strokeRoundedRect(0, H - 110, W, 112, { tl: 18, tr: 18, bl: 0, br: 0 });
+    navBg.fillStyle(0x1A0848, 1);
+    navBg.fillRoundedRect(0, H - 110, W, 112, { tl: 20, tr: 20, bl: 0, br: 0 });
+    navBg.fillStyle(0x5020C8, 0.28);
+    navBg.fillRoundedRect(0, H - 110, W, 38, { tl: 20, tr: 20, bl: 0, br: 0 });
+    navBg.lineStyle(2, 0x8855FF, 0.60);
+    navBg.strokeRoundedRect(0, H - 110, W, 112, { tl: 20, tr: 20, bl: 0, br: 0 });
 
-    makeButton(this, xs[0], btnY, bw, bh, t('nav.shop'), 0x6828A0, () => {
+    makeButton(this, xs[0], btnY, bw, bh, t('nav.shop'), 0x8030CC, () => {
       Ads.maybeInterstitial(() => { this.scene.start('Merchant'); });
     }, 15).setDepth(10);
 
     const unclaimedCount = (Game.state!.quests ?? []).filter(q => q.completed && !q.claimed).length;
     const questLabel = unclaimedCount > 0 ? t('nav.questsDone') : t('nav.quests');
-    this._questBtn = makeButton(this, xs[1], btnY, bw, bh, questLabel, 0x7A6010, () => {
+    this._questBtn = makeButton(this, xs[1], btnY, bw, bh, questLabel, 0xCC8800, () => {
       this._showQuestsPanel();
     }, 13).setDepth(10);
     this._questDot = this.add.graphics().setDepth(12);
@@ -474,7 +474,7 @@ export class Hub extends Phaser.Scene {
 
     const disc = Game.state!.stats.discovered.length;
     const hasNew = (Game.state!.newDiscoveries?.length ?? 0) > 0;
-    this._dexBtn = makeButton(this, xs[2], btnY, bw, bh, t('nav.dex', { n: disc }), 0x0878A0, () => {
+    this._dexBtn = makeButton(this, xs[2], btnY, bw, bh, t('nav.dex', { n: disc }), 0x0898CC, () => {
       this.scene.start('PokedexScene');
     }, 14).setDepth(10);
     this._dexDot = this.add.graphics().setDepth(12);
@@ -483,7 +483,7 @@ export class Hub extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(13);
     this._updateDexDot(xs[2], bw, btnY, bh, hasNew);
 
-    makeButton(this, xs[3], btnY, bw, bh, t('nav.breed'), 0xA02860, () => {
+    makeButton(this, xs[3], btnY, bw, bh, t('nav.breed'), 0xC82870, () => {
       const eligible = Game.state!.monsters.filter(m => m.level >= 4);
       if (eligible.length < 2) {
         showToast(this, t('toast.need2monsters'), '#ff9999');
@@ -903,7 +903,7 @@ export class Hub extends Phaser.Scene {
 
     const vpCY = vpY + vpH/2;
     this._displayGroup.add(this.add.text(cx, vpCY - 18, '+', {
-      fontFamily: FONT, fontSize: '52px', color: '#8B6040', fontStyle: 'bold',
+      fontFamily: FONT, fontSize: '52px', color: '#CCAA60', fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(22));
     this._displayGroup.add(this.add.text(cx, vpCY + 28, TANK_COST + ' 💰', {
       fontFamily: FONT, fontSize: '16px', color: '#FFD700',

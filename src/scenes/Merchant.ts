@@ -128,7 +128,7 @@ export class Merchant extends Phaser.Scene {
     }).setOrigin(0, 0.5).setDepth(5);
 
     // Back button
-    makeButton(this, W - 62, 28, 100, 40, t('btn.back'), 0x341278, () => {
+    makeButton(this, W - 62, 28, 100, 40, t('btn.back'), 0x6030A8, () => {
       this.scene.start('Hub');
     }, 14).setDepth(5);
   }

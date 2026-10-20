@@ -974,11 +974,13 @@ export class HabitatRoom extends Phaser.Scene {
     positions.forEach((bx, i) => {
       const btn = this.add.container(bx, btnY).setDepth(10).setSize(90, 80);
       const bg = this.add.graphics();
-      bg.fillStyle(darken(colors[i], 20), 1);
+      bg.fillStyle(0x000000, 0.30);
       bg.fillEllipse(0, -4, 78, 74);
       bg.fillStyle(colors[i], 1);
       bg.fillEllipse(0, -8, 78, 74);
-      bg.lineStyle(2, lighten(colors[i], 40), 0.70);
+      bg.fillStyle(0xffffff, 0.25);
+      bg.fillEllipse(0, -12, 66, 30);
+      bg.lineStyle(3, 0xffffff, 0.80);
       bg.strokeEllipse(0, -8, 78, 74);
       const ico = this.add.text(0, -14, icons[i], { fontFamily: FONT, fontSize: '28px' }).setOrigin(0.5);
       const lbl = this.add.text(0, 18, labels[i], {
@@ -1007,7 +1009,7 @@ export class HabitatRoom extends Phaser.Scene {
   private _buildHUD(W: number, H: number, sp: Species) {
     const mods = getVariantModifiers(this._monster.variantIndex);
     const trait = TRAITS.find(t => t.id === this._monster.trait);
-    makeButton(this, 56, 34, 92, 44, t('btn.back'), 0x4A2010, () => { this.scene.start('Hub'); }, 15).setDepth(20);
+    makeButton(this, 56, 34, 92, 44, t('btn.back'), 0x7A4020, () => { this.scene.start('Hub'); }, 15).setDepth(20);
 
     const displayName = this._monster.nickname ?? sp.name;
     this._nameTxt = this.add.text(W / 2, 19, displayName + (mods.isGolden ? ' ★' : ''), {
@@ -1027,7 +1029,7 @@ export class HabitatRoom extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(20);
 
     this._sellBtn = makeButton(this, W - 72, 34, 116, 44,
-      t('btn.sell', { price: this._sellPrice }), 0x8B6000, () => this._handleListBtn(), 13);
+      t('btn.sell', { price: this._sellPrice }), 0xCC8800, () => this._handleListBtn(), 13);
     this._sellBtn.setDepth(20);
 
     const isGoldenMon = mods.isGolden;
