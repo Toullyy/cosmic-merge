@@ -778,7 +778,7 @@ export class HabitatRoom extends Phaser.Scene {
 
       const fill = this.add.graphics().setDepth(11);
       const val = this.add.text(W - 16, by, '0%', {
-        fontFamily: FONT, fontSize: '12px', color: '#ffffff',
+        fontFamily: FONT, fontSize: '14px', color: '#ffffff',
         stroke: '#000000', strokeThickness: 2,
       }).setOrigin(1, 0.5).setDepth(13);
 
@@ -984,7 +984,7 @@ export class HabitatRoom extends Phaser.Scene {
       bg.strokeEllipse(0, -8, 78, 74);
       const ico = this.add.text(0, -14, icons[i], { fontFamily: FONT, fontSize: '28px' }).setOrigin(0.5);
       const lbl = this.add.text(0, 18, labels[i], {
-        fontFamily: FONT, fontSize: '12px', color: '#ffffff', stroke: '#000000', strokeThickness: 2,
+        fontFamily: FONT, fontSize: '14px', color: '#ffffff', stroke: '#000000', strokeThickness: 2,
       }).setOrigin(0.5);
       btn.add([bg, ico, lbl]);
       btn.setInteractive({ useHandCursor: true });
@@ -1018,18 +1018,18 @@ export class HabitatRoom extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(20);
 
     const speciesHint = this.add.text(W / 2, 40, sp.name + ' ✏️', {
-      fontFamily: FONT, fontSize: '12px', color: '#BBAAFF',
+      fontFamily: FONT, fontSize: '13px', color: '#BBAAFF',
     }).setOrigin(0.5).setDepth(20).setInteractive({ useHandCursor: true });
     speciesHint.on('pointerdown', () => this._renameMonster());
 
     const traitLabel = trait ? '  ·  ' + trait.emoji + ' ' + trait.name : '';
-    this.add.text(W / 2, 56, getLevelName(this._monster.level) + '  ·  ' +
+    this.add.text(W / 2, 57, getLevelName(this._monster.level) + '  ·  ' +
       sp.habitat.charAt(0).toUpperCase() + sp.habitat.slice(1) + traitLabel, {
-      fontFamily: FONT, fontSize: '12px', color: '#CCDDFF',
+      fontFamily: FONT, fontSize: '13px', color: '#CCDDFF',
     }).setOrigin(0.5).setDepth(20);
 
     this._sellBtn = makeButton(this, W - 72, 34, 116, 44,
-      t('btn.sell', { price: this._sellPrice }), 0xCC8800, () => this._handleListBtn(), 13);
+      t('btn.sell', { price: this._sellPrice }), 0xCC8800, () => this._handleListBtn(), 14);
     this._sellBtn.setDepth(20);
 
     const isGoldenMon = mods.isGolden;
@@ -1040,11 +1040,11 @@ export class HabitatRoom extends Phaser.Scene {
       ? t('hint.golden', { max: maxPrice })
       : t('hint.normal', { max: maxPrice });
     this.add.text(W - 72, 76, hintLabel, {
-      fontFamily: FONT, fontSize: '12px', color: isGoldenMon ? '#FFD700' : '#DDCCFF',
+      fontFamily: FONT, fontSize: '13px', color: isGoldenMon ? '#FFD700' : '#DDCCFF',
     }).setOrigin(0.5).setDepth(20);
 
     this._coinTxt = this.add.text(W / 2, H * 0.72 + 5, '💰 ' + Game.state!.coins, {
-      fontFamily: FONT, fontSize: '15px', color: '#FFD700',
+      fontFamily: FONT, fontSize: '17px', color: '#FFD700',
       stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5).setDepth(20);
 

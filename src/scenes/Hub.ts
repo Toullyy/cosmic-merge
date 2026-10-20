@@ -226,16 +226,16 @@ export class Hub extends Phaser.Scene {
     }).setOrigin(0, 0.5).setDepth(11);
 
     this._coinTxt = this.add.text(62, 34, String(Game.state!.coins), {
-      fontFamily: FONT, fontSize: '21px', color: '#ffffff', fontStyle: 'bold',
+      fontFamily: FONT, fontSize: '24px', color: '#ffffff', fontStyle: 'bold',
       stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0, 0.5).setDepth(11);
 
     this.add.text(192, 34, '💎', {
-      fontFamily: FONT, fontSize: '20px',
+      fontFamily: FONT, fontSize: '22px',
     }).setOrigin(0, 0.5).setDepth(11);
 
     this._diamondTxt = this.add.text(218, 34, String(Game.state!.diamonds ?? 0), {
-      fontFamily: FONT, fontSize: '21px', color: '#88EEFF', fontStyle: 'bold',
+      fontFamily: FONT, fontSize: '24px', color: '#88EEFF', fontStyle: 'bold',
       stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0, 0.5).setDepth(11);
 
@@ -315,7 +315,7 @@ export class Hub extends Phaser.Scene {
       this._drawTab(tabBg, x, 76, tabW, 50, isActive, unlocked, type);
       const lbl = unlocked ? labels[type] : (labels[type] + ' 🔒');
       const tabTxt = this.add.text(x + tabW/2, 101, lbl, {
-        fontFamily: FONT, fontSize: '15px', fontStyle: isActive ? 'bold' : 'normal',
+        fontFamily: FONT, fontSize: '17px', fontStyle: isActive ? 'bold' : 'normal',
         color: isActive ? '#FFFFFF' : (unlocked ? '#E8D8C8' : '#BBAA99'),
       }).setOrigin(0.5).setDepth(6);
       this._tabBtns[type] = { bg: tabBg, txt: tabTxt };
@@ -364,6 +364,7 @@ export class Hub extends Phaser.Scene {
       const unlocked = Game.state!.habitats[type].unlocked;
       this._drawTab(btn.bg, x, 76, tabW, 50, isActive, unlocked, type);
       btn.txt.setStyle({
+        fontSize: '17px',
         color: isActive ? '#FFFFFF' : (unlocked ? '#E8D8C8' : '#BBAA99'),
         fontStyle: isActive ? 'bold' : 'normal',
       });
@@ -462,13 +463,13 @@ export class Hub extends Phaser.Scene {
 
     makeButton(this, xs[0], btnY, bw, bh, t('nav.shop'), 0x8030CC, () => {
       Ads.maybeInterstitial(() => { this.scene.start('Merchant'); });
-    }, 15).setDepth(10);
+    }, 17).setDepth(10);
 
     const unclaimedCount = (Game.state!.quests ?? []).filter(q => q.completed && !q.claimed).length;
     const questLabel = unclaimedCount > 0 ? t('nav.questsDone') : t('nav.quests');
     this._questBtn = makeButton(this, xs[1], btnY, bw, bh, questLabel, 0xCC8800, () => {
       this._showQuestsPanel();
-    }, 13).setDepth(10);
+    }, 15).setDepth(10);
     this._questDot = this.add.graphics().setDepth(12);
     this._updateQuestDot(xs[1], bw, btnY, bh, unclaimedCount > 0);
 
@@ -476,10 +477,10 @@ export class Hub extends Phaser.Scene {
     const hasNew = (Game.state!.newDiscoveries?.length ?? 0) > 0;
     this._dexBtn = makeButton(this, xs[2], btnY, bw, bh, t('nav.dex', { n: disc }), 0x0898CC, () => {
       this.scene.start('PokedexScene');
-    }, 14).setDepth(10);
+    }, 16).setDepth(10);
     this._dexDot = this.add.graphics().setDepth(12);
     this._dexDotTxt = this.add.text(xs[2] + bw / 2 - 6, btnY - bh / 2 + 2, '!', {
-      fontFamily: FONT, fontSize: '12px', fontStyle: 'bold', color: '#ffffff',
+      fontFamily: FONT, fontSize: '14px', fontStyle: 'bold', color: '#ffffff',
     }).setOrigin(0.5).setDepth(13);
     this._updateDexDot(xs[2], bw, btnY, bh, hasNew);
 
@@ -490,7 +491,7 @@ export class Hub extends Phaser.Scene {
       } else {
         Ads.maybeInterstitial(() => { this.scene.start('BreedingLab'); });
       }
-    }, 15).setDepth(10);
+    }, 17).setDepth(10);
   }
 
   private _updateDexDot(x: number, bw: number, btnY: number, bh: number, hasNew: boolean) {
@@ -555,7 +556,7 @@ export class Hub extends Phaser.Scene {
     const bannerMsg = t('visitor.banner', { name: sp.name, mult: state.visitorPriceMult ?? 2, mins })
       + (hasMon ? '' : ' ' + t('visitor.bannerNone'));
     this._visitorBanner.add(this.add.text(W / 2, 16, bannerMsg, {
-      fontFamily: FONT, fontSize: '12px', color: hasMon ? '#FFE066' : '#BB9944', fontStyle: 'bold',
+      fontFamily: FONT, fontSize: '13px', color: hasMon ? '#FFE066' : '#BB9944', fontStyle: 'bold',
     }).setOrigin(0.5));
 
     const zone = this.add.zone(W / 2, 16, W - 16, 32).setInteractive();
@@ -897,7 +898,7 @@ export class Hub extends Phaser.Scene {
     this._drawScrew(screwG, vpX + 10, plateY + plateH/2); this._drawScrew(screwG, vpX + vpW - 10, plateY + plateH/2);
     this._displayGroup.add(screwG);
     this._displayGroup.add(this.add.text(cx, plateY + plateH/2, t('hub.buyTank'), {
-      fontFamily: FONT, fontSize: '12px', fontStyle: 'bold', color: tankNameColor,
+      fontFamily: FONT, fontSize: '14px', fontStyle: 'bold', color: tankNameColor,
       stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5).setDepth(23));
 
@@ -906,7 +907,7 @@ export class Hub extends Phaser.Scene {
       fontFamily: FONT, fontSize: '52px', color: '#CCAA60', fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(22));
     this._displayGroup.add(this.add.text(cx, vpCY + 28, TANK_COST + ' 💰', {
-      fontFamily: FONT, fontSize: '16px', color: '#FFD700',
+      fontFamily: FONT, fontSize: '18px', color: '#FFD700',
       stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5).setDepth(22));
 
@@ -987,29 +988,29 @@ export class Hub extends Phaser.Scene {
 
     const displayName = (mon.nickname ?? sp.name).toUpperCase();
     this._displayGroup.add(this.add.text(cx, plateCY, displayName, {
-      fontFamily: FONT, fontSize: '12px', fontStyle: 'bold', color: nameColor,
+      fontFamily: FONT, fontSize: '14px', fontStyle: 'bold', color: nameColor,
       stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5).setDepth(23));
 
     // Level badge top-left
     const lvlLabel = getLevelName(mon.level);
     const lvlBg = this.add.graphics().setDepth(23);
-    lvlBg.fillStyle(0x000000, 0.72); lvlBg.fillRoundedRect(vpX + 3, vpY + 3, lvlLabel.length*7.5 + 12, 20, 5);
+    lvlBg.fillStyle(0x000000, 0.72); lvlBg.fillRoundedRect(vpX + 3, vpY + 3, lvlLabel.length*8.5 + 12, 22, 5);
     this._displayGroup.add(lvlBg);
-    this._displayGroup.add(this.add.text(vpX + 7, vpY + 12, lvlLabel, {
-      fontFamily: FONT, fontSize: '12px', color: '#FFE066', fontStyle: 'bold',
+    this._displayGroup.add(this.add.text(vpX + 7, vpY + 13, lvlLabel, {
+      fontFamily: FONT, fontSize: '14px', color: '#FFE066', fontStyle: 'bold',
     }).setOrigin(0, 0.5).setDepth(24));
 
     const monTrait = TRAITS.find(t => t.id === mon.trait);
     if (monTrait) {
       this._displayGroup.add(this.add.text(vpX + vpW - 5, vpY + vpH - 5, monTrait.emoji, {
-        fontFamily: FONT, fontSize: '13px',
+        fontFamily: FONT, fontSize: '15px',
       }).setOrigin(1, 1).setDepth(24));
     }
 
     if (mods.isGolden) {
       this._displayGroup.add(this.add.text(vpX + vpW - 5, vpY + 5, '★', {
-        fontFamily: FONT, fontSize: '13px', color: '#FFD700',
+        fontFamily: FONT, fontSize: '15px', color: '#FFD700',
         stroke: '#000000', strokeThickness: 2,
       }).setOrigin(1, 0).setDepth(24));
     }
@@ -1032,7 +1033,7 @@ export class Hub extends Phaser.Scene {
       banner.strokeRoundedRect(vpX, vpY, vpW, 22, { tl: 2, tr: 2, bl: 0, br: 0 });
       this._displayGroup.add(banner);
       this._displayGroup.add(this.add.text(cx, vpY + 11, ready ? '✓ READY - Tap to collect' : '🏷 For Sale', {
-        fontFamily: FONT, fontSize: '12px', color: '#ffffff', fontStyle: 'bold',
+        fontFamily: FONT, fontSize: '13px', color: '#ffffff', fontStyle: 'bold',
         stroke: '#000000', strokeThickness: 1,
       }).setOrigin(0.5).setDepth(26));
     }
@@ -1097,7 +1098,7 @@ export class Hub extends Phaser.Scene {
     this._displayGroup.add(screwG);
 
     this._displayGroup.add(this.add.text(cx, plateCY, isReady ? '🥚 READY!' : sp.name.toUpperCase() + ' EGG', {
-      fontFamily: FONT, fontSize: '12px', fontStyle: 'bold',
+      fontFamily: FONT, fontSize: '14px', fontStyle: 'bold',
       color: isReady ? '#CCFFAA' : eNameColor, stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5).setDepth(23));
 
@@ -1120,13 +1121,13 @@ export class Hub extends Phaser.Scene {
 
     if (!isReady) {
       this._displayGroup.add(this.add.text(vpX + 7, vpY + 7, sp.habitat.charAt(0).toUpperCase() + sp.habitat.slice(1), {
-        fontFamily: FONT, fontSize: '12px', color: '#CCBBAA',
+        fontFamily: FONT, fontSize: '13px', color: '#CCBBAA',
       }).setOrigin(0, 0).setDepth(24));
     }
 
     const remaining = Math.max(0, egg.hatchEndAt - now);
     const timerTxt = this.add.text(cx, vpY + vpH - 14, isReady ? '✨ Tap to hatch!' : this._formatMs(remaining), {
-      fontFamily: FONT, fontSize: '12px',
+      fontFamily: FONT, fontSize: '13px',
       color: isReady ? '#FFD700' : '#DDDDCC', stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5).setDepth(24);
     (timerTxt as any)._eggId = egg.id;
