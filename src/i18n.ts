@@ -157,6 +157,7 @@ const D: Record<Lang, Record<string, string>> = {
     'howto.page3.l1': 'Breeding can produce rare cross-habitat species!',
     'howto.page3.l2': 'Collect all 25 species in the Dex.',
     'howto.page3.l3': 'Buy more tanks (100 G each) to house more monsters.',
+    'howto.page4.title': '✨ Monster Traits',
     // MonsterGallery
     'gallery.title':   'Monster Gallery',
     'gallery.loading': '⏳ Loading sprites…',
@@ -321,6 +322,7 @@ const D: Record<Lang, Record<string, string>> = {
     'howto.page3.l1': 'การผสมพันธุ์อาจให้สายพันธุ์หายากข้ามแหล่งอาศัย!',
     'howto.page3.l2': 'สะสมครบทั้ง 25 สายพันธุ์ใน Dex',
     'howto.page3.l3': 'ซื้อตู้เพิ่ม (100 G ต่อตู้) เพื่อเลี้ยงมอนสเตอร์ได้มากขึ้น',
+    'howto.page4.title': '✨ ลักษณะนิสัยมอนสเตอร์',
     // MonsterGallery
     'gallery.title':   'แกลเลอรี่มอนสเตอร์',
     'gallery.loading': '⏳ กำลังโหลด…',

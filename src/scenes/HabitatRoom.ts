@@ -44,6 +44,7 @@ export class HabitatRoom extends Phaser.Scene {
   private _sadTimer: Phaser.Time.TimerEvent | null = null;
   private _moodTimer: Phaser.Time.TimerEvent | null = null;
   private _happyGlow: Phaser.GameObjects.Graphics | null = null;
+  private _platformG: Phaser.GameObjects.Graphics | null = null;
   private _bowlGfx: Phaser.GameObjects.Graphics | null = null;
   private _bowlLabelTxt: Phaser.GameObjects.Text | null = null;
   private _bowlSteamTimer: Phaser.Time.TimerEvent | null = null;
@@ -738,53 +739,55 @@ export class HabitatRoom extends Phaser.Scene {
     const groundY = H * 0.70, monY = groundY - 78;
     const leftX = 112, rightX = W - 112;
 
-    // Habitat-specific decorative stage platform under the monster
+    // Habitat-specific decorative stage platform — draws at origin (0,y) so x can follow monster
     const platformG = this.add.graphics().setDepth(3);
+    this._platformG = platformG;
     if (sp.habitat === 'dirt') {
-      platformG.fillStyle(0xFF8800, 0.07); platformG.fillCircle(W / 2, groundY, 140);
-      platformG.fillStyle(0xFF7700, 0.11); platformG.fillCircle(W / 2, groundY, 110);
-      platformG.fillStyle(0xFF6600, 0.16); platformG.fillCircle(W / 2, groundY, 82);
-      platformG.fillStyle(0x5A2A0A, 1); platformG.fillEllipse(W / 2, groundY, 168, 44);
-      platformG.fillStyle(0x7A3A18, 0.80); platformG.fillEllipse(W / 2, groundY - 5, 152, 34);
-      platformG.fillStyle(0xCC7722, 0.30); platformG.fillEllipse(W / 2, groundY - 8, 128, 24);
-      platformG.lineStyle(1.5, 0xFFAA22, 0.55); platformG.strokeEllipse(W / 2, groundY, 168, 44);
-      platformG.lineStyle(1, 0xFFCC44, 0.35); platformG.strokeEllipse(W / 2, groundY, 150, 34);
+      platformG.fillStyle(0xFF8800, 0.07); platformG.fillCircle(0, groundY, 140);
+      platformG.fillStyle(0xFF7700, 0.11); platformG.fillCircle(0, groundY, 110);
+      platformG.fillStyle(0xFF6600, 0.16); platformG.fillCircle(0, groundY, 82);
+      platformG.fillStyle(0x5A2A0A, 1); platformG.fillEllipse(0, groundY, 168, 44);
+      platformG.fillStyle(0x7A3A18, 0.80); platformG.fillEllipse(0, groundY - 5, 152, 34);
+      platformG.fillStyle(0xCC7722, 0.30); platformG.fillEllipse(0, groundY - 8, 128, 24);
+      platformG.lineStyle(1.5, 0xFFAA22, 0.55); platformG.strokeEllipse(0, groundY, 168, 44);
+      platformG.lineStyle(1, 0xFFCC44, 0.35); platformG.strokeEllipse(0, groundY, 150, 34);
       for (let ri = 0; ri < 6; ri++) {
         const ra = (ri / 6) * Math.PI * 2;
-        const rx = W / 2 + Math.cos(ra) * 71, ry = groundY + Math.sin(ra) * 71 * 0.32;
+        const rx = Math.cos(ra) * 71, ry = groundY + Math.sin(ra) * 71 * 0.32;
         platformG.fillStyle(0xFFCC44, 0.65); platformG.fillCircle(rx, ry, 3.5);
       }
     } else if (sp.habitat === 'grass') {
-      platformG.fillStyle(0x88FF44, 0.06); platformG.fillCircle(W / 2, groundY, 140);
-      platformG.fillStyle(0x44DD22, 0.10); platformG.fillCircle(W / 2, groundY, 108);
-      platformG.fillStyle(0x22AA10, 0.14); platformG.fillCircle(W / 2, groundY, 80);
-      platformG.fillStyle(0x3A7222, 0.90); platformG.fillEllipse(W / 2, groundY, 168, 44);
-      platformG.fillStyle(0x5A9A32, 0.72); platformG.fillEllipse(W / 2, groundY - 5, 152, 34);
-      platformG.fillStyle(0x88BB55, 0.38); platformG.fillEllipse(W / 2, groundY - 8, 128, 24);
-      platformG.lineStyle(1.5, 0x88FF44, 0.45); platformG.strokeEllipse(W / 2, groundY, 168, 44);
+      platformG.fillStyle(0x88FF44, 0.06); platformG.fillCircle(0, groundY, 140);
+      platformG.fillStyle(0x44DD22, 0.10); platformG.fillCircle(0, groundY, 108);
+      platformG.fillStyle(0x22AA10, 0.14); platformG.fillCircle(0, groundY, 80);
+      platformG.fillStyle(0x3A7222, 0.90); platformG.fillEllipse(0, groundY, 168, 44);
+      platformG.fillStyle(0x5A9A32, 0.72); platformG.fillEllipse(0, groundY - 5, 152, 34);
+      platformG.fillStyle(0x88BB55, 0.38); platformG.fillEllipse(0, groundY - 8, 128, 24);
+      platformG.lineStyle(1.5, 0x88FF44, 0.45); platformG.strokeEllipse(0, groundY, 168, 44);
       const fColors = [0xFF5252, 0xFF9800, 0xE91E63, 0xFFEB3B, 0x9C27B0, 0x4CAF50, 0x03A9F4, 0xFF6EC7];
       for (let fi = 0; fi < 8; fi++) {
         const fa = (fi / 8) * Math.PI * 2;
-        const fx = W / 2 + Math.cos(fa) * 75, fy = groundY + Math.sin(fa) * 75 * 0.30;
+        const fx = Math.cos(fa) * 75, fy = groundY + Math.sin(fa) * 75 * 0.30;
         platformG.fillStyle(fColors[fi], 0.95); platformG.fillCircle(fx, fy, 5.5);
         platformG.fillStyle(0xFFF9C4, 1); platformG.fillCircle(fx, fy, 2.5);
       }
     } else {
-      platformG.fillStyle(0x44EEFF, 0.07); platformG.fillCircle(W / 2, groundY, 140);
-      platformG.fillStyle(0x22CCEE, 0.11); platformG.fillCircle(W / 2, groundY, 108);
-      platformG.fillStyle(0x00AADD, 0.15); platformG.fillCircle(W / 2, groundY, 80);
-      platformG.fillStyle(0xCCF4FF, 1); platformG.fillEllipse(W / 2, groundY, 168, 44);
-      platformG.fillStyle(0xAAEEFF, 0.85); platformG.fillEllipse(W / 2, groundY - 5, 152, 34);
-      platformG.fillStyle(0xFFFFFF, 0.52); platformG.fillEllipse(W / 2, groundY - 8, 128, 24);
-      platformG.lineStyle(2, 0x44EEFF, 0.45); platformG.strokeEllipse(W / 2, groundY, 172, 46);
-      platformG.lineStyle(1, 0x88FFFF, 0.28); platformG.strokeEllipse(W / 2, groundY, 194, 52);
+      platformG.fillStyle(0x44EEFF, 0.07); platformG.fillCircle(0, groundY, 140);
+      platformG.fillStyle(0x22CCEE, 0.11); platformG.fillCircle(0, groundY, 108);
+      platformG.fillStyle(0x00AADD, 0.15); platformG.fillCircle(0, groundY, 80);
+      platformG.fillStyle(0xCCF4FF, 1); platformG.fillEllipse(0, groundY, 168, 44);
+      platformG.fillStyle(0xAAEEFF, 0.85); platformG.fillEllipse(0, groundY - 5, 152, 34);
+      platformG.fillStyle(0xFFFFFF, 0.52); platformG.fillEllipse(0, groundY - 8, 128, 24);
+      platformG.lineStyle(2, 0x44EEFF, 0.45); platformG.strokeEllipse(0, groundY, 172, 46);
+      platformG.lineStyle(1, 0x88FFFF, 0.28); platformG.strokeEllipse(0, groundY, 194, 52);
       for (let si = 0; si < 6; si++) {
         const sa = (si / 6) * Math.PI * 2;
-        const sx = W / 2 + Math.cos(sa) * 71, sy = groundY + Math.sin(sa) * 71 * 0.30;
+        const sx = Math.cos(sa) * 71, sy = groundY + Math.sin(sa) * 71 * 0.30;
         platformG.fillStyle(0xF0F8FF, 0.90); platformG.fillCircle(sx, sy, 5.5);
         platformG.fillStyle(0xFFFFFF, 0.70); platformG.fillCircle(sx - 1, sy - 1, 2.5);
       }
     }
+    platformG.x = W / 2;
 
     const shadowG = this.add.graphics().setDepth(4);
     shadowG.fillStyle(0x000000, 0.08); shadowG.fillEllipse(W / 2, groundY, 190, 32);
@@ -800,13 +803,13 @@ export class HabitatRoom extends Phaser.Scene {
       yoyo: true, repeat: -1,
       onYoyo: () => { this._monImg.setFlipX(true); },
       onRepeat: () => { this._monImg.setFlipX(false); },
-      onUpdate: () => { this._updateDirtyOverlay(); this._updateHappyGlow(); },
+      onUpdate: () => { this._updateDirtyOverlay(); this._updateHappyGlow(); if (this._platformG) this._platformG.x = this._monImg.x; },
     });
 
     this._bobTween = this.tweens.add({
       targets: this._monImg, y: monY - 9, duration: 950,
       ease: 'Sine.InOut', yoyo: true, repeat: -1,
-      onUpdate: () => { this._updateDirtyOverlay(); this._updateHappyGlow(); },
+      onUpdate: () => { this._updateDirtyOverlay(); this._updateHappyGlow(); if (this._platformG) this._platformG.x = this._monImg.x; },
       onRepeat: () => {
         const sx = this._monImg.scaleX, sy = this._monImg.scaleY;
         this.tweens.add({
@@ -1253,6 +1256,7 @@ export class HabitatRoom extends Phaser.Scene {
       if (this._sadTimer)       { this._sadTimer.destroy();       this._sadTimer       = null; }
       if (this._moodTimer)      { this._moodTimer.destroy();      this._moodTimer      = null; }
       if (this._happyGlow)      { try { this._happyGlow.destroy(); } catch { /* */ } this._happyGlow = null; }
+      if (this._platformG)     { try { this._platformG.destroy(); } catch { /* */ } this._platformG = null; }
       if (this._bowlSteamTimer) { this._bowlSteamTimer.destroy(); this._bowlSteamTimer = null; }
       if (this._eatTimer)       { this._eatTimer.destroy();       this._eatTimer       = null; }
     });

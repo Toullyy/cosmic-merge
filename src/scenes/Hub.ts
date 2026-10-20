@@ -338,8 +338,9 @@ export class Hub extends Phaser.Scene {
       aquatic: [0x0878B8, 0x045688, 0x44CCFF],
     };
     const [activeCol, inactiveCol, borderCol] = baseColors[habitat ?? 'dirt'];
-    const fillCol = active ? activeCol : (unlocked ? inactiveCol : 0x5A3A20);
-    g.fillStyle(fillCol, active ? 1 : (unlocked ? 0.85 : 0.5));
+    const lockedCol: Record<string, number> = { dirt: 0x2A1208, grass: 0x0A2208, aquatic: 0x041828 };
+    const fillCol = active ? activeCol : (unlocked ? inactiveCol : lockedCol[habitat ?? 'dirt']);
+    g.fillStyle(fillCol, active ? 1 : (unlocked ? 0.85 : 0.72));
     g.fillRoundedRect(x + 2, y, w - 4, h, { tl: 10, tr: 10, bl: 0, br: 0 });
     if (active) {
       g.lineStyle(2.5, borderCol, 1);
@@ -347,9 +348,15 @@ export class Hub extends Phaser.Scene {
       // glow strip at top
       g.fillStyle(borderCol, 0.55);
       g.fillRoundedRect(x + 6, y + 2, w - 12, 4, 2);
-    } else {
-      g.lineStyle(1.5, unlocked ? borderCol : 0x6A4820, unlocked ? 0.45 : 0.35);
+    } else if (unlocked) {
+      g.lineStyle(1.5, borderCol, 0.45);
       g.strokeRoundedRect(x + 2, y, w - 4, h, { tl: 10, tr: 10, bl: 0, br: 0 });
+    } else {
+      // locked: habitat-tinted border with subtle shimmer
+      g.lineStyle(1.5, borderCol, 0.30);
+      g.strokeRoundedRect(x + 2, y, w - 4, h, { tl: 10, tr: 10, bl: 0, br: 0 });
+      g.fillStyle(borderCol, 0.08);
+      g.fillRoundedRect(x + 4, y + 2, w - 8, 5, 2);
     }
   }
 
@@ -363,12 +370,18 @@ export class Hub extends Phaser.Scene {
       const isActive = type === this._currentHabitat;
       const unlocked = Game.state!.habitats[type].unlocked;
       this._drawTab(btn.bg, x, 76, tabW, 50, isActive, unlocked, type);
-      btn.txt.setStyle({
-        fontSize: '17px',
-        color: isActive ? '#FFFFFF' : (unlocked ? '#E8D8C8' : '#BBAA99'),
-        fontStyle: isActive ? 'bold' : 'normal',
-      });
-      btn.txt.setText(unlocked ? labels[type] : (labels[type] + ' 🔒'));
+      if (!unlocked) {
+        const cost = HABITATS[type].unlockCost;
+        btn.txt.setStyle({ fontSize: '13px', color: '#A09088', fontStyle: 'normal', align: 'center' });
+        btn.txt.setText(labels[type] + '\n🔒 ' + cost + ' 🪙');
+      } else {
+        btn.txt.setStyle({
+          fontSize: '17px',
+          color: isActive ? '#FFFFFF' : '#E8D8C8',
+          fontStyle: isActive ? 'bold' : 'normal',
+        });
+        btn.txt.setText(labels[type]);
+      }
     });
   }
 

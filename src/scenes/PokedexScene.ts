@@ -9,7 +9,13 @@ type FilterType = 'all' | HabitatType;
 
 const FILTERS: FilterType[] = ['all', 'dirt', 'grass', 'aquatic'];
 const FILTER_LABELS: Record<FilterType, string> = {
-  all: 'All', dirt: '⛰ Dirt', grass: '🌿 Grass', aquatic: '🌊 Aqua',
+  all: '✨ All', dirt: '⛰ Dirt', grass: '🌿 Grass', aquatic: '🌊 Aqua',
+};
+const HABITAT_COLORS: Record<string, number> = {
+  dirt: 0xFFAA44, grass: 0x55DD44, aquatic: 0x44CCFF, all: 0xAA88FF,
+};
+const HABITAT_DARK: Record<string, number> = {
+  dirt: 0x3A1800, grass: 0x0A2208, aquatic: 0x041828, all: 0x1A0838,
 };
 
 export class PokedexScene extends Phaser.Scene {
@@ -24,7 +30,6 @@ export class PokedexScene extends Phaser.Scene {
 
   create() {
     const W = this.scale.width, H = this.scale.height;
-    // capture and clear new discoveries
     this._newOnes = new Set<number>((Game.state!.newDiscoveries ?? []).map(Number));
     if (this._newOnes.size > 0) {
       Game.state!.newDiscoveries = [];
@@ -34,7 +39,6 @@ export class PokedexScene extends Phaser.Scene {
     this._buildHeader(W);
     this._buildTabs(W);
 
-    // Preload SVG textures for discovered species, then build grid
     const discovered = Game.state!.stats.discovered;
     const preloads = discovered.map(sid => {
       const sp = SPECIES[sid];
@@ -49,12 +53,37 @@ export class PokedexScene extends Phaser.Scene {
   }
 
   private _buildBg(W: number, H: number) {
-    const bg = this.add.graphics();
-    bg.fillGradientStyle(0x200868, 0x200868, 0x3C1088, 0x3C1088, 1);
+    const bg = this.add.graphics().setDepth(0);
+    bg.fillGradientStyle(0x0A0320, 0x0A0320, 0x1A0848, 0x1A0848, 1);
     bg.fillRect(0, 0, W, H);
-    bg.fillStyle(0xffffff, 0.18);
-    [[48, 180], [130, 310], [255, 72], [375, 230], [488, 108], [70, 540], [315, 470], [465, 610]].forEach(s => {
-      bg.fillCircle(s[0], s[1], 1.2);
+
+    // Nebula blobs
+    const blobs = [
+      { x: 80,  y: 200, r: 90,  col: 0x3010A0, a: 0.18 },
+      { x: 460, y: 160, r: 70,  col: 0x6020C0, a: 0.14 },
+      { x: 280, y: 500, r: 120, col: 0x1040A0, a: 0.12 },
+      { x: 100, y: 700, r: 80,  col: 0x402080, a: 0.15 },
+      { x: 420, y: 750, r: 100, col: 0x204080, a: 0.10 },
+    ];
+    blobs.forEach(b => {
+      bg.fillStyle(b.col, b.a);
+      bg.fillCircle(b.x, b.y, b.r);
+    });
+
+    // Stars
+    const rng = Phaser.Math.RND;
+    for (let i = 0; i < 80; i++) {
+      const x = rng.between(0, W);
+      const y = rng.between(0, H);
+      const r = rng.realInRange(0.5, 1.8);
+      const a = rng.realInRange(0.3, 0.9);
+      bg.fillStyle(0xFFFFFF, a);
+      bg.fillCircle(x, y, r);
+    }
+    // A few bright colored stars
+    [[40, 100, 0xAAEEFF], [500, 340, 0xFFCCFF], [220, 820, 0xCCFFAA], [370, 140, 0xFFEEAA]].forEach(([x, y, c]) => {
+      bg.fillStyle(c as number, 0.7);
+      bg.fillCircle(x as number, y as number, 2);
     });
   }
 
@@ -63,45 +92,74 @@ export class PokedexScene extends Phaser.Scene {
       this.scene.start('Hub');
     }, 15).setDepth(10);
 
-    this.add.text(W / 2, 24, 'Collection', {
+    // Title glow
+    const titleGlow = this.add.graphics().setDepth(9);
+    titleGlow.fillStyle(0x6030CC, 0.12);
+    titleGlow.fillRoundedRect(W / 2 - 140, 6, 280, 46, 14);
+
+    this.add.text(W / 2, 24, '📖 Collection', {
       fontFamily: FONT, fontSize: '22px', fontStyle: 'bold', color: '#ffffff',
     }).setOrigin(0.5).setDepth(10);
 
     const total = SPECIES.length;
     const found = (Game.state!.stats.discovered ?? []).length;
     const pct = Math.round((found / total) * 100);
-    this.add.text(W / 2, 52, found + ' / ' + total + ' found  (' + pct + '%)', {
-      fontFamily: FONT, fontSize: '14px', color: '#CCDDFF',
+    this.add.text(W / 2, 52, found + ' / ' + total + '  (' + pct + '%)', {
+      fontFamily: FONT, fontSize: '13px', color: '#AABBDD',
     }).setOrigin(0.5).setDepth(10);
 
-    // progress bar
+    // Progress bar track
     const pbg = this.add.graphics().setDepth(9);
     pbg.fillStyle(0x0a0420, 1);
-    pbg.fillRoundedRect(W / 2 - 130, 62, 260, 8, 4);
+    pbg.fillRoundedRect(W / 2 - 160, 64, 320, 10, 5);
+    // Fill
     if (found > 0) {
-      pbg.fillStyle(0x7040e0, 1);
-      pbg.fillRoundedRect(W / 2 - 130, 62, Math.max(8, 260 * found / total), 8, 4);
+      const fillW = Math.max(10, 320 * found / total);
+      pbg.fillGradientStyle(0x7040E0, 0xAA60FF, 0x7040E0, 0xAA60FF, 1);
+      pbg.fillRoundedRect(W / 2 - 160, 64, fillW, 10, 5);
+      // Glow on fill
+      pbg.fillStyle(0xCC88FF, 0.25);
+      pbg.fillRoundedRect(W / 2 - 160, 64, fillW, 5, { tl: 5, tr: 5, bl: 0, br: 0 });
     }
   }
 
   private _buildTabs(W: number) {
-    const tabW = W / FILTERS.length;
+    const tabW = Math.floor(W / FILTERS.length);
     FILTERS.forEach((f, i) => {
       const tx = tabW * i;
       const isActive = f === this._filter;
+      const col = HABITAT_COLORS[f];
+      const dark = HABITAT_DARK[f];
+
       const tabBg = this.add.graphics().setDepth(5);
-      tabBg.fillStyle(isActive ? 0x6830A8 : 0x2A1060, isActive ? 1 : 0.8);
-      tabBg.fillRect(tx + 1, 74, tabW - 2, 28);
       if (isActive) {
-        tabBg.lineStyle(1, 0xAA70FF, 1);
-        tabBg.strokeRect(tx + 1, 74, tabW - 2, 28);
+        tabBg.fillStyle(dark, 1);
+        tabBg.fillRect(tx + 1, 78, tabW - 2, 26);
+        tabBg.lineStyle(1.5, col, 0.9);
+        tabBg.strokeRect(tx + 1, 78, tabW - 2, 26);
+        // color glow bottom border
+        tabBg.lineStyle(2, col, 0.6);
+        tabBg.lineBetween(tx + 1, 104, tx + tabW - 1, 104);
+        // shimmer
+        tabBg.fillStyle(col, 0.08);
+        tabBg.fillRect(tx + 4, 79, tabW - 8, 7);
+      } else {
+        tabBg.fillStyle(0x12062A, 0.85);
+        tabBg.fillRect(tx + 1, 78, tabW - 2, 26);
+        tabBg.lineStyle(1, 0x3A1880, 0.5);
+        tabBg.strokeRect(tx + 1, 78, tabW - 2, 26);
       }
-      this.add.text(tx + tabW / 2, 88, FILTER_LABELS[f], {
-        fontFamily: FONT, fontSize: '12px', color: isActive ? '#ffffff' : '#9988CC',
+
+      this.add.text(tx + tabW / 2, 91, FILTER_LABELS[f], {
+        fontFamily: FONT, fontSize: '12px',
+        color: isActive ? '#' + col.toString(16).padStart(6, '0') : '#665599',
+        fontStyle: isActive ? 'bold' : 'normal',
       }).setOrigin(0.5).setDepth(6);
+
       if (!isActive) {
-        const zone = this.add.zone(tx + tabW / 2, 88, tabW - 2, 28).setInteractive().setDepth(7);
-        zone.on('pointerdown', () => this.scene.restart({ filter: f }));
+        this.add.zone(tx + tabW / 2, 91, tabW - 2, 26)
+          .setInteractive().setDepth(7)
+          .on('pointerdown', () => this.scene.restart({ filter: f }));
       }
     });
   }
@@ -112,8 +170,8 @@ export class PokedexScene extends Phaser.Scene {
 
     const COLS = 5;
     const cellW = Math.floor(W / COLS);
-    const cellH = 114;
-    const startY = 108;
+    const cellH = 116;
+    const startY = 110;
 
     filtered.forEach((sp, idx) => {
       const col = idx % COLS;
@@ -121,13 +179,32 @@ export class PokedexScene extends Phaser.Scene {
       const cx = cellW * col + cellW / 2;
       const cy = startY + row * cellH + cellH / 2;
       const isFound = discovered.has(sp.id);
+      const borderCol = HABITAT_COLORS[sp.habitat] ?? 0x7840C0;
 
       const card = this.add.graphics().setDepth(3);
-      card.fillStyle(isFound ? 0x2C1458 : 0x180838, 1);
-      card.fillRoundedRect(cx - cellW / 2 + 4, cy - cellH / 2 + 4, cellW - 8, cellH - 8, 10);
+
       if (isFound) {
-        card.lineStyle(1, 0x7840C0, 0.8);
+        // Discovered card: habitat tinted background + colored border
+        card.fillStyle(HABITAT_DARK[sp.habitat] ?? 0x1C0A40, 1);
+        card.fillRoundedRect(cx - cellW / 2 + 4, cy - cellH / 2 + 4, cellW - 8, cellH - 8, 10);
+        card.lineStyle(1.5, borderCol, 0.75);
         card.strokeRoundedRect(cx - cellW / 2 + 4, cy - cellH / 2 + 4, cellW - 8, cellH - 8, 10);
+        // Header glow strip
+        card.fillStyle(borderCol, 0.10);
+        card.fillRoundedRect(cx - cellW / 2 + 4, cy - cellH / 2 + 4, cellW - 8, 22,
+          { tl: 10, tr: 10, bl: 0, br: 0 });
+      } else {
+        // Undiscovered: dark mysterious card
+        card.fillStyle(0x0A0520, 0.9);
+        card.fillRoundedRect(cx - cellW / 2 + 4, cy - cellH / 2 + 4, cellW - 8, cellH - 8, 10);
+        card.lineStyle(1, 0x2A1060, 0.6);
+        card.strokeRoundedRect(cx - cellW / 2 + 4, cy - cellH / 2 + 4, cellW - 8, cellH - 8, 10);
+        // Subtle dashed-like dots at corners
+        card.fillStyle(0x3A1880, 0.4);
+        card.fillCircle(cx - cellW / 2 + 8, cy - cellH / 2 + 8, 2);
+        card.fillCircle(cx + cellW / 2 - 8, cy - cellH / 2 + 8, 2);
+        card.fillCircle(cx - cellW / 2 + 8, cy + cellH / 2 - 8, 2);
+        card.fillCircle(cx + cellW / 2 - 8, cy + cellH / 2 - 8, 2);
       }
 
       if (isFound) {
@@ -138,32 +215,45 @@ export class PokedexScene extends Phaser.Scene {
           lastCaredAt: 0, source: 'dex',
         };
         const texKey = makeMonsterTexture(this, dummyMon);
-        this.add.image(cx, cy - 14, texKey).setDisplaySize(62, 62).setDepth(4);
-        this.add.text(cx, cy + 37, sp.name, {
-          fontFamily: FONT, fontSize: '9px', color: '#ccccff', align: 'center',
-          wordWrap: { width: cellW - 8 },
+        this.add.image(cx, cy - 12, texKey).setDisplaySize(60, 60).setDepth(4);
+        this.add.text(cx, cy + 38, sp.name, {
+          fontFamily: FONT, fontSize: '9px',
+          color: '#' + borderCol.toString(16).padStart(6, '0'),
+          align: 'center', wordWrap: { width: cellW - 8 },
         }).setOrigin(0.5).setDepth(4);
-        // star badge for rare breeding-only species
+
+        // Rare star badge
         if (sp.id >= 15) {
-          this.add.text(cx - cellW / 2 + 12, cy - cellH / 2 + 14, '★', {
-            fontFamily: FONT, fontSize: '12px', color: '#FFD700',
-          }).setOrigin(0.5).setDepth(5);
+          const sb = this.add.graphics().setDepth(5);
+          sb.fillStyle(0x6B3A00, 0.9);
+          sb.fillRoundedRect(cx - cellW / 2 + 5, cy - cellH / 2 + 5, 18, 15, 4);
+          this.add.text(cx - cellW / 2 + 14, cy - cellH / 2 + 12, '★', {
+            fontFamily: FONT, fontSize: '10px', color: '#FFD700',
+          }).setOrigin(0.5).setDepth(6);
         }
+
         // NEW badge
         if (this._newOnes.has(sp.id)) {
           const badgeBg = this.add.graphics().setDepth(5);
           badgeBg.fillStyle(0xFF3333, 1);
-          badgeBg.fillRoundedRect(cx + cellW / 2 - 25, cy - cellH / 2 + 5, 22, 13, 4);
-          this.add.text(cx + cellW / 2 - 14, cy - cellH / 2 + 11, 'NEW', {
+          badgeBg.fillRoundedRect(cx + cellW / 2 - 26, cy - cellH / 2 + 5, 22, 13, 4);
+          this.add.text(cx + cellW / 2 - 15, cy - cellH / 2 + 11, 'NEW', {
             fontFamily: FONT, fontSize: '7px', fontStyle: 'bold', color: '#ffffff',
           }).setOrigin(0.5).setDepth(6);
         }
       } else {
-        this.add.text(cx, cy - 12, '?', {
-          fontFamily: FONT, fontSize: '30px', color: '#2a1860', fontStyle: 'bold',
+        // Undiscovered: silhouette "?" with glow
+        this.add.text(cx, cy - 10, '?', {
+          fontFamily: FONT, fontSize: '32px', fontStyle: 'bold',
+          color: '#2A1480', stroke: '#4A28A0', strokeThickness: 1,
         }).setOrigin(0.5).setDepth(4);
-        this.add.text(cx, cy + 37, '???', {
-          fontFamily: FONT, fontSize: '9px', color: '#321c60',
+        // Habitat hint — tiny dot in habitat color, semi-transparent
+        const hintCol = HABITAT_COLORS[sp.habitat] ?? 0x7840C0;
+        const hintDot = this.add.graphics().setDepth(4);
+        hintDot.fillStyle(hintCol, 0.20);
+        hintDot.fillCircle(cx, cy + 28, 8);
+        this.add.text(cx, cy + 38, '???', {
+          fontFamily: FONT, fontSize: '9px', color: '#2A1560',
         }).setOrigin(0.5).setDepth(4);
       }
     });
