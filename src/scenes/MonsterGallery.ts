@@ -94,11 +94,9 @@ export class MonsterGallery extends Phaser.Scene {
     // Card group (filled after textures load)
     this._cards = this.add.group();
 
-    // ── Scroll input — Zone over content area ─────────────────────────────
-    const zoneH  = Math.max(H, this._totalH);
-    const zoneY  = HDR_H + zoneH / 2;           // starts below header
-    const zone   = this.add.zone(W / 2, zoneY, W, zoneH)
-      .setOrigin(0.5, 0)
+    // ── Scroll input — screen-fixed zone covering viewport below header ───
+    const zone = this.add.zone(W / 2, HDR_H + (H - HDR_H) / 2, W, H - HDR_H)
+      .setScrollFactor(0)
       .setDepth(5)
       .setInteractive();
 
