@@ -118,7 +118,7 @@ export class HabitatRoom extends Phaser.Scene {
       // Warm stone block wall texture (sandstone tone)
       const bW = 72, bH = 36;
       g.lineStyle(1.2, 0x2A0E04, 0.45);
-      for (let brow = 0; brow < Math.ceil(H * 0.72 / bH) + 1; brow++) {
+      for (let brow = 0; brow < Math.ceil(H * 0.64 / bH) + 1; brow++) {
         const wy = brow * bH;
         const bOff = (brow % 2 === 0) ? 0 : bW / 2;
         for (let wx = -bW / 2 + bOff; wx < W + bW; wx += bW) {
@@ -127,7 +127,7 @@ export class HabitatRoom extends Phaser.Scene {
       }
       // Warm mortar highlights on stones
       g.lineStyle(0.8, 0xC07040, 0.12);
-      for (let brow = 0; brow < Math.ceil(H * 0.72 / bH) + 1; brow++) {
+      for (let brow = 0; brow < Math.ceil(H * 0.64 / bH) + 1; brow++) {
         const wy = brow * bH;
         const bOff = (brow % 2 === 0) ? 0 : bW / 2;
         for (let wx = -bW / 2 + bOff; wx < W + bW; wx += bW) {
@@ -202,10 +202,10 @@ export class HabitatRoom extends Phaser.Scene {
       });
 
       // 3D perspective amber stone floor
-      this._drawPerspectiveFloor(g, W, H, H * 0.695, 6, 9, 0x7A4520, 0x6A3818, 0x2E1408, 0.50);
+      this._drawPerspectiveFloor(g, W, H, H * 0.615, 6, 9, 0x7A4520, 0x6A3818, 0x2E1408, 0.50);
 
       // Glowing mushroom clusters at floor edges
-      ([[30, H*0.715, 0xFF6622], [65, H*0.700, 0xFFAA00], [480, H*0.718, 0xFF4400], [510, H*0.705, 0xFF8800]] as [number,number,number][]).forEach(([mx, my, mc]) => {
+      ([[30, H*0.635, 0xFF6622], [65, H*0.620, 0xFFAA00], [480, H*0.638, 0xFF4400], [510, H*0.625, 0xFF8800]] as [number,number,number][]).forEach(([mx, my, mc]) => {
         // Stem
         g.fillStyle(0xDDCC88, 1); g.fillRect(mx - 3, my - 16, 6, 18);
         // Cap glow
@@ -222,7 +222,7 @@ export class HabitatRoom extends Phaser.Scene {
       });
 
       // Warm amber crystal formations at floor
-      ([[38,H*0.700,0xFFAA00],[108,H*0.710,0xFF8800],[200,H*0.695,0xFFCC22],[345,H*0.700,0xFF9900],[438,H*0.710,0xFFAA00],[506,H*0.698,0xFF7700]] as [number,number,number][]).forEach(([cx2,cy2,cc]) => {
+      ([[38,H*0.620,0xFFAA00],[108,H*0.630,0xFF8800],[200,H*0.615,0xFFCC22],[345,H*0.620,0xFF9900],[438,H*0.630,0xFFAA00],[506,H*0.618,0xFF7700]] as [number,number,number][]).forEach(([cx2,cy2,cc]) => {
         g.fillStyle(cc, 0.18); g.fillCircle(cx2, cy2, 20);
         g.fillStyle(cc, 0.35); g.fillCircle(cx2, cy2, 11);
         g.fillStyle(cc, 1); g.fillCircle(cx2, cy2, 5);
@@ -321,13 +321,13 @@ export class HabitatRoom extends Phaser.Scene {
       }
 
       // 3D perspective grass floor (rich green wood)
-      this._drawPerspectiveFloor(g, W, H, H * 0.70, 6, 8, 0x558832, 0x447228, 0x1A3A0A, 0.35);
+      this._drawPerspectiveFloor(g, W, H, H * 0.62, 6, 8, 0x558832, 0x447228, 0x1A3A0A, 0.35);
       // Bright grass edge strip
-      g.fillStyle(0x66CC40, 1); g.fillRect(0, H * 0.700, W, 10);
-      g.fillStyle(0x88EE55, 0.50); g.fillRect(0, H * 0.700, W, 4);
+      g.fillStyle(0x66CC40, 1); g.fillRect(0, H * 0.620, W, 10);
+      g.fillStyle(0x88EE55, 0.50); g.fillRect(0, H * 0.620, W, 4);
       // Grass blade tufts
       for (let gi = 0; gi < 12; gi++) {
-        const gx = 14 + gi * 44, gy = H * 0.702;
+        const gx = 14 + gi * 44, gy = H * 0.622;
         g.fillStyle(0x44BB22, 1);
         g.fillTriangle(gx, gy, gx-5, gy+14, gx+5, gy+14);
         g.fillTriangle(gx+8, gy+2, gx+3, gy+16, gx+13, gy+16);
@@ -397,7 +397,7 @@ export class HabitatRoom extends Phaser.Scene {
 
       // Background kelp forest silhouettes
       for (let ki = 0; ki < 6; ki++) {
-        const kx = 22 + ki * 92, kBase = H * 0.72;
+        const kx = 22 + ki * 92, kBase = H * 0.64;
         g.lineStyle(5, 0x1A6B20, 0.60);
         g.beginPath(); g.moveTo(kx, kBase);
         g.lineTo(kx+16, kBase-65); g.lineTo(kx-10, kBase-130); g.lineTo(kx+14, kBase-195);
@@ -414,12 +414,12 @@ export class HabitatRoom extends Phaser.Scene {
       }
 
       // 3D perspective sandy sea floor (golden sand)
-      this._drawPerspectiveFloor(g, W, H, H * 0.72, 6, 8, 0xE8C878, 0xD4B060, 0xA07838, 0.32);
+      this._drawPerspectiveFloor(g, W, H, H * 0.64, 6, 8, 0xE8C878, 0xD4B060, 0xA07838, 0.32);
 
       // Sand ripple marks
       g.lineStyle(1.2, 0xF0D890, 0.35);
       for (let rr = 0; rr < 10; rr++) {
-        const ry4 = H * 0.726 + rr * 14;
+        const ry4 = H * 0.646 + rr * 14;
         g.beginPath();
         for (let rx4 = 0; rx4 <= W; rx4 += 3) {
           const sy4 = ry4 + Math.sin(rx4 * 0.065 + rr * 1.3) * 3;
@@ -569,7 +569,7 @@ export class HabitatRoom extends Phaser.Scene {
         });
       }
       if (owned.includes('grass_pond')) {
-        const px = W * 0.15, py = H * 0.74;
+        const px = W * 0.15, py = H * 0.66;
         g.fillStyle(0x1565C0, 0.75); g.fillEllipse(px, py, 64, 26);
         g.fillStyle(0x42A5F5, 0.45); g.fillEllipse(px - 8, py - 5, 28, 10);
         g.lineStyle(1.5, 0x90CAF9, 0.6); g.strokeEllipse(px, py, 64, 26);
@@ -592,7 +592,7 @@ export class HabitatRoom extends Phaser.Scene {
         });
       }
       if (owned.includes('aqua_chest')) {
-        const chx = W * 0.8, chy = H * 0.72;
+        const chx = W * 0.8, chy = H * 0.64;
         g.fillStyle(0x5D3A1A, 1); g.fillRect(chx - 18, chy - 16, 36, 28);
         g.fillStyle(0x8B5E3C, 1); g.fillRoundedRect(chx - 18, chy - 20, 36, 12, 4);
         g.fillStyle(0xFFD700, 1); g.fillRect(chx - 5, chy - 6, 10, 8); g.fillCircle(chx, chy - 2, 4);
@@ -622,7 +622,7 @@ export class HabitatRoom extends Phaser.Scene {
 
   private _drawForeground(W: number, H: number, habitat: HabitatType) {
     const fg = this.add.graphics().setDepth(2);
-    const gH = H * 0.72;
+    const gH = H * 0.64;
 
     if (habitat === 'dirt') {
       // Stalactite curtains at top corners
@@ -736,7 +736,7 @@ export class HabitatRoom extends Phaser.Scene {
   // ── MONSTER AREA ──────────────────────────────────────────────────────────
 
   private _buildMonsterArea(W: number, H: number, sp: Species) {
-    const groundY = H * 0.70, monY = groundY - 78;
+    const groundY = H * 0.62, monY = groundY - 78;
     const leftX = 112, rightX = W - 112;
 
     // Habitat-specific decorative stage platform — draws at origin (0,y) so x can follow monster
@@ -838,7 +838,7 @@ export class HabitatRoom extends Phaser.Scene {
 
   private _buildBowl(W: number, H: number) {
     this._bowlX = W * 0.72;
-    this._bowlY = H * 0.704;
+    this._bowlY = H * 0.624;
     this._bowlGfx = this.add.graphics().setDepth(4);
     this._bowlLabelTxt = this.add.text(this._bowlX, this._bowlY + 20, '', {
       fontFamily: FONT, fontSize: '13px', color: '#DDBB88',
@@ -951,7 +951,7 @@ export class HabitatRoom extends Phaser.Scene {
   // ── STATS BARS ────────────────────────────────────────────────────────────
 
   private _buildStats(W: number, H: number) {
-    const statsY = H * 0.72 + 18;
+    const statsY = H * 0.64 + 18;
     const defs = [
       { key: 'hunger',      label: '🍖', col: 0xF57C00 },
       { key: 'happiness',   label: '❤️', col: 0xFDD835 },
@@ -1242,8 +1242,8 @@ export class HabitatRoom extends Phaser.Scene {
       fontFamily: FONT, fontSize: '13px', color: isGoldenMon ? '#FFD700' : '#DDCCFF',
     }).setOrigin(0.5).setDepth(20);
 
-    this._coinTxt = this.add.text(W / 2, H * 0.72 + 5, '💰 ' + Game.state!.coins, {
-      fontFamily: FONT, fontSize: '17px', color: '#FFD700',
+    this._coinTxt = this.add.text(56, 70, '💰 ' + Game.state!.coins, {
+      fontFamily: FONT, fontSize: '13px', color: '#FFD700',
       stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5).setDepth(20);
 
@@ -1763,7 +1763,7 @@ export class HabitatRoom extends Phaser.Scene {
 
   private _playCleanAnim(toolId: string) {
     const W = this._W, H = this._H;
-    const groundY = H * 0.70;
+    const groundY = H * 0.62;
 
     if (toolId === 'bath') {
       // Bath kit: burst of soap bubbles around monster
@@ -2057,7 +2057,7 @@ export class HabitatRoom extends Phaser.Scene {
         const sg = this.add.graphics().setDepth(3);
         sg.fillStyle(sparkCols[Math.floor(Math.random() * sparkCols.length)], 0.88);
         sg.fillCircle(0, 0, 1.5 + Math.random() * 2.5);
-        sg.setPosition(cx + (Math.random() - 0.5) * 14, H * 0.70 - 18 + (Math.random() - 0.5) * 12);
+        sg.setPosition(cx + (Math.random() - 0.5) * 14, H * 0.62 - 18 + (Math.random() - 0.5) * 12);
         this.tweens.add({
           targets: sg,
           x: sg.x + (Math.random() - 0.5) * 28,
@@ -2203,7 +2203,7 @@ export class HabitatRoom extends Phaser.Scene {
       bg.fillCircle(0, 0, br);
       bg.fillStyle(0xFFFFFF, 0.45);
       bg.fillCircle(-br * 0.30, -br * 0.30, br * 0.35);
-      bg.x = bx; bg.y = H * 0.70;
+      bg.x = bx; bg.y = H * 0.62;
       this.tweens.add({
         targets: bg,
         x: bx + (Math.random() - 0.5) * 55,
