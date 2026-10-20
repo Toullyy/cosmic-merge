@@ -300,7 +300,7 @@ export function preloadMonsterTexture(scene: Phaser.Scene, monster: Monster): Pr
     const bc = shiftHue(sp.baseColor, mods.hueShift);
     const tR = (bc >> 16) & 0xff, tG = (bc >> 8) & 0xff, tB = bc & 0xff;
     ctx.globalCompositeOperation = 'source-atop';
-    ctx.globalAlpha = 0.14;
+    ctx.globalAlpha = 0.28;
     ctx.fillStyle = `rgb(${tR},${tG},${tB})`;
     ctx.fillRect(0, 0, SIZE, SIZE);
     ctx.globalCompositeOperation = 'source-over';
@@ -349,26 +349,31 @@ export function preloadMonsterTexture(scene: Phaser.Scene, monster: Monster): Pr
     }
 
     if (mods.isGolden) {
-      // Outer radial glow
-      const grd = ctx.createRadialGradient(SIZE/2, SIZE/2, SIZE*0.26, SIZE/2, SIZE/2, SIZE*0.54);
+      // Clip gradient to circle so corners stay transparent during scale animations
+      const grd = ctx.createRadialGradient(SIZE/2, SIZE/2, SIZE*0.22, SIZE/2, SIZE/2, SIZE*0.46);
       grd.addColorStop(0,   'rgba(255,215,0,0)');
-      grd.addColorStop(0.7, 'rgba(255,215,0,0)');
-      grd.addColorStop(1,   'rgba(255,215,0,0.62)');
+      grd.addColorStop(0.65, 'rgba(255,215,0,0)');
+      grd.addColorStop(1,   'rgba(255,215,0,0.55)');
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(SIZE/2, SIZE/2, SIZE * 0.47, 0, Math.PI * 2);
+      ctx.clip();
       ctx.fillStyle = grd;
       ctx.fillRect(0, 0, SIZE, SIZE);
-      // Soft circular ring (no harsh box)
+      ctx.restore();
+      // Soft circular ring
       ctx.strokeStyle = 'rgba(255,215,0,0.88)';
       ctx.lineWidth = 7;
       ctx.beginPath();
-      ctx.arc(SIZE/2, SIZE/2, SIZE/2 - 8, 0, Math.PI * 2);
+      ctx.arc(SIZE/2, SIZE/2, SIZE/2 - 12, 0, Math.PI * 2);
       ctx.stroke();
       ctx.strokeStyle = 'rgba(255,245,130,0.46)';
       ctx.lineWidth = 4;
       ctx.beginPath();
-      ctx.arc(SIZE/2, SIZE/2, SIZE/2 - 2, 0, Math.PI * 2);
+      ctx.arc(SIZE/2, SIZE/2, SIZE/2 - 6, 0, Math.PI * 2);
       ctx.stroke();
-      // Sparkle dots at 8 positions around the ring
-      const R = SIZE/2 - 8;
+      // Sparkle dots around ring
+      const R = SIZE/2 - 12;
       for (let i = 0; i < 8; i++) {
         const a = (i / 8) * Math.PI * 2 - Math.PI / 8;
         const sx = SIZE/2 + Math.cos(a) * R, sy = SIZE/2 + Math.sin(a) * R;

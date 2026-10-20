@@ -629,6 +629,24 @@ export class HabitatRoom extends Phaser.Scene {
       targets: this._monImg, y: monY - 9, duration: 950,
       ease: 'Sine.InOut', yoyo: true, repeat: -1,
       onUpdate: () => { this._updateDirtyOverlay(); this._updateHappyGlow(); },
+      onRepeat: () => {
+        const sx = this._monImg.scaleX, sy = this._monImg.scaleY;
+        this.tweens.add({
+          targets: this._monImg,
+          scaleX: sx * 1.06, scaleY: sy * 0.94,
+          duration: 70, ease: 'Quad.Out', yoyo: true,
+        });
+      },
+    });
+
+    const bs = this._monImg.scaleX;
+    this.tweens.add({
+      targets: this._monImg,
+      scaleX: bs * 1.035,
+      scaleY: bs * 1.035,
+      duration: 2200,
+      ease: 'Sine.InOut',
+      yoyo: true, repeat: -1,
     });
 
     this._monY = monY;

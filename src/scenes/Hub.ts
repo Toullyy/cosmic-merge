@@ -1022,6 +1022,14 @@ export class Hub extends Phaser.Scene {
     this._bobTweens.push(this.tweens.add({
       targets: img, y: img.y - 5, duration: 1100 + Math.random()*400, ease: 'Sine.InOut', yoyo: true, repeat: -1,
     }));
+    const bs = img.scaleX;
+    this.time.delayedCall(Math.random() * 2000, () => {
+      if (!img.active) return;
+      this.tweens.add({
+        targets: img, scaleX: bs * 1.06, scaleY: bs * 1.06,
+        duration: 1400 + Math.random() * 600, ease: 'Sine.InOut', yoyo: true, repeat: -1,
+      });
+    });
 
     const listing = Game.state!.listings.find(l => l.monsterId === mon.id);
     if (listing) {
