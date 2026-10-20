@@ -55,6 +55,8 @@ export class HabitatRoom extends Phaser.Scene {
   private _eatTimer: Phaser.Time.TimerEvent | null = null;
   private _bowlX: number = 0;
   private _bowlY: number = 0;
+  private _xpBar: Phaser.GameObjects.Graphics | null = null;
+  private _xpLevelTxt: Phaser.GameObjects.Text | null = null;
 
   constructor() { super({ key: 'HabitatRoom' }); }
 
@@ -957,12 +959,27 @@ export class HabitatRoom extends Phaser.Scene {
 
   private _buildStats(W: number, H: number) {
     const statsY = H * 0.64 + 18;
+    const barW = W - 92;
+
+    // Frosted glass backing panel behind all bars + xp row
+    const habCol = this._sp.habitat === 'dirt' ? 0xFF8800 : this._sp.habitat === 'grass' ? 0x44AA22 : 0x22AAEE;
+    const panelY = statsY - 20;
+    const panelH = 44 * 3 + 38;
+    const panel = this.add.graphics().setDepth(9);
+    panel.fillStyle(0x000000, 0.42);
+    panel.fillRoundedRect(8, panelY, W - 16, panelH, 14);
+    panel.fillStyle(habCol, 0.07);
+    panel.fillRoundedRect(8, panelY, W - 16, panelH, 14);
+    panel.lineStyle(1.5, habCol, 0.28);
+    panel.strokeRoundedRect(8, panelY, W - 16, panelH, 14);
+    panel.fillStyle(0xFFFFFF, 0.04);
+    panel.fillRoundedRect(10, panelY + 2, W - 20, panelH * 0.38, { tl: 12, tr: 12, bl: 0, br: 0 });
+
     const defs = [
       { key: 'hunger',      label: '🍖', col: 0xF57C00 },
       { key: 'happiness',   label: '❤️', col: 0xFDD835 },
       { key: 'cleanliness', label: '💧', col: 0x42A5F5 },
     ];
-    const barW = W - 92;
     this._bars = {};
 
     defs.forEach((d, i) => {
@@ -989,25 +1006,64 @@ export class HabitatRoom extends Phaser.Scene {
       this._bars[d.key] = { fill, col: d.col, bx: 54, by: by - 11, bw: barW, val };
     });
 
+    // XP progress bar at the bottom of the stats panel
+    const xpRowY = statsY + 3 * 44 + 10;
+    this.add.text(26, xpRowY + 1, '⭐', { fontFamily: FONT, fontSize: '15px' })
+      .setOrigin(0, 0.5).setDepth(10);
+    const xpBg = this.add.graphics().setDepth(10);
+    xpBg.fillStyle(0x000000, 0.40);
+    xpBg.fillRoundedRect(52, xpRowY - 8, barW + 2, 18, 9);
+    xpBg.fillStyle(0x080820, 0.90);
+    xpBg.fillRoundedRect(54, xpRowY - 7, barW, 16, 8);
+    this._xpBar = this.add.graphics().setDepth(11);
+    this._xpLevelTxt = this.add.text(W - 16, xpRowY + 1, '', {
+      fontFamily: FONT, fontSize: '12px', color: '#CC88FF',
+      stroke: '#000000', strokeThickness: 2,
+    }).setOrigin(1, 0.5).setDepth(13);
+
     this._refreshStats();
   }
 
   private _refreshStats() {
     const m = this._monster as any;
+    const dynamicCol = (key: string, pct: number): number => {
+      if (key === 'hunger')      return pct > 0.65 ? 0xF57C00 : pct > 0.30 ? 0xFFB822 : 0xFF3333;
+      if (key === 'happiness')   return pct > 0.65 ? 0xFDD835 : pct > 0.30 ? 0xFFCC44 : 0x5599FF;
+      if (key === 'cleanliness') return pct > 0.65 ? 0x42A5F5 : pct > 0.30 ? 0x66CCFF : 0x88DD44;
+      return 0xFFFFFF;
+    };
     (['hunger', 'happiness', 'cleanliness'] as const).forEach(k => {
       const e = this._bars[k];
       if (!e) return;
       const pct = Math.max(0, Math.min(1, m[k] / 100));
       const fillW = Math.max(16, e.bw * pct);
+      const col = dynamicCol(k, pct);
       e.fill.clear();
-      // Main fill
-      e.fill.fillStyle(e.col, 1);
+      e.fill.fillStyle(col, 1);
       e.fill.fillRoundedRect(e.bx, e.by, fillW, 20, 10);
-      // Shine highlight strip on top half of bar
       e.fill.fillStyle(0xffffff, 0.22);
       e.fill.fillRoundedRect(e.bx + 2, e.by + 1, Math.max(10, fillW - 4), 8, { tl: 8, tr: 8, bl: 0, br: 0 });
+      if (pct < 0.30) {
+        e.fill.fillStyle(0xFF0000, 0.18);
+        e.fill.fillRoundedRect(e.bx, e.by, e.bw, 20, 10);
+      }
       e.val.setText(Math.round(m[k]) + '%');
     });
+
+    // XP bar
+    if (this._xpBar && this._xpLevelTxt) {
+      const xpNeeded = XP_TABLE[this._monster.level] ?? 999;
+      const xpPct = Math.min(1, this._monster.xp / xpNeeded);
+      const xpBx = 54, xpBw = this._W - 92;
+      const xpRowY = this._H * 0.64 + 18 + 3 * 44 + 10;
+      const xpFillW = Math.max(10, xpBw * xpPct);
+      this._xpBar.clear();
+      this._xpBar.fillStyle(0xAA44FF, 1);
+      this._xpBar.fillRoundedRect(xpBx, xpRowY - 7, xpFillW, 16, 8);
+      this._xpBar.fillStyle(0xFFFFFF, 0.20);
+      this._xpBar.fillRoundedRect(xpBx + 2, xpRowY - 6, Math.max(6, xpFillW - 4), 5, { tl: 6, tr: 6, bl: 0, br: 0 });
+      this._xpLevelTxt.setText('Lv' + this._monster.level);
+    }
     if (this._dirtyOverlay) this._updateDirtyOverlay();
     if (this._monster.hunger < 30) {
       this._startHungerEffect();
