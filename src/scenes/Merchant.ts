@@ -3,7 +3,7 @@ import { Game, FONT, store, sfx } from '../utils';
 import { t } from '../i18n';
 import { CATALOG, HABITATS, newEgg, SPECIES, generateMerchantStock, MERCHANT_REFRESH_MS, TANK_CAPACITY, DECORATIONS, TOY_TYPES } from '../data';
 import type { Monster } from '../types';
-import { shiftHue } from '../MonsterRenderer';
+import { shiftHue, darken, lighten } from '../MonsterRenderer';
 import { makeButton } from '../ui/Button';
 import { showToast } from '../ui/Toast';
 
@@ -173,6 +173,27 @@ export class Merchant extends Phaser.Scene {
       });
     };
     this.time.addEvent({ delay: 480, loop: true, callback: spawnSparkle });
+
+    // Subtle floating magic dust throughout the scene (card zone)
+    const spawnDust = () => {
+      if (!this.scene?.isActive('Merchant')) return;
+      const dx = 12 + Math.random() * (W - 24);
+      const dy = 170 + Math.random() * (H - 240);
+      const dc = [0xFFCC44, 0xCC66FF, 0x66DDFF, 0xFF88CC][Math.floor(Math.random() * 4)];
+      const dg = this.add.graphics().setDepth(1);
+      dg.fillStyle(dc, 0.32);
+      dg.fillCircle(0, 0, 0.8 + Math.random() * 1.2);
+      dg.setPosition(dx, dy);
+      this.tweens.add({
+        targets: dg,
+        y: dy - 16 - Math.random() * 14,
+        x: dx + (Math.random() - 0.5) * 20,
+        alpha: 0,
+        duration: 1300 + Math.random() * 700, ease: 'Sine.Out',
+        onComplete: (_tw: any, tg: any) => { try { tg[0].destroy(); } catch { /* */ } },
+      });
+    };
+    this.time.addEvent({ delay: 320, loop: true, callback: spawnDust });
   }
 
   // ── FILTER TABS ────────────────────────────────────────────────────────────
@@ -315,38 +336,93 @@ export class Merchant extends Phaser.Scene {
 
       // Card shadow
       const card = this.add.graphics().setDepth(3);
-      card.fillStyle(0x000000, 0.38);
-      card.fillRoundedRect(cx - cardW / 2 + 4, cy - cardH / 2 + 4, cardW, cardH, 16);
+      card.fillStyle(0x000000, 0.44);
+      card.fillRoundedRect(cx - cardW / 2 + 5, cy - cardH / 2 + 5, cardW, cardH, 16);
       // Card body
       card.fillGradientStyle(cDark, cDark, cLight, cLight, 1);
       card.fillRoundedRect(cx - cardW / 2, cy - cardH / 2, cardW, cardH, 16);
+      // Habitat color header strip
+      card.fillStyle(borderCol, unlocked ? 0.22 : 0.07);
+      card.fillRoundedRect(cx - cardW / 2, cy - cardH / 2, cardW, 60, { tl: 16, tr: 16, bl: 0, br: 0 });
+      // Habitat bottom glow edge
+      card.fillStyle(borderCol, unlocked ? 0.12 : 0.04);
+      card.fillRoundedRect(cx - cardW / 2, cy + cardH / 2 - 20, cardW, 20, { tl: 0, tr: 0, bl: 16, br: 16 });
       // Border
-      card.lineStyle(2, borderCol, unlocked ? 0.78 : 0.22);
+      card.lineStyle(unlocked ? 2.5 : 1.5, borderCol, unlocked ? 0.90 : 0.22);
       card.strokeRoundedRect(cx - cardW / 2, cy - cardH / 2, cardW, cardH, 16);
-      // Sheen on top half
-      card.fillStyle(0xFFFFFF, 0.04);
-      card.fillRoundedRect(cx - cardW / 2 + 4, cy - cardH / 2 + 4, cardW - 8, cardH * 0.48,
-        { tl: 12, tr: 12, bl: 0, br: 0 });
+      // Inner top glow
+      card.fillStyle(0xFFFFFF, 0.06);
+      card.fillRoundedRect(cx - cardW / 2 + 3, cy - cardH / 2 + 3, cardW - 6, cardH * 0.45, { tl: 13, tr: 13, bl: 0, br: 0 });
       this._gridGroup.add(card);
 
-      // Egg with glow
+      // Egg with vivid habitat-based color + texture
       const eggG = this.add.graphics().setDepth(4);
-      const eggColor = shiftHue(sp.baseColor, ((sp.id * 13) % 12 - 6) * 15);
+      const habEggBase: Record<string, number> = { dirt: 0xFF9900, grass: 0x66EE33, aquatic: 0x22CCFF };
+      const eggColor = shiftHue(habEggBase[sp.habitat] ?? sp.baseColor, ((sp.id * 11) % 7 - 3) * 20);
+      const eggDark = darken(eggColor, 55);
+      const eggLight = lighten(eggColor, 45);
+      const eY = cy - 50;
+
       if (unlocked) {
-        eggG.fillStyle(eggColor, 0.10); eggG.fillEllipse(cx, cy - 46, 84, 96);
-        eggG.fillStyle(eggColor, 0.18); eggG.fillEllipse(cx, cy - 46, 66, 76);
-        eggG.fillStyle(eggColor, 1);    eggG.fillEllipse(cx, cy - 46, 50, 64);
-        eggG.fillStyle(0xFFFFFF, 0.28); eggG.fillEllipse(cx - 9, cy - 58, 16, 22);
-        eggG.fillStyle(0xFFFFFF, 0.55); eggG.fillEllipse(cx - 10, cy - 60, 9, 11);
+        // Outer pulsing halos (3 concentric)
+        eggG.fillStyle(eggColor, 0.07); eggG.fillEllipse(cx, eY, 108, 124);
+        eggG.fillStyle(eggColor, 0.13); eggG.fillEllipse(cx, eY, 90, 106);
+        eggG.fillStyle(eggColor, 0.22); eggG.fillEllipse(cx, eY, 76, 90);
+        // Egg drop shadow
+        eggG.fillStyle(eggDark, 0.70); eggG.fillEllipse(cx + 4, eY + 4, 66, 82);
+        // Egg body
+        eggG.fillStyle(eggColor, 1); eggG.fillEllipse(cx, eY, 66, 82);
+        // Belly shimmer (right-center lighter area)
+        eggG.fillStyle(eggLight, 0.38); eggG.fillEllipse(cx + 9, eY + 8, 32, 42);
+        // Top highlight
+        eggG.fillStyle(eggLight, 0.62); eggG.fillEllipse(cx - 10, eY - 22, 24, 32);
+        eggG.fillStyle(0xFFFFFF, 0.74); eggG.fillEllipse(cx - 11, eY - 24, 13, 17);
+        // Speckles (darker dots)
+        const speckles: [number, number, number][] = [
+          [cx - 15, eY - 10, 3.8], [cx + 13, eY - 4, 3.0], [cx - 6, eY + 12, 3.5],
+          [cx + 21, eY - 26, 2.8], [cx - 3, eY + 24, 3.0], [cx + 16, eY + 10, 2.5],
+          [cx - 20, eY + 4, 2.5],
+        ];
+        speckles.forEach(([ex, ey, er]) => {
+          eggG.fillStyle(eggDark, 0.52); eggG.fillCircle(ex, ey, er);
+        });
+        // Crack hint lines (faint jagged)
+        eggG.lineStyle(1.5, eggDark, 0.42);
+        eggG.beginPath(); eggG.moveTo(cx + 7, eY - 20); eggG.lineTo(cx + 14, eY - 10); eggG.lineTo(cx + 8, eY); eggG.strokePath();
+        eggG.lineStyle(1.2, eggDark, 0.28);
+        eggG.beginPath(); eggG.moveTo(cx - 9, eY + 5); eggG.lineTo(cx - 4, eY + 12); eggG.strokePath();
+        // Rare star sparkle for hatchHours >= 10
         if (sp.hatchHours >= 10) {
-          eggG.fillStyle(0xFFD700, 0.92); eggG.fillCircle(cx + 16, cy - 58, 5);
-          eggG.fillStyle(0xFFFFFF, 0.78); eggG.fillCircle(cx + 14, cy - 60, 2);
+          eggG.fillStyle(0xFFD700, 0.20); eggG.fillCircle(cx + 25, eY - 34, 14);
+          eggG.fillStyle(0xFFD700, 0.96); eggG.fillCircle(cx + 25, eY - 34, 7);
+          eggG.fillStyle(0xFFFFFF, 0.90); eggG.fillCircle(cx + 23, eY - 36, 3.5);
         }
+        // Pulse animation
+        this.tweens.add({
+          targets: eggG,
+          alpha: { from: 1.0, to: 0.76 },
+          duration: 1600 + Math.random() * 900,
+          yoyo: true, repeat: -1, ease: 'Sine.InOut',
+        });
       } else {
-        eggG.fillStyle(sp.baseColor, 0.16); eggG.fillEllipse(cx, cy - 46, 66, 76);
-        eggG.fillStyle(sp.baseColor, 0.28); eggG.fillEllipse(cx, cy - 46, 50, 64);
-        eggG.lineStyle(1.5, sp.baseColor, 0.44); eggG.strokeEllipse(cx, cy - 46, 50, 64);
-        eggG.fillStyle(0xFFFFFF, 0.07); eggG.fillEllipse(cx - 9, cy - 58, 16, 22);
+        // Locked egg: dim and mysterious with a visible lock icon
+        eggG.fillStyle(0x1A0840, 0.95); eggG.fillEllipse(cx, eY, 70, 86);
+        eggG.fillStyle(sp.baseColor, 0.18); eggG.fillEllipse(cx, eY, 66, 82);
+        eggG.lineStyle(2, sp.baseColor, 0.36); eggG.strokeEllipse(cx, eY, 66, 82);
+        eggG.fillStyle(0xFFFFFF, 0.05); eggG.fillEllipse(cx - 11, eY - 24, 16, 24);
+        // Lock body
+        eggG.fillStyle(0xAA9944, 0.65); eggG.fillRoundedRect(cx - 13, eY - 8, 26, 20, 5);
+        // Lock shackle (arc)
+        eggG.lineStyle(3.5, 0xAA9944, 0.65);
+        eggG.beginPath();
+        eggG.moveTo(cx - 7, eY - 8);
+        eggG.lineTo(cx - 7, eY - 18);
+        eggG.arc(cx, eY - 18, 7, Math.PI, 0, false);
+        eggG.lineTo(cx + 7, eY - 8);
+        eggG.strokePath();
+        // Keyhole
+        eggG.fillStyle(0x220A44, 0.90); eggG.fillCircle(cx, eY, 5);
+        eggG.fillStyle(0x220A44, 0.90); eggG.fillRect(cx - 2.5, eY, 5, 7);
       }
       this._gridGroup.add(eggG);
 

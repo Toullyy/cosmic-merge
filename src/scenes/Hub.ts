@@ -52,6 +52,7 @@ export class Hub extends Phaser.Scene {
     this.refreshAll();
     this._startEggTimer();
     this._startVisitorTimer();
+    this._startAmbient(W, H);
 
     const boot = document.getElementById('boot');
     if (boot) boot.style.display = 'none';
@@ -186,6 +187,42 @@ export class Hub extends Phaser.Scene {
       fontFamily: FONT, fontSize: '12px',
       color: '#FFFFFF', stroke: '#5A2A00', strokeThickness: 2,
     }).setOrigin(0.5).setDepth(1);
+  }
+
+  private _startAmbient(W: number, H: number) {
+    // Animated lantern glow (pulse on top of static background lanterns)
+    const lanternPositions: [number, number][] = [[W * 0.22, 86], [W * 0.78, 90]];
+    lanternPositions.forEach(([lx, ly]) => {
+      const lg = this.add.graphics().setDepth(1);
+      lg.fillStyle(0xFFDD66, 0.24); lg.fillCircle(lx, ly, 28);
+      lg.fillStyle(0xFFFF99, 0.12); lg.fillCircle(lx, ly, 44);
+      this.tweens.add({
+        targets: lg, alpha: { from: 0.50, to: 0.10 },
+        duration: 1400 + Math.random() * 700, yoyo: true, repeat: -1, ease: 'Sine.InOut',
+      });
+    });
+
+    // Floating warm dust motes drifting through the shop
+    const spawnDust = () => {
+      if (!this.scene?.isActive('Hub')) return;
+      const dx = 18 + Math.random() * (W - 36);
+      const dy = H * 0.22 + Math.random() * H * 0.58;
+      const dc = [0xFFDD88, 0xFFBB44, 0xFFEEBB, 0xFFCC66][Math.floor(Math.random() * 4)];
+      const dg = this.add.graphics().setDepth(1);
+      dg.fillStyle(dc, 0.28 + Math.random() * 0.18);
+      dg.fillCircle(0, 0, 0.8 + Math.random() * 1.4);
+      dg.setPosition(dx, dy);
+      this.tweens.add({
+        targets: dg,
+        y: dy - 24 - Math.random() * 20,
+        x: dx + (Math.random() - 0.5) * 32,
+        alpha: 0,
+        duration: 2000 + Math.random() * 1400, ease: 'Sine.Out',
+        onComplete: (_tw: any, tg: any) => { try { tg[0].destroy(); } catch { /* */ } },
+      });
+    };
+    this.time.addEvent({ delay: 380, loop: true, callback: spawnDust });
+    for (let i = 0; i < 14; i++) this.time.delayedCall(i * 220, spawnDust);
   }
 
   private _buildHabitatBg(W: number, H: number) {
@@ -1043,6 +1080,23 @@ export class Hub extends Phaser.Scene {
         duration: 1400 + Math.random() * 600, ease: 'Sine.InOut', yoyo: true, repeat: -1,
       });
     });
+
+    // Stat indicator dots (hunger · happiness · cleanliness) bottom-left of viewport
+    const statDotG = this.add.graphics().setDepth(24);
+    const dotY = vpY + vpH - 9;
+    statDotG.fillStyle(0x000000, 0.55); statDotG.fillRoundedRect(vpX + 1, dotY - 7, 54, 15, 4);
+    const statPcts = [mon.hunger / 100, mon.happiness / 100, mon.cleanliness / 100];
+    const statCols = [
+      (p: number) => p > 0.65 ? 0xF57C00 : p > 0.30 ? 0xFFCC44 : 0xFF4444,
+      (p: number) => p > 0.65 ? 0x44DD44 : p > 0.30 ? 0xFFCC22 : 0xFF4444,
+      (p: number) => p > 0.65 ? 0x29B6F6 : p > 0.30 ? 0xFFCC22 : 0xFF4444,
+    ];
+    statPcts.forEach((p, i) => {
+      const dx = vpX + 10 + i * 16;
+      statDotG.fillStyle(0x111111, 0.50); statDotG.fillCircle(dx, dotY, 4.5);
+      statDotG.fillStyle(statCols[i](Math.max(0, Math.min(1, p))), 1); statDotG.fillCircle(dx, dotY, 4);
+    });
+    this._displayGroup.add(statDotG);
 
     const listing = Game.state!.listings.find(l => l.monsterId === mon.id);
     if (listing) {
