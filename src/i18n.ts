@@ -158,9 +158,10 @@ const D: Record<Lang, Record<string, string>> = {
     'howto.page3.l2': 'Collect all 25 species in the Dex.',
     'howto.page3.l3': 'Buy more tanks (100 G each) to house more monsters.',
     'howto.page4.title': '✨ Monster Traits',
-    // MonsterGallery
+    // MonsterGallery / Pokedex
     'gallery.title':   'Monster Gallery',
     'gallery.loading': '⏳ Loading sprites…',
+    'dex.title':       '📖 Collection',
     // Habitat display names
     'habitat.dirt':    'Dirt Den',
     'habitat.grass':   'Grass Grove',
@@ -323,9 +324,10 @@ const D: Record<Lang, Record<string, string>> = {
     'howto.page3.l2': 'สะสมครบทั้ง 25 สายพันธุ์ใน Dex',
     'howto.page3.l3': 'ซื้อตู้เพิ่ม (100 G ต่อตู้) เพื่อเลี้ยงมอนสเตอร์ได้มากขึ้น',
     'howto.page4.title': '✨ ลักษณะนิสัยมอนสเตอร์',
-    // MonsterGallery
+    // MonsterGallery / Pokedex
     'gallery.title':   'แกลเลอรี่มอนสเตอร์',
     'gallery.loading': '⏳ กำลังโหลด…',
+    'dex.title':       '📖 คอลเลกชัน',
     // Habitat display names
     'habitat.dirt':    'ดินเดน',
     'habitat.grass':   'กรีนโกรฟ',

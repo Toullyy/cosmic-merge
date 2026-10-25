@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { Game, FONT, store } from '../utils';
+import { t } from '../i18n';
 import { SPECIES } from '../data';
 import { makeMonsterTexture, preloadMonsterTexture } from '../MonsterRenderer';
 import { makeButton } from '../ui/Button';
@@ -39,11 +40,10 @@ export class PokedexScene extends Phaser.Scene {
     this._buildHeader(W);
     this._buildTabs(W);
 
-    const discovered = Game.state!.stats.discovered;
-    const preloads = discovered.map(sid => {
-      const sp = SPECIES[sid];
+    // Preload all species (discovered for normal display, undiscovered for silhouettes)
+    const preloads = SPECIES.map(sp => {
       const dummy: Monster = {
-        id: 'dex_' + sid, speciesId: sid, variantIndex: 0,
+        id: 'dex_' + sp.id, speciesId: sp.id, variantIndex: 0,
         habitatType: sp.habitat, level: 1, xp: 0,
         happiness: 80, hunger: 70, cleanliness: 90, lastCaredAt: 0, source: 'dex',
       };
@@ -70,7 +70,7 @@ export class PokedexScene extends Phaser.Scene {
       bg.fillCircle(b.x, b.y, b.r);
     });
 
-    // Stars
+    // Static star field
     const rng = Phaser.Math.RND;
     for (let i = 0; i < 80; i++) {
       const x = rng.between(0, W);
@@ -85,10 +85,28 @@ export class PokedexScene extends Phaser.Scene {
       bg.fillStyle(c as number, 0.7);
       bg.fillCircle(x as number, y as number, 2);
     });
+
+    // Twinkling star overlays — 20 dots that pulse independently
+    const twinklePositions: [number, number][] = [];
+    for (let i = 0; i < 20; i++) {
+      twinklePositions.push([rng.between(10, W - 10), rng.between(10, H - 10)]);
+    }
+    twinklePositions.forEach(([tx, ty]) => {
+      const tg = this.add.graphics().setDepth(1);
+      tg.fillStyle(0xFFFFFF, 1);
+      tg.fillCircle(tx, ty, rng.realInRange(0.8, 2.0));
+      this.tweens.add({
+        targets: tg,
+        alpha: { from: rng.realInRange(0.1, 0.4), to: rng.realInRange(0.7, 1.0) },
+        duration: 800 + rng.between(0, 1400),
+        yoyo: true, repeat: -1, ease: 'Sine.InOut',
+        delay: rng.between(0, 1200),
+      });
+    });
   }
 
   private _buildHeader(W: number) {
-    makeButton(this, 52, 34, 90, 44, '← Back', 0x1a0a2e, () => {
+    makeButton(this, 52, 34, 90, 44, t('btn.back'), 0x1a0a2e, () => {
       this.scene.start('Hub');
     }, 15).setDepth(10);
 
@@ -97,7 +115,7 @@ export class PokedexScene extends Phaser.Scene {
     titleGlow.fillStyle(0x6030CC, 0.12);
     titleGlow.fillRoundedRect(W / 2 - 140, 6, 280, 46, 14);
 
-    this.add.text(W / 2, 24, '📖 Collection', {
+    this.add.text(W / 2, 24, t('dex.title'), {
       fontFamily: FONT, fontSize: '22px', fontStyle: 'bold', color: '#ffffff',
     }).setOrigin(0.5).setDepth(10);
 
@@ -242,16 +260,29 @@ export class PokedexScene extends Phaser.Scene {
           }).setOrigin(0.5).setDepth(6);
         }
       } else {
-        // Undiscovered: silhouette "?" with glow
-        this.add.text(cx, cy - 10, '?', {
-          fontFamily: FONT, fontSize: '32px', fontStyle: 'bold',
-          color: '#2A1480', stroke: '#4A28A0', strokeThickness: 1,
-        }).setOrigin(0.5).setDepth(4);
-        // Habitat hint — tiny dot in habitat color, semi-transparent
-        const hintCol = HABITAT_COLORS[sp.habitat] ?? 0x7840C0;
-        const hintDot = this.add.graphics().setDepth(4);
-        hintDot.fillStyle(hintCol, 0.20);
-        hintDot.fillCircle(cx, cy + 28, 8);
+        // Undiscovered: dark silhouette of the actual monster + "???" label
+        const texKey = 'mon_' + sp.id + '_0';
+        if (this.textures.exists(texKey)) {
+          const sil = this.add.image(cx, cy - 12, texKey)
+            .setDisplaySize(60, 60).setDepth(4)
+            .setTint(0x0D0520).setAlpha(0.70);
+          // Faint habitat-colored glow behind silhouette
+          const hintCol = HABITAT_COLORS[sp.habitat] ?? 0x7840C0;
+          const glow = this.add.graphics().setDepth(3);
+          glow.fillStyle(hintCol, 0.10);
+          glow.fillCircle(cx, cy - 12, 32);
+          this.tweens.add({
+            targets: [sil, glow], alpha: { from: sil.alpha * 0.7, to: sil.alpha },
+            duration: 1800 + Math.random() * 1200,
+            yoyo: true, repeat: -1, ease: 'Sine.InOut',
+            delay: Math.random() * 1000,
+          });
+        } else {
+          this.add.text(cx, cy - 10, '?', {
+            fontFamily: FONT, fontSize: '32px', fontStyle: 'bold',
+            color: '#2A1480',
+          }).setOrigin(0.5).setDepth(4);
+        }
         this.add.text(cx, cy + 38, '???', {
           fontFamily: FONT, fontSize: '9px', color: '#2A1560',
         }).setOrigin(0.5).setDepth(4);
