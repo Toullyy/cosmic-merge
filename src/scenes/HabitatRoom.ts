@@ -82,6 +82,7 @@ export class HabitatRoom extends Phaser.Scene {
     this._buildActions(W, H);
     this._buildHUD(W, H, this._sp);
     this._startAmbient(W, H, this._sp.habitat);
+    this._drawTerrariumFrame(W, H);
 
     // initialise list button state
     const existing = Game.state!.listings.find(l => l.monsterId === this._monster.id);
@@ -108,388 +109,71 @@ export class HabitatRoom extends Phaser.Scene {
   private _drawBackground(W: number, H: number, habitat: HabitatType) {
     const g = this.add.graphics().setDepth(0);
 
+    // Warm cozy room wall behind tank
+    g.fillGradientStyle(0xF5E8D0, 0xF5E8D0, 0xE8D4B0, 0xE8D4B0, 1);
+    g.fillRect(0, 0, W, H);
+    g.lineStyle(1, 0xC8A870, 0.18);
+    for (let wy = 20; wy < H; wy += 32) {
+      g.beginPath(); g.moveTo(0, wy); g.lineTo(W, wy); g.strokePath();
+    }
+    // Wooden shelf below tank
+    g.fillStyle(0x8B5A2A, 1); g.fillRect(0, 700, W, H - 700);
+    g.fillStyle(0xAA7A3A, 0.6); g.fillRect(0, 700, W, 12);
+    g.lineStyle(1, 0x6B3A14, 0.35);
+    for (let wx = 0; wx < W; wx += 68) {
+      g.beginPath(); g.moveTo(wx, 700); g.lineTo(wx, H); g.strokePath();
+    }
+    // Ambient room objects at edges
+    g.fillStyle(0x5A8A30, 0.35); g.fillCircle(14, 320, 22);
+    g.fillStyle(0x7B4A1A, 0.45); g.fillRect(8, 340, 12, 28);
+    g.fillStyle(0x8844AA, 0.28); g.fillRect(W - 26, 280, 18, 50);
+    g.fillStyle(0x4466CC, 0.28); g.fillRect(W - 26, 330, 18, 40);
+
+    // Habitat interior fill inside tank (y=88-672, x=20-520)
     if (habitat === 'dirt') {
-      // ── Warm Amber Crystal Cave ───────────────────────────────────────────
-      // Magical cave: deep violet at top → warm amber depths
-      g.fillGradientStyle(0x12062A, 0x12062A, 0x3A1808, 0x3A1808, 1);
-      g.fillRect(0, 0, W, H * 0.30);
-      g.fillGradientStyle(0x3A1808, 0x3A1808, 0x7A3818, 0x7A3818, 1);
-      g.fillRect(0, H * 0.30, W, H * 0.30);
-      g.fillGradientStyle(0x7A3818, 0x7A3818, 0x9A5028, 0x9A5028, 1);
-      g.fillRect(0, H * 0.60, W, H * 0.40);
-      // Magical purple glow from arch portal area
-      g.fillStyle(0x6A22BB, 0.06); g.fillEllipse(W / 2, H * 0.19, 380, 240);
-      g.fillStyle(0x9944FF, 0.04); g.fillEllipse(W / 2, H * 0.12, 260, 170);
-
-      // Warm stone block wall texture (sandstone tone)
-      const bW = 72, bH = 36;
-      g.lineStyle(1.2, 0x2A0E04, 0.45);
-      for (let brow = 0; brow < Math.ceil(H * 0.64 / bH) + 1; brow++) {
-        const wy = brow * bH;
-        const bOff = (brow % 2 === 0) ? 0 : bW / 2;
-        for (let wx = -bW / 2 + bOff; wx < W + bW; wx += bW) {
-          g.strokeRect(wx, wy, bW - 1, bH - 1);
-        }
+      g.fillGradientStyle(0x8B6040, 0x8B6040, 0xC4944A, 0xC4944A, 1);
+      g.fillRect(20, 88, 500, 584);
+      g.fillStyle(0x6B4A30, 0.25);
+      for (let i = 0; i < 120; i++) {
+        const dx = 25 + Math.random() * 490, dy = 92 + Math.random() * 576;
+        g.fillCircle(dx, dy, 1.5 + Math.random() * 3);
       }
-      // Warm mortar highlights on stones
-      g.lineStyle(0.8, 0xC07040, 0.12);
-      for (let brow = 0; brow < Math.ceil(H * 0.64 / bH) + 1; brow++) {
-        const wy = brow * bH;
-        const bOff = (brow % 2 === 0) ? 0 : bW / 2;
-        for (let wx = -bW / 2 + bOff; wx < W + bW; wx += bW) {
-          g.strokeRect(wx + 2, wy + 2, bW - 5, bH - 5);
-        }
-      }
-
-      // Ceiling stalactites
-      ([[50,0,18,58],[120,0,12,40],[210,0,22,72],[310,0,14,48],[395,0,20,65],[470,0,10,35],[530,0,16,52]] as [number,number,number,number][]).forEach(([sx,_sy,sw,sh]) => {
-        g.fillStyle(0x5A2A10, 1);
-        g.fillTriangle(sx - sw, 0, sx + sw, 0, sx, sh);
-        g.fillStyle(0x7A3A18, 0.6);
-        g.fillTriangle(sx - sw * 0.5, 0, sx + sw * 0.3, 0, sx + sw * 0.1, sh * 0.55);
-        g.fillStyle(0xFFCC66, 0.18); g.fillCircle(sx, sh - 4, 5);
+      g.fillStyle(0x7A5030, 1); g.fillRect(20, 610, 500, 62);
+      g.fillStyle(0x9B7050, 0.60); g.fillRect(20, 610, 500, 8);
+      ;([[80,618,14,8],[160,622,18,10],[280,615,12,7],[380,620,16,9],[460,616,11,6]] as [number,number,number,number][]).forEach(([px,py,pw,ph]) => {
+        g.fillStyle(0xAA8860, 1); g.fillEllipse(px,py,pw,ph);
+        g.fillStyle(0xCC9A70, 0.5); g.fillEllipse(px-2,py-2,pw*0.5,ph*0.4);
       });
-
-      // Central ornate arch gateway (warm amber/gold)
-      const pax = W / 2, pay = 170;
-      // Outer glow
-      g.fillStyle(0xFF8C00, 0.06); g.fillEllipse(pax, pay, 240, 120);
-      g.fillStyle(0xFFAA22, 0.10); g.fillEllipse(pax, pay, 190, 94);
-      // Arch base fill (warm dark amber)
-      g.fillStyle(0x4A1E06, 1);
-      g.fillEllipse(pax, pay, 178, 90); g.fillRect(pax - 89, pay, 178, 60);
-      // Arch glow interior
-      g.fillStyle(0xFF6600, 0.22); g.fillEllipse(pax, pay, 158, 78);
-      g.fillStyle(0xFF8800, 0.14); g.fillEllipse(pax, pay, 130, 65);
-      g.fillStyle(0xFFAA44, 0.08); g.fillEllipse(pax, pay, 100, 50);
-      // Arch border rings
-      g.lineStyle(5, 0xCC6600, 0.90);
-      g.beginPath(); g.arc(pax, pay, 90, Math.PI, 0, false); g.strokePath();
-      g.lineStyle(3, 0xFFAA33, 0.80);
-      g.beginPath(); g.arc(pax, pay, 82, Math.PI, 0, false); g.strokePath();
-      g.lineStyle(1.5, 0xFFDD88, 0.55);
-      g.beginPath(); g.arc(pax, pay, 74, Math.PI, 0, false); g.strokePath();
-      // Arch pillars
-      [[pax - 90, pay], [pax + 90, pay]].forEach(([px, py]) => {
-        g.fillStyle(0x5A2A0A, 1); g.fillRect(px - 8, py, 16, 52);
-        g.fillStyle(0x8B4A18, 0.7); g.fillRect(px - 5, py, 5, 52);
-        g.fillStyle(0xCC7722, 0.40); g.fillRect(px - 6, py + 4, 3, 44);
-      });
-
-      // Wall-mounted amber gem sconces with torch glow
-      ([[55, H*0.30], [55, H*0.50], [W-55, H*0.30], [W-55, H*0.50]] as [number,number][]).forEach(([tx, ty]) => {
-        // Glow radius
-        g.fillStyle(0xFF8800, 0.10); g.fillCircle(tx, ty - 12, 55);
-        g.fillStyle(0xFFAA22, 0.16); g.fillCircle(tx, ty - 12, 35);
-        g.fillStyle(0xFFCC44, 0.25); g.fillCircle(tx, ty - 12, 20);
-        // Torch bracket
-        g.fillStyle(0x4A2A0A, 1); g.fillRect(tx - 4, ty - 8, 8, 22);
-        g.fillStyle(0x7A4A18, 1); g.fillRect(tx - 3, ty - 7, 6, 20);
-        // Flame
-        g.fillStyle(0xFF4400, 0.85); g.fillEllipse(tx, ty - 14, 10, 18);
-        g.fillStyle(0xFF8800, 0.90); g.fillEllipse(tx, ty - 18, 8, 14);
-        g.fillStyle(0xFFCC00, 0.95); g.fillEllipse(tx, ty - 22, 5, 10);
-        g.fillStyle(0xFFFFAA, 1);   g.fillEllipse(tx, ty - 24, 3, 6);
-      });
-
-      // Large amber gem clusters embedded in side walls
-      ([[28, H*0.42, 0xFFB300], [28, H*0.60, 0xFF6600], [W-28, H*0.38, 0xFFCC00], [W-28, H*0.55, 0xFF8800]] as [number,number,number][]).forEach(([gx, gy, gc]) => {
-        g.fillStyle(gc, 0.15); g.fillCircle(gx, gy, 28);
-        g.fillStyle(gc, 0.28); g.fillCircle(gx, gy, 16);
-        g.fillStyle(gc, 0.90); g.fillCircle(gx, gy, 8);
-        g.fillStyle(0xFFFFDD, 0.70); g.fillCircle(gx - 2, gy - 2, 3);
-        // Crystal facets
-        g.fillStyle(gc, 0.85);
-        g.fillTriangle(gx - 6, gy, gx + 6, gy, gx, gy - 18);
-        g.fillTriangle(gx - 10, gy + 2, gx - 1, gy + 2, gx - 5.5, gy - 12);
-        g.fillTriangle(gx + 1,  gy + 2, gx + 10, gy + 2, gx + 5.5, gy - 12);
-        g.lineStyle(1, 0xFFFFAA, 0.45);
-        g.beginPath(); g.moveTo(gx - 6, gy); g.lineTo(gx, gy - 18); g.lineTo(gx + 6, gy); g.strokePath();
-      });
-
-      // 3D perspective amber stone floor
-      this._drawPerspectiveFloor(g, W, H, H * 0.615, 6, 9, 0x7A4520, 0x6A3818, 0x2E1408, 0.50);
-
-      // Glowing mushroom clusters at floor edges
-      ([[30, H*0.635, 0xFF6622], [65, H*0.620, 0xFFAA00], [480, H*0.638, 0xFF4400], [510, H*0.625, 0xFF8800]] as [number,number,number][]).forEach(([mx, my, mc]) => {
-        // Stem
-        g.fillStyle(0xDDCC88, 1); g.fillRect(mx - 3, my - 16, 6, 18);
-        // Cap glow
-        g.fillStyle(mc, 0.20); g.fillCircle(mx, my - 20, 20);
-        g.fillStyle(mc, 0.40); g.fillCircle(mx, my - 20, 13);
-        // Cap
-        g.fillStyle(mc, 1);
-        g.fillEllipse(mx, my - 22, 22, 16);
-        g.fillStyle(lighten(mc, 50), 0.55); g.fillEllipse(mx - 3, my - 26, 10, 7);
-        // Spots
-        g.fillStyle(0xFFEECC, 0.80); g.fillCircle(mx - 4, my - 22, 2); g.fillCircle(mx + 3, my - 25, 1.5);
-        // Gills
-        g.fillStyle(darken(mc, 20), 0.65); g.fillEllipse(mx, my - 14, 18, 6);
-      });
-
-      // Warm amber crystal formations at floor
-      ([[38,H*0.620,0xFFAA00],[108,H*0.630,0xFF8800],[200,H*0.615,0xFFCC22],[345,H*0.620,0xFF9900],[438,H*0.630,0xFFAA00],[506,H*0.618,0xFF7700]] as [number,number,number][]).forEach(([cx2,cy2,cc]) => {
-        g.fillStyle(cc, 0.18); g.fillCircle(cx2, cy2, 20);
-        g.fillStyle(cc, 0.35); g.fillCircle(cx2, cy2, 11);
-        g.fillStyle(cc, 1); g.fillCircle(cx2, cy2, 5);
-        g.fillStyle(0xFFFFCC, 0.75); g.fillCircle(cx2 - 1, cy2 - 1, 2);
-        g.fillStyle(cc, 0.85);
-        g.fillTriangle(cx2-4, cy2, cx2+4, cy2, cx2, cy2-14);
-        g.fillTriangle(cx2-8, cy2+2, cx2-1, cy2+2, cx2-4.5, cy2-10);
-        g.fillTriangle(cx2+1, cy2+2, cx2+8, cy2+2, cx2+4.5, cy2-10);
-        g.lineStyle(1, 0xFFFFAA, 0.50);
-        g.beginPath(); g.moveTo(cx2-4,cy2); g.lineTo(cx2,cy2-14); g.lineTo(cx2+4,cy2); g.strokePath();
-      });
-
     } else if (habitat === 'grass') {
-      // ── Enchanted Sunlit Garden ───────────────────────────────────────────
-      // Sky: vivid azure to warm golden horizon
-      g.fillGradientStyle(0x1A8BC4, 0x1A8BC4, 0x4FC8F0, 0x4FC8F0, 1);
-      g.fillRect(0, 0, W, H * 0.28);
-      g.fillGradientStyle(0x4FC8F0, 0x4FC8F0, 0xA8E4F8, 0xA8E4F8, 1);
-      g.fillRect(0, H * 0.28, W, H * 0.12);
-      // Warm horizon glow
-      g.fillGradientStyle(0xA8E4F8, 0xA8E4F8, 0xFFF0C8, 0xFFF0C8, 1);
-      g.fillRect(0, H * 0.40, W, H * 0.08);
-
-      // Sun with multi-layer glow
-      const sx = W * 0.82, sy = H * 0.10;
-      g.fillStyle(0xFFFF88, 0.08); g.fillCircle(sx, sy, 70);
-      g.fillStyle(0xFFEE44, 0.14); g.fillCircle(sx, sy, 50);
-      g.fillStyle(0xFFDD22, 0.28); g.fillCircle(sx, sy, 35);
-      g.fillStyle(0xFFCC00, 0.65); g.fillCircle(sx, sy, 24);
-      g.fillStyle(0xFFEE88, 1);    g.fillCircle(sx, sy, 16);
-      g.fillStyle(0xFFFFCC, 1);    g.fillCircle(sx, sy, 9);
-
-      // Sunbeam rays (light shafts)
-      for (let ri = 0; ri < 6; ri++) {
-        const angle = (ri / 6) * Math.PI * 2 + 0.3;
-        const rlen = 180 + (ri % 3) * 50;
-        const rw = 18 + (ri % 2) * 10;
-        g.fillStyle(0xFFEE44, 0.04 + (ri % 2) * 0.02);
-        g.fillTriangle(
-          sx + Math.cos(angle - 0.08) * 28, sy + Math.sin(angle - 0.08) * 28,
-          sx + Math.cos(angle + 0.08) * 28, sy + Math.sin(angle + 0.08) * 28,
-          sx + Math.cos(angle) * rlen + Math.sin(angle) * rw, sy + Math.sin(angle) * rlen - Math.cos(angle) * rw,
-        );
+      g.fillGradientStyle(0x7ED848, 0x7ED848, 0x4AAF28, 0x4AAF28, 1);
+      g.fillRect(20, 88, 500, 584);
+      g.fillStyle(0xB8F0FF, 0.35); g.fillRect(20, 88, 500, 220);
+      g.fillStyle(0x3A9820, 1); g.fillRect(20, 600, 500, 72);
+      g.fillStyle(0x5AC832, 0.55); g.fillRect(20, 596, 500, 14);
+      for (let gx = 25; gx < 515; gx += 22) {
+        const gh = 10 + Math.random() * 14;
+        g.fillStyle(0x44CC28, 0.80);
+        g.fillTriangle(gx-4, 596, gx+4, 596, gx, 596-gh);
+        g.fillStyle(0x66EE40, 0.50);
+        g.fillTriangle(gx-2, 596, gx+3, 596, gx+1, 596-gh*0.7);
       }
-
-      // Rainbow arc (drawn before clouds so clouds overlap it)
-      const rainColors = [0xFF4444, 0xFF8844, 0xFFEE44, 0x44EE44, 0x4488FF, 0x8844FF];
-      rainColors.forEach((rc, ri) => {
-        g.lineStyle(5, rc, 0.16 - ri * 0.01);
-        g.beginPath();
-        g.arc(W * 0.40, H * 0.44, 140 + ri * 9, Math.PI, 0, false);
-        g.strokePath();
-      });
-
-      // Fluffy clouds
-      ([[80, H*0.09, 90, 34], [260, H*0.06, 72, 27], [420, H*0.11, 100, 38]] as [number,number,number,number][]).forEach(([cx, cy, cw, ch]) => {
-        // Shadow
-        g.fillStyle(0xCCE8F0, 0.45); g.fillEllipse(cx + 4, cy + 4, cw, ch * 0.7);
-        // Main puffs
-        g.fillStyle(0xFFFFFF, 0.95); g.fillEllipse(cx, cy, cw, ch);
-        g.fillStyle(0xFFFFFF, 0.90); g.fillEllipse(cx - cw*0.28, cy + ch*0.10, cw*0.68, ch*0.76);
-        g.fillStyle(0xFFFFFF, 0.90); g.fillEllipse(cx + cw*0.28, cy + ch*0.08, cw*0.62, ch*0.72);
-        g.fillStyle(0xFFFFFF, 0.80); g.fillEllipse(cx - cw*0.12, cy - ch*0.20, cw*0.50, ch*0.65);
-        g.fillStyle(0xFFFFFF, 0.80); g.fillEllipse(cx + cw*0.15, cy - ch*0.15, cw*0.45, ch*0.60);
-        // Highlight
-        g.fillStyle(0xFFFFFF, 0.50); g.fillEllipse(cx - cw*0.08, cy - ch*0.15, cw*0.30, ch*0.35);
-      });
-
-      // Far forest silhouette (dark layer)
-      g.fillGradientStyle(0x1A5C14, 0x1A5C14, 0x2A7A20, 0x2A7A20, 1);
-      g.fillRect(0, H * 0.48, W, H * 0.08);
-      ([[0,H*0.54,48],[70,H*0.50,62],[160,H*0.52,55],[260,H*0.49,68],[360,H*0.52,58],[460,H*0.50,65],[530,H*0.55,44]] as [number,number,number][]).forEach(([tx, ty, tr]) => {
-        g.fillStyle(0x194A12, 1); g.fillRect(tx - 5, ty + 12, 10, H);
-        g.fillStyle(0x1E5A18, 0.95); g.fillCircle(tx, ty, tr * 0.46);
-        g.fillStyle(0x245E1C, 0.85); g.fillCircle(tx - tr*0.22, ty + tr*0.22, tr*0.36);
-        g.fillStyle(0x1E5A18, 0.85); g.fillCircle(tx + tr*0.20, ty + tr*0.18, tr*0.34);
-      });
-
-      // Bright mid-ground trees
-      ([[40,H*0.58,54],[145,H*0.55,64],[300,H*0.57,60],[420,H*0.56,58],[510,H*0.60,46]] as [number,number,number][]).forEach(([tx, ty, tr]) => {
-        g.fillStyle(0x2A6E18, 1); g.fillRect(tx - 6, ty + 14, 12, H);
-        g.fillStyle(0x388E2A, 1); g.fillCircle(tx, ty, tr * 0.50);
-        g.fillStyle(0x44AA30, 0.80); g.fillCircle(tx - tr*0.24, ty + tr*0.20, tr*0.40);
-        g.fillStyle(0x44AA30, 0.80); g.fillCircle(tx + tr*0.22, ty + tr*0.16, tr*0.38);
-        g.fillStyle(0x66CC40, 0.45); g.fillCircle(tx - tr*0.08, ty - tr*0.20, tr*0.30);
-        // Light highlight on top
-        g.fillStyle(0x88EE55, 0.25); g.fillEllipse(tx, ty - tr*0.25, tr*0.55, tr*0.40);
-      });
-
-      // Rolling green hill band
-      g.fillGradientStyle(0x4CAF35, 0x4CAF35, 0x66CC44, 0x66CC44, 1);
-      g.fillRect(0, H * 0.65, W, H * 0.07);
-      g.fillStyle(0x55BB3A, 1);
-      for (let hi = 0; hi <= 6; hi++) {
-        g.fillEllipse(hi * 95 - 20, H * 0.66, 130, 40);
-      }
-
-      // 3D perspective grass floor (rich green wood)
-      this._drawPerspectiveFloor(g, W, H, H * 0.62, 6, 8, 0x558832, 0x447228, 0x1A3A0A, 0.35);
-      // Bright grass edge strip
-      g.fillStyle(0x66CC40, 1); g.fillRect(0, H * 0.620, W, 10);
-      g.fillStyle(0x88EE55, 0.50); g.fillRect(0, H * 0.620, W, 4);
-      // Grass blade tufts
-      for (let gi = 0; gi < 12; gi++) {
-        const gx = 14 + gi * 44, gy = H * 0.622;
-        g.fillStyle(0x44BB22, 1);
-        g.fillTriangle(gx, gy, gx-5, gy+14, gx+5, gy+14);
-        g.fillTriangle(gx+8, gy+2, gx+3, gy+16, gx+13, gy+16);
-        g.fillStyle(0x66DD33, 0.80);
-        g.fillTriangle(gx+2, gy-2, gx-1, gy+9, gx+5, gy+9);
-      }
-
-      // Colourful flower bed at floor level
-      ([[55,H*0.752,0xFF3A8A,6],[115,H*0.742,0xFFCC00,5],[175,H*0.756,0xFF6600,6],[240,H*0.748,0xCC44FF,5],[315,H*0.754,0xFF1A6A,6],[385,H*0.744,0xFFDD00,5],[448,H*0.750,0xFF5500,6],[510,H*0.746,0x8844FF,5]] as [number,number,number,number][]).forEach(([fx,fy,fc,fr]) => {
-        for (let pi = 0; pi < 6; pi++) {
-          const pa = (pi / 6) * Math.PI * 2;
-          g.fillStyle(fc, 1); g.fillCircle(fx + Math.cos(pa) * fr, fy + Math.sin(pa) * fr, fr * 0.85);
-        }
-        g.fillStyle(0xFFFF88, 1); g.fillCircle(fx, fy, fr * 0.60);
-        g.fillStyle(0xFFFFCC, 0.70); g.fillCircle(fx - fr*0.20, fy - fr*0.20, fr * 0.30);
-        // Stem
-        g.fillStyle(0x3A8822, 1); g.fillRect(fx - 1, fy + fr, 2, 10);
-      });
-
-      // Butterfly silhouettes in mid-air
-      ([[160, H*0.42, 0xFF88DD], [380, H*0.38, 0xFFAA44], [470, H*0.45, 0x88DDFF]] as [number,number,number][]).forEach(([bx, by, bc]) => {
-        g.fillStyle(bc, 0.70);
-        g.fillEllipse(bx - 7, by - 3, 14, 9);
-        g.fillEllipse(bx + 7, by - 3, 14, 9);
-        g.fillEllipse(bx - 5, by + 4, 10, 7);
-        g.fillEllipse(bx + 5, by + 4, 10, 7);
-        g.fillStyle(0x442200, 0.70); g.fillRect(bx - 1, by - 7, 2, 14);
-        g.fillStyle(0xFFFFFF, 0.45); g.fillEllipse(bx - 6, by - 4, 5, 4);
-      });
-
     } else if (habitat === 'aquatic') {
-      // ── Vibrant Coral Kingdom ────────────────────────────────────────────
-      // Deep layered ocean gradient
-      g.fillGradientStyle(0x0BBDDE, 0x0BBDDE, 0x0688B8, 0x0688B8, 1);
-      g.fillRect(0, 0, W, H * 0.25);
-      g.fillGradientStyle(0x0688B8, 0x0688B8, 0x045090, 0x045090, 1);
-      g.fillRect(0, H * 0.25, W, H * 0.25);
-      g.fillGradientStyle(0x045090, 0x045090, 0x022860, 0x022860, 1);
-      g.fillRect(0, H * 0.50, W, H * 0.22);
-
-      // Ocean surface shimmer at very top
-      g.fillStyle(0x88EEFF, 0.25); g.fillRect(0, 0, W, 12);
-      g.fillStyle(0xAAFFFF, 0.18); g.fillRect(0, 0, W, 6);
-      for (let si = 0; si < 16; si++) {
-        const sx2 = si * 36 + (si % 3) * 8;
-        g.fillStyle(0xCCFFFF, 0.30);
-        g.fillEllipse(sx2, 5, 26 + (si % 3) * 10, 4);
+      g.fillGradientStyle(0x0088CC, 0x0088CC, 0x00446A, 0x00446A, 1);
+      g.fillRect(20, 88, 500, 584);
+      for (let ri = 0; ri < 7; ri++) {
+        const rx = 80 + ri * 60, rw = 20 + ri % 3 * 8;
+        g.fillStyle(0x44CCFF, 0.06);
+        const rayPts = [{x:rx,y:88},{x:rx+rw,y:88},{x:rx+rw*1.8,y:400},{x:rx-rw*0.6,y:400}];
+        g.fillPoints(rayPts, true);
       }
-
-      // Light shafts from surface (bright caustic columns)
-      for (let ci = 0; ci < 9; ci++) {
-        const cx3 = 28 + ci * 58;
-        const cAlpha = 0.06 + (ci % 3) * 0.03;
-        g.fillStyle(0x88EEFF, cAlpha);
-        g.fillTriangle(cx3 - 8, 0, cx3 + 8, 0, cx3 + 38, H * 0.68);
-        g.fillStyle(0xAAFFFF, cAlpha * 0.5);
-        g.fillTriangle(cx3 + 2, 0, cx3 + 14, 0, cx3 + 22, H * 0.50);
+      g.fillStyle(0xD4A84A, 1); g.fillRect(20, 610, 500, 62);
+      g.fillStyle(0xE8C870, 0.45); g.fillRect(20, 610, 500, 8);
+      g.lineStyle(1, 0xC49830, 0.40);
+      for (let sx = 30; sx < 510; sx += 28) {
+        g.beginPath(); g.moveTo(sx, 624); g.lineTo(sx+14, 620); g.lineTo(sx+28, 624); g.strokePath();
       }
-
-      // Fish silhouettes in background
-      ([[80, H*0.32, 1.0], [200, H*0.22, 0.8], [360, H*0.28, 1.2], [450, H*0.18, 0.7], [520, H*0.35, 0.9]] as [number,number,number][]).forEach(([fx, fy, fs]) => {
-        g.fillStyle(0x0055AA, 0.30);
-        g.fillEllipse(fx, fy, 28*fs, 14*fs);
-        g.fillTriangle(fx - 14*fs, fy, fx - 22*fs, fy - 7*fs, fx - 22*fs, fy + 7*fs);
-        g.fillStyle(0x2288CC, 0.20); g.fillEllipse(fx + 4*fs, fy - 2*fs, 10*fs, 7*fs);
-      });
-
-      // Background kelp forest silhouettes
-      for (let ki = 0; ki < 6; ki++) {
-        const kx = 22 + ki * 92, kBase = H * 0.64;
-        g.lineStyle(5, 0x1A6B20, 0.60);
-        g.beginPath(); g.moveTo(kx, kBase);
-        g.lineTo(kx+16, kBase-65); g.lineTo(kx-10, kBase-130); g.lineTo(kx+14, kBase-195);
-        g.strokePath();
-        g.lineStyle(4, 0x2A8A28, 0.40);
-        g.beginPath(); g.moveTo(kx+20, kBase-12);
-        g.lineTo(kx+8, kBase-78); g.lineTo(kx+24, kBase-145);
-        g.strokePath();
-        // Kelp leaf tips
-        g.fillStyle(0x44BB30, 0.55);
-        [[kx, kBase-195],[kx-10, kBase-130],[kx+16, kBase-65]].forEach(([lx, ly]) => {
-          g.fillEllipse(lx, ly, 22, 10);
-        });
-      }
-
-      // 3D perspective sandy sea floor (golden sand)
-      this._drawPerspectiveFloor(g, W, H, H * 0.64, 6, 8, 0xE8C878, 0xD4B060, 0xA07838, 0.32);
-
-      // Sand ripple marks
-      g.lineStyle(1.2, 0xF0D890, 0.35);
-      for (let rr = 0; rr < 10; rr++) {
-        const ry4 = H * 0.646 + rr * 14;
-        g.beginPath();
-        for (let rx4 = 0; rx4 <= W; rx4 += 3) {
-          const sy4 = ry4 + Math.sin(rx4 * 0.065 + rr * 1.3) * 3;
-          if (rx4 === 0) g.moveTo(rx4, sy4); else g.lineTo(rx4, sy4);
-        }
-        g.strokePath();
-      }
-
-      // Large branching coral formations
-      ([[48, H*0.700, 0xFF5252], [180, H*0.690, 0xFF9800], [290, H*0.705, 0xFF3D8A], [420, H*0.695, 0x7C4DFF], [510, H*0.700, 0xFF5722]] as [number,number,number][]).forEach(([crx, cry, crc]) => {
-        // Main trunk
-        g.fillStyle(crc, 1);
-        g.fillRect(crx - 5, cry, 10, 50);
-        // Branches
-        [[crx - 18, cry + 12, crx, cry + 6], [crx + 18, cry + 18, crx, cry + 10]].forEach(([bx2, by2, sx3, sy5]) => {
-          g.fillRect(Math.min(bx2,sx3)-3, Math.min(by2,sy5), Math.abs(bx2-sx3)+6, Math.abs(by2-sy5)+5);
-        });
-        // Flower head clusters
-        [[crx, cry], [crx-18, cry+12], [crx+18, cry+18]].forEach(([hx, hy]) => {
-          g.fillStyle(crc, 1); g.fillCircle(hx, hy, 14);
-          g.fillCircle(hx - 10, hy + 7, 10); g.fillCircle(hx + 10, hy + 9, 11);
-          g.fillCircle(hx - 5, hy - 10, 8);
-          g.fillStyle(lighten(crc, 45), 0.55); g.fillCircle(hx - 4, hy - 4, 6);
-          // Polyp dots
-          g.fillStyle(lighten(crc, 60), 0.80);
-          for (let di = 0; di < 5; di++) {
-            const da = (di / 5) * Math.PI * 2;
-            g.fillCircle(hx + Math.cos(da)*8, hy + Math.sin(da)*8, 2.5);
-          }
-        });
-      });
-
-      // Sea anemones with tentacles
-      ([[110, H*0.715, 0xFF6B9D], [350, H*0.718, 0xFFAA44], [490, H*0.712, 0x88CCFF]] as [number,number,number][]).forEach(([anx, any, anc]) => {
-        g.fillStyle(anc, 0.25); g.fillCircle(anx, any + 5, 18);
-        g.fillStyle(anc, 0.90); g.fillEllipse(anx, any + 8, 24, 14);
-        g.fillStyle(lighten(anc, 30), 0.60); g.fillEllipse(anx - 4, any + 4, 10, 8);
-        // Tentacles
-        g.lineStyle(3, anc, 0.85);
-        [[-14,-28],[-7,-32],[0,-34],[7,-32],[14,-28],[-10,-20],[10,-20]].forEach(([dx, dy]) => {
-          g.beginPath(); g.moveTo(anx, any + 8); g.lineTo(anx + dx, any + 8 + dy); g.strokePath();
-          g.fillStyle(lighten(anc, 50), 0.90); g.fillCircle(anx + dx, any + 8 + dy, 3);
-        });
-      });
-
-      // Starfish on sea floor
-      ([[88, H*0.748, 0xFF8800], [258, H*0.742, 0xFF5252], [465, H*0.750, 0xFFAA22]] as [number,number,number][]).forEach(([sfx, sfy, sfc]) => {
-        g.fillStyle(sfc, 1);
-        for (let arm = 0; arm < 5; arm++) {
-          const a = (arm / 5) * Math.PI * 2 - Math.PI / 2;
-          const a2 = ((arm + 0.5) / 5) * Math.PI * 2 - Math.PI / 2;
-          g.fillTriangle(sfx + Math.cos(a)*14, sfy + Math.sin(a)*14, sfx + Math.cos(a2)*6, sfy + Math.sin(a2)*6, sfx + Math.cos(a2+0.63)*6, sfy + Math.sin(a2+0.63)*6);
-        }
-        g.fillStyle(lighten(sfc, 40), 0.60); g.fillCircle(sfx, sfy, 5);
-        g.fillStyle(0xFFFFDD, 0.55); g.fillCircle(sfx - 1, sfy - 1, 3);
-      });
-
-      // Sunken ruin column
-      const rcx = W * 0.78, rcy = H * 0.60;
-      g.fillStyle(0x4A6080, 0.80); g.fillRect(rcx - 10, rcy, 20, H * 0.12);
-      g.fillStyle(0x607090, 0.90); g.fillRect(rcx - 13, rcy - 8, 26, 12);
-      g.fillStyle(0x708AA0, 0.60); g.fillRect(rcx - 13, rcy + H*0.12 - 2, 26, 10);
-      g.lineStyle(1, 0x88AACC, 0.35);
-      for (let cr2 = 0; cr2 < 5; cr2++) g.strokeRect(rcx - 10, rcy + cr2*16, 20, 16);
+      g.fillStyle(0x66EEFF, 0.20); g.fillRect(20, 88, 500, 10);
+      g.fillStyle(0xAAFFFF, 0.12); g.fillRect(20, 88, 500, 4);
     }
 
     this._drawDecorations(g, W, H, habitat);
@@ -628,115 +312,213 @@ export class HabitatRoom extends Phaser.Scene {
 
   private _drawForeground(W: number, H: number, habitat: HabitatType) {
     const fg = this.add.graphics().setDepth(2);
-    const gH = H * 0.64;
+    const floorY = H * 0.62 + 28;
 
     if (habitat === 'dirt') {
-      // Stalactite curtains at top corners
-      ([[0,18,85],[18,14,62],[38,20,105],[60,15,74],[86,12,52]] as [number,number,number][]).forEach(([sx, sw, sh]) => {
-        fg.fillStyle(0x160610, 1);
-        fg.fillTriangle(sx - sw, 0, sx + sw, 0, sx, sh);
-        fg.fillStyle(0x2E1208, 0.65);
-        fg.fillTriangle(sx - sw*0.4, 0, sx + sw*0.3, 0, sx + sw*0.1, sh * 0.55);
-        fg.fillStyle(0xFF9900, 0.22); fg.fillCircle(sx, sh - 8, 7);
-        fg.fillStyle(0xFFBB44, 0.12); fg.fillCircle(sx, sh - 8, 15);
+      // Cave burrow den (right side)
+      const caveX = 390, caveY = floorY - 20;
+      fg.fillStyle(0x5A3818, 1); fg.fillEllipse(caveX, floorY - 44, 200, 120);
+      fg.fillStyle(0x7A5030, 0.7); fg.fillEllipse(caveX - 10, floorY - 60, 160, 90);
+      fg.fillStyle(0x2A1208, 1);
+      fg.fillEllipse(caveX, caveY - 28, 84, 90);
+      fg.fillRect(caveX - 42, caveY - 28, 84, 48);
+      fg.lineStyle(4, 0x8B5A30, 1);
+      fg.beginPath(); fg.arc(caveX, caveY - 28, 44, Math.PI, 0, false); fg.strokePath();
+      fg.lineStyle(2.5, 0xAA7A48, 0.70);
+      fg.beginPath(); fg.arc(caveX, caveY - 28, 38, Math.PI, 0, false); fg.strokePath();
+      fg.fillStyle(0xFF9900, 0.10); fg.fillEllipse(caveX, caveY, 70, 60);
+      fg.fillStyle(0x6688CC, 0.80); fg.fillRoundedRect(caveX - 28, caveY - 8, 56, 16, 4);
+      fg.lineStyle(1, 0x4466AA, 0.7); fg.strokeRoundedRect(caveX - 28, caveY - 8, 56, 16, 4);
+      fg.fillStyle(0x8899DD, 0.6);
+      fg.fillRect(caveX - 26, caveY - 6, 22, 6);
+      fg.fillRect(caveX + 4, caveY - 6, 22, 6);
+      // Wooden ladder
+      const lx = caveX - 58, ly = floorY - 56;
+      fg.lineStyle(4, 0x8B5A2A, 1);
+      fg.beginPath(); fg.moveTo(lx, ly); fg.lineTo(lx, floorY); fg.strokePath();
+      fg.beginPath(); fg.moveTo(lx + 20, ly); fg.lineTo(lx + 20, floorY); fg.strokePath();
+      [0.2, 0.45, 0.70, 0.90].forEach(tt => {
+        const ry = ly + (floorY - ly) * tt;
+        fg.lineStyle(3, 0xAA7A3A, 1);
+        fg.beginPath(); fg.moveTo(lx, ry); fg.lineTo(lx + 20, ry); fg.strokePath();
       });
-      ([[W,18,80],[W-20,14,65],[W-40,20,100],[W-62,15,78],[W-88,12,56]] as [number,number,number][]).forEach(([sx, sw, sh]) => {
-        fg.fillStyle(0x160610, 1);
-        fg.fillTriangle(sx - sw, 0, sx + sw, 0, sx, sh);
-        fg.fillStyle(0xFF9900, 0.20); fg.fillCircle(sx, sh - 8, 7);
+      // Stone water pool (left)
+      const poolX = 130, poolY = floorY + 4;
+      fg.fillStyle(0x557788, 1); fg.fillEllipse(poolX, poolY, 90, 36);
+      fg.fillStyle(0x2244AA, 0.70); fg.fillEllipse(poolX, poolY - 2, 74, 26);
+      fg.fillStyle(0x44AACC, 0.55); fg.fillEllipse(poolX - 8, poolY - 8, 30, 10);
+      ;([[poolX-44,poolY+4,18,10],[poolX-26,poolY+10,14,8],[poolX+8,poolY+10,16,8],[poolX+30,poolY+6,20,10],[poolX+44,poolY,14,8]] as [number,number,number,number][]).forEach(([sx,sy,sw,sh]) => {
+        fg.fillStyle(0x8899AA, 1); fg.fillEllipse(sx,sy,sw,sh);
+        fg.fillStyle(0xAABBCC, 0.5); fg.fillEllipse(sx-2,sy-2,sw*0.5,sh*0.5);
       });
-      // Crystal formations at left/right edges
-      ([[16, gH*0.32, 0xFFAA00], [28, gH*0.52, 0xFF8800], [12, gH*0.69, 0xFFCC22]] as [number,number,number][]).forEach(([cx, cy, cc]) => {
-        fg.fillStyle(cc, 0.12); fg.fillCircle(cx, cy, 24);
-        fg.fillStyle(cc, 0.26); fg.fillCircle(cx, cy, 14);
-        fg.fillStyle(cc, 0.95); fg.fillCircle(cx, cy, 7);
-        fg.fillStyle(cc, 0.90);
-        fg.fillTriangle(cx - 5, cy, cx + 5, cy, cx, cy - 22);
-        fg.fillTriangle(cx - 9, cy + 3, cx - 1, cy + 3, cx - 5, cy - 14);
-        fg.fillStyle(0xFFFFCC, 0.80); fg.fillCircle(cx - 1, cy - 2, 2.5);
+      // Mushrooms
+      ;([[220, floorY - 2, 0xFF2222, 16, 20], [250, floorY - 2, 0xFF4444, 10, 13], [170, floorY - 2, 0xFF6600, 13, 16]] as [number,number,number,number,number][]).forEach(([mx2, my2, mc, mr, mh]) => {
+        fg.fillStyle(0xDDCC88, 1); fg.fillRect(mx2 - 4, my2 - mh * 0.6, 8, mh * 0.6);
+        fg.fillStyle(mc, 1); fg.fillEllipse(mx2, my2 - mh * 0.8, mr * 2, mh);
+        fg.lineStyle(1.5, 0x881100, 0.6); fg.strokeEllipse(mx2, my2 - mh * 0.8, mr * 2, mh);
+        fg.fillStyle(0xFFFFFF, 0.85);
+        fg.fillCircle(mx2 - 4, my2 - mh * 0.9, 3); fg.fillCircle(mx2 + 3, my2 - mh, 2); fg.fillCircle(mx2, my2 - mh * 0.75, 2.5);
       });
-      ([[W - 16, gH*0.34, 0xFFCC00], [W - 26, gH*0.54, 0xFF9900], [W - 14, gH*0.69, 0xFFAA00]] as [number,number,number][]).forEach(([cx, cy, cc]) => {
-        fg.fillStyle(cc, 0.12); fg.fillCircle(cx, cy, 24);
-        fg.fillStyle(cc, 0.26); fg.fillCircle(cx, cy, 14);
-        fg.fillStyle(cc, 0.95); fg.fillCircle(cx, cy, 7);
-        fg.fillStyle(cc, 0.90);
-        fg.fillTriangle(cx - 5, cy, cx + 5, cy, cx, cy - 22);
-        fg.fillStyle(0xFFFFCC, 0.80); fg.fillCircle(cx + 1, cy - 2, 2.5);
+      // Plants
+      ;([[70, floorY - 5], [310, floorY - 5], [460, floorY - 4]] as [number,number][]).forEach(([px, py]) => {
+        for (let li = 0; li < 4; li++) {
+          const la = -Math.PI * 0.8 + li * 0.52, ll = 22 + li * 5;
+          fg.lineStyle(2.5, 0x3A7A10, 0.90);
+          fg.beginPath(); fg.moveTo(px, py); fg.lineTo(px + Math.cos(la) * ll, py + Math.sin(la) * ll); fg.strokePath();
+          fg.fillStyle(0x4AAF18, 0.88); fg.fillEllipse(px + Math.cos(la) * ll, py + Math.sin(la) * ll, 20, 10);
+        }
       });
-      // Amber edge glow
-      fg.fillGradientStyle(0xFF8800, 0xFF8800, 0xFF8800, 0xFF8800, 0.09, 0, 0, 0.09);
-      fg.fillRect(0, 0, 65, gH);
-      fg.fillGradientStyle(0xFF8800, 0xFF8800, 0xFF8800, 0xFF8800, 0, 0.09, 0.09, 0);
-      fg.fillRect(W - 65, 0, 65, gH);
+      ;([[270,floorY+2,8,5],[288,floorY,10,6],[305,floorY+3,7,5]] as [number,number,number,number][]).forEach(([px,py,pw,ph]) => {
+        fg.fillStyle(0xAA8860, 1); fg.fillEllipse(px,py,pw,ph);
+        fg.fillStyle(0xCC9A70, 0.45); fg.fillEllipse(px-1,py-1,pw*0.5,ph*0.4);
+      });
 
     } else if (habitat === 'grass') {
-      // Hanging flower garland from top
-      const garlandCols = [0xFF5252, 0xFF9800, 0xE91E63, 0xFFEB3B, 0x9C27B0, 0x4CAF50, 0x03A9F4, 0xFF6EC7];
-      for (let gx = 0; gx <= W; gx += 42) {
-        const glen = 28 + Math.sin(gx * 0.048) * 20;
-        fg.lineStyle(2, 0x2D6A1A, 0.62);
-        fg.beginPath(); fg.moveTo(gx, 0); fg.lineTo(gx + Math.sin(gx * 0.10) * 7, glen); fg.strokePath();
-        const gc = garlandCols[Math.floor(gx / 42) % garlandCols.length];
-        fg.fillStyle(gc, 0.88); fg.fillCircle(gx + Math.sin(gx * 0.10) * 7, glen, 5 + Math.abs(Math.sin(gx * 0.14)) * 3);
-        fg.fillStyle(0xFFF9C4, 0.90); fg.fillCircle(gx + Math.sin(gx * 0.10) * 7, glen, 2);
-      }
-      // Left side vine column with flowers
-      for (let vy = 18; vy < gH; vy += 28) {
-        const vx = Math.sin(vy * 0.07) * 14 + 16;
-        fg.fillStyle(0x2D7A1A, 0.78); fg.fillEllipse(vx, vy, 20, 13);
-        fg.fillStyle(0x44AA2A, 0.48); fg.fillEllipse(vx + 6, vy + 8, 15, 9);
-      }
-      ([[20, gH*0.24, 0xFF5252], [14, gH*0.40, 0xFF9800], [26, gH*0.55, 0xE91E63], [16, gH*0.68, 0xFFEB3B]] as [number,number,number][]).forEach(([fx, fy, fc]) => {
-        fg.fillStyle(fc, 0.17); fg.fillCircle(fx, fy, 20);
-        for (let pi = 0; pi < 5; pi++) { const pa = (pi/5)*Math.PI*2; fg.fillStyle(fc, 1); fg.fillCircle(fx+Math.cos(pa)*7, fy+Math.sin(pa)*7, 5.5); }
-        fg.fillStyle(0xFFF9C4, 1); fg.fillCircle(fx, fy, 3);
+      // Wooden fence (right)
+      const fenceX = 340;
+      [0,1,2].forEach(fi => {
+        const fy2 = floorY - 52 + fi * 22;
+        fg.fillStyle(0xAA7A3A, 1); fg.fillRect(fenceX, fy2, 130, 6);
+        fg.fillStyle(0xCC9A55, 0.5); fg.fillRect(fenceX, fy2, 130, 2);
+        fg.lineStyle(1, 0x7A4A18, 0.5); fg.strokeRect(fenceX, fy2, 130, 6);
       });
-      // Right side vine column with flowers
-      for (let vy = 18; vy < gH; vy += 28) {
-        const vx = W - Math.sin(vy * 0.07 + 1) * 14 - 16;
-        fg.fillStyle(0x2D7A1A, 0.78); fg.fillEllipse(vx, vy, 20, 13);
-        fg.fillStyle(0x44AA2A, 0.48); fg.fillEllipse(vx - 6, vy + 8, 15, 9);
-      }
-      ([[W-20, gH*0.26, 0x9C27B0], [W-14, gH*0.42, 0x03A9F4], [W-26, gH*0.57, 0xAED581], [W-16, gH*0.68, 0xFF6EC7]] as [number,number,number][]).forEach(([fx, fy, fc]) => {
-        fg.fillStyle(fc, 0.17); fg.fillCircle(fx, fy, 20);
-        for (let pi = 0; pi < 5; pi++) { const pa = (pi/5)*Math.PI*2; fg.fillStyle(fc, 1); fg.fillCircle(fx+Math.cos(pa)*7, fy+Math.sin(pa)*7, 5.5); }
-        fg.fillStyle(0xFFF9C4, 1); fg.fillCircle(fx, fy, 3);
+      [fenceX, fenceX+40, fenceX+80, fenceX+120, 470].forEach(fx2 => {
+        fg.fillStyle(0x8B5A20, 1); fg.fillRect(fx2 - 5, floorY - 60, 10, 68);
+        fg.fillStyle(0xAA7A35, 0.55); fg.fillRect(fx2 - 3, floorY - 60, 4, 68);
       });
+      // Tree stump
+      fg.fillStyle(0x6B3A18, 1); fg.fillEllipse(160, floorY + 6, 60, 24);
+      fg.fillStyle(0x8B5A28, 1); fg.fillRect(132, floorY - 52, 56, 60);
+      fg.fillStyle(0xAA7A40, 0.5); fg.fillRect(134, floorY - 50, 18, 58);
+      fg.fillStyle(0x7A4A22, 1); fg.fillEllipse(160, floorY - 50, 60, 22);
+      fg.lineStyle(1.5, 0x5A3212, 0.60); fg.strokeEllipse(160, floorY - 50, 52, 18);
+      fg.lineStyle(1, 0x5A3212, 0.40); fg.strokeEllipse(160, floorY - 50, 40, 14);
+      fg.lineStyle(0.8, 0x5A3212, 0.25); fg.strokeEllipse(160, floorY - 50, 28, 10);
+      fg.fillStyle(0xDDCC88, 1); fg.fillRect(154, floorY - 70, 7, 18);
+      fg.fillStyle(0xFF3322, 1); fg.fillEllipse(157, floorY - 76, 24, 16);
+      fg.fillStyle(0xFFFFFF, 0.85); fg.fillCircle(151, floorY - 82, 3); fg.fillCircle(159, floorY - 80, 2);
+      // Flower patch
+      ;([[80, floorY-4, 0xFF3388], [108, floorY-2, 0xFFAA00], [68, floorY-6, 0xFF88CC], [95, floorY-8, 0xFF5500], [120, floorY-4, 0xAA44FF]] as [number,number,number][]).forEach(([fx2, fy2, fc]) => {
+        fg.lineStyle(2, 0x2A7A10, 1); fg.beginPath(); fg.moveTo(fx2, fy2); fg.lineTo(fx2, fy2-20); fg.strokePath();
+        for (let pi=0;pi<5;pi++) { const pa=(pi/5)*Math.PI*2; fg.fillStyle(fc,1); fg.fillCircle(fx2+Math.cos(pa)*8,fy2-20+Math.sin(pa)*8,6); }
+        fg.fillStyle(0xFFFF88,1); fg.fillCircle(fx2,fy2-20,4);
+      });
+      // Small pond
+      const pondX = 430, pondY = floorY + 6;
+      fg.fillStyle(0x2266AA, 0.80); fg.fillEllipse(pondX, pondY, 80, 28);
+      fg.fillStyle(0x44AADD, 0.55); fg.fillEllipse(pondX - 6, pondY - 4, 40, 14);
+      fg.lineStyle(2, 0x1A4488, 0.60); fg.strokeEllipse(pondX, pondY, 80, 28);
+      fg.fillStyle(0x2A8A18, 0.85); fg.fillCircle(pondX + 14, pondY - 2, 12);
+      fg.fillStyle(0x3AAA22, 0.55); fg.fillCircle(pondX + 10, pondY - 4, 7);
 
-    } else { // aquatic
-      // Left coral column
-      ([[10, gH*0.32, 0xFF5252, 18], [26, gH*0.50, 0xFF9800, 14], [8, gH*0.64, 0x7C4DFF, 20], [24, gH*0.70, 0xFF3D8A, 12]] as [number,number,number,number][]).forEach(([cx, cy, cc, cr]) => {
-        fg.fillStyle(cc, 0.13); fg.fillCircle(cx, cy, cr + 14);
-        fg.fillStyle(cc, 0.34); fg.fillCircle(cx, cy, cr + 5);
-        fg.fillStyle(cc, 1); fg.fillCircle(cx, cy, cr);
-        fg.fillStyle(lighten(cc, 45), 0.55); fg.fillCircle(cx - 4, cy - 4, cr * 0.40);
-        fg.fillStyle(cc, 0.65); fg.fillRect(cx - 4, cy, 8, 32);
+    } else {
+      // Aquatic
+      ;([[60, floorY - 30, 0xFF5252, 28], [42, floorY - 55, 0xFF8888, 18], [78, floorY - 42, 0xFF3366, 22]] as [number,number,number,number][]).forEach(([cx, cy, cc, cr]) => {
+        fg.fillStyle(cc, 1); fg.fillEllipse(cx, cy, cr*2, cr*2.5);
+        fg.fillStyle(cc, 0.65); fg.fillRect(cx - cr*0.4, cy, cr*0.8, floorY - cy);
+        fg.fillStyle(lighten(cc, 55), 0.5); fg.fillCircle(cx - cr*0.3, cy - cr*0.3, cr*0.4);
+        fg.lineStyle(1.5, darken(cc, 30), 0.60); fg.strokeEllipse(cx, cy, cr*2, cr*2.5);
       });
-      for (let si = 0; si < 4; si++) {
-        const sx = si * 13 + 4, sBase = gH;
-        fg.lineStyle(5 - si, 0x1A6B20, 0.70);
-        fg.beginPath(); fg.moveTo(sx, sBase); fg.lineTo(sx + 12, sBase - 54); fg.lineTo(sx - 8, sBase - 112); fg.lineTo(sx + 10, sBase - 168); fg.strokePath();
-        fg.fillStyle(0x44BB30, 0.65); fg.fillEllipse(sx + 10, sBase - 168, 18, 8); fg.fillEllipse(sx - 8, sBase - 112, 16, 7);
+      for (let si=0;si<5;si++) {
+        const sx2=30+si*14, swH=90+Math.random()*60;
+        fg.lineStyle(5-si%2, 0x1A8A28, 0.75);
+        fg.beginPath(); fg.moveTo(sx2, floorY); fg.lineTo(sx2+12, floorY-swH*0.4); fg.lineTo(sx2-6, floorY-swH*0.7); fg.lineTo(sx2+8, floorY-swH); fg.strokePath();
+        fg.fillStyle(0x2AAA30, 0.65); fg.fillEllipse(sx2+8, floorY-swH, 18, 8);
       }
-      // Right coral column
-      ([[W-10, gH*0.34, 0xFF6B9D, 18], [W-24, gH*0.52, 0xFFAA44, 14], [W-8, gH*0.62, 0x88CCFF, 20], [W-22, gH*0.70, 0xFF5252, 12]] as [number,number,number,number][]).forEach(([cx, cy, cc, cr]) => {
-        fg.fillStyle(cc, 0.13); fg.fillCircle(cx, cy, cr + 14);
-        fg.fillStyle(cc, 0.34); fg.fillCircle(cx, cy, cr + 5);
-        fg.fillStyle(cc, 1); fg.fillCircle(cx, cy, cr);
-        fg.fillStyle(lighten(cc, 45), 0.55); fg.fillCircle(cx + 4, cy - 4, cr * 0.40);
-        fg.fillStyle(cc, 0.65); fg.fillRect(cx - 4, cy, 8, 32);
+      // Rock arch center
+      fg.fillStyle(0x557799, 1); fg.fillEllipse(270, floorY - 60, 180, 140);
+      fg.fillStyle(0x2244AA, 1); fg.fillEllipse(270, floorY - 30, 110, 90);
+      fg.fillStyle(0x445566, 0.65); fg.fillRect(195, floorY - 60, 80, 68); fg.fillRect(290, floorY - 60, 80, 68);
+      // Treasure chest
+      fg.fillStyle(0x8B5A20, 1); fg.fillRoundedRect(218, floorY - 22, 44, 28, 4);
+      fg.fillStyle(0xCC8830, 1); fg.fillRoundedRect(220, floorY - 24, 44, 12, 3);
+      fg.fillStyle(0xFFCC44, 1); fg.fillRoundedRect(236, floorY - 20, 14, 10, 2);
+      fg.fillStyle(0xFFEE88, 0.8); fg.fillCircle(243, floorY - 15, 3);
+      // Right coral
+      ;([[460, floorY - 28, 0xFFAA44, 26], [480, floorY - 48, 0xFF6B9D, 18], [444, floorY - 40, 0x88CCFF, 20]] as [number,number,number,number][]).forEach(([cx, cy, cc, cr]) => {
+        fg.fillStyle(cc, 1); fg.fillEllipse(cx, cy, cr*2, cr*2.5);
+        fg.fillStyle(cc, 0.65); fg.fillRect(cx - cr*0.4, cy, cr*0.8, floorY - cy);
+        fg.fillStyle(lighten(cc, 55), 0.5); fg.fillCircle(cx + cr*0.3, cy - cr*0.3, cr*0.4);
       });
-      for (let si = 0; si < 4; si++) {
-        const sx = W - (si * 13 + 4), sBase = gH;
-        fg.lineStyle(5 - si, 0x1A6B20, 0.70);
-        fg.beginPath(); fg.moveTo(sx, sBase); fg.lineTo(sx - 12, sBase - 54); fg.lineTo(sx + 8, sBase - 112); fg.lineTo(sx - 10, sBase - 168); fg.strokePath();
-        fg.fillStyle(0x44BB30, 0.65); fg.fillEllipse(sx - 10, sBase - 168, 18, 8);
+      // Right seaweed
+      for (let si=0;si<4;si++) {
+        const sx2=W-30-si*14, swH=80+Math.random()*50;
+        fg.lineStyle(4-si%2, 0x1A8A28, 0.70);
+        fg.beginPath(); fg.moveTo(sx2, floorY); fg.lineTo(sx2-10, floorY-swH*0.4); fg.lineTo(sx2+8, floorY-swH*0.7); fg.lineTo(sx2-6, floorY-swH); fg.strokePath();
       }
-      // Water surface shimmer band at top
-      fg.fillGradientStyle(0x44EEFF, 0x44EEFF, 0x44EEFF, 0x44EEFF, 0.22, 0.22, 0, 0);
-      fg.fillRect(0, 0, W, 9);
-      fg.fillStyle(0x88FFFF, 0.18); fg.fillRect(0, 0, W, 4);
+      // Bubbles
+      [[80,380],[130,320],[390,360],[450,290],[270,260]].forEach(([bx,by]) => {
+        fg.lineStyle(1.5, 0xAAEEFF, 0.55); fg.strokeCircle(bx, by, 8 + Math.random()*6);
+        fg.fillStyle(0xFFFFFF, 0.15); fg.fillCircle(bx - 3, by - 3, 4);
+      });
     }
+  }
+
+  private _drawTerrariumFrame(W: number, H: number) {
+    const tankL = 20, tankR = 520, tankT = 88, tankB = 672;
+    const frameThick = 28;
+    const woodDark = 0x5C3A1A, woodMid = 0x8B5A2A, woodLight = 0xAA7A40;
+    const fr = this.add.graphics().setDepth(14);
+
+    // Wooden top frame
+    fr.fillStyle(woodDark, 1); fr.fillRoundedRect(tankL - 8, tankT - frameThick, tankR - tankL + 16, frameThick + 4, { tl: 12, tr: 12, bl: 0, br: 0 });
+    fr.fillStyle(woodMid, 1);  fr.fillRoundedRect(tankL - 6, tankT - frameThick + 2, tankR - tankL + 12, frameThick - 2, { tl: 10, tr: 10, bl: 0, br: 0 });
+    fr.fillStyle(woodLight, 0.40); fr.fillRoundedRect(tankL - 4, tankT - frameThick + 3, tankR - tankL + 8, 8, { tl: 8, tr: 8, bl: 0, br: 0 });
+    fr.lineStyle(1, woodDark, 0.30);
+    for (let wx = tankL + 20; wx < tankR - 20; wx += 35) {
+      fr.beginPath(); fr.moveTo(wx, tankT - frameThick + 2); fr.lineTo(wx + 12, tankT); fr.strokePath();
+    }
+    // Wooden bottom frame
+    fr.fillStyle(woodDark, 1); fr.fillRoundedRect(tankL - 8, tankB - 4, tankR - tankL + 16, frameThick + 4, { tl: 0, tr: 0, bl: 12, br: 12 });
+    fr.fillStyle(woodMid, 1);  fr.fillRoundedRect(tankL - 6, tankB, tankR - tankL + 12, frameThick - 2, { tl: 0, tr: 0, bl: 10, br: 10 });
+    fr.fillStyle(woodLight, 0.35); fr.fillRect(tankL - 4, tankB + 1, tankR - tankL + 8, 5);
+    // Side strips
+    fr.fillStyle(woodDark, 1); fr.fillRect(tankL - 8, tankT - frameThick, 10, tankB - tankT + frameThick + 4);
+    fr.fillStyle(woodDark, 1); fr.fillRect(tankR - 2, tankT - frameThick, 10, tankB - tankT + frameThick + 4);
+    fr.fillStyle(woodMid, 0.55); fr.fillRect(tankL - 6, tankT, 4, tankB - tankT);
+    fr.fillStyle(woodMid, 0.55); fr.fillRect(tankR, tankT, 4, tankB - tankT);
+    // Corner brackets
+    ;([[tankL - 8, tankT - frameThick], [tankR - 2, tankT - frameThick], [tankL - 8, tankB], [tankR - 2, tankB]] as [number, number][]).forEach(([cx, cy]) => {
+      fr.fillStyle(0x3A2208, 1); fr.fillRoundedRect(cx - 2, cy - 2, 16, 16, 4);
+      fr.fillStyle(0x6A4A20, 0.7); fr.fillRoundedRect(cx, cy, 10, 10, 3);
+    });
+    // Glass reflections
+    fr.fillGradientStyle(0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0.18, 0, 0, 0.18);
+    fr.fillRect(tankL + 2, tankT, 18, tankB - tankT);
+    fr.fillGradientStyle(0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0, 0.14, 0.14, 0);
+    fr.fillRect(tankR - 20, tankT, 18, tankB - tankT);
+    fr.fillStyle(0xFFFFFF, 0.22); fr.fillTriangle(tankL + 2, tankT, tankL + 60, tankT, tankL + 2, tankT + 80);
+    fr.fillStyle(0xFFFFFF, 0.10); fr.fillTriangle(tankL + 2, tankT, tankL + 100, tankT, tankL + 2, tankT + 130);
+    fr.fillStyle(0xFFFFFF, 0.12); fr.fillRect(tankL + 2, tankT, tankR - tankL - 4, 3);
+    // Overhead lamp
+    fr.lineStyle(2, 0x3A2208, 1);
+    fr.beginPath(); fr.moveTo(W / 2, tankT - frameThick); fr.lineTo(W / 2, tankT - frameThick + 18); fr.strokePath();
+    fr.fillStyle(0xCC9940, 1);
+    fr.fillTriangle(W / 2 - 26, tankT - frameThick + 18, W / 2 + 26, tankT - frameThick + 18, W / 2, tankT - frameThick + 7);
+    fr.fillStyle(0xEEBB55, 0.7);
+    fr.fillTriangle(W / 2 - 18, tankT - frameThick + 18, W / 2 + 18, tankT - frameThick + 18, W / 2, tankT - frameThick + 10);
+    fr.fillStyle(0xFFEE88, 1); fr.fillCircle(W / 2, tankT - frameThick + 20, 6);
+    fr.fillStyle(0xFFFFCC, 0.6); fr.fillCircle(W / 2, tankT - frameThick + 20, 3);
+    fr.fillStyle(0xFFEE88, 0.06);
+    fr.fillPoints([{ x: W/2-120, y: tankT }, { x: W/2+120, y: tankT }, { x: W/2+180, y: tankT+200 }, { x: W/2-180, y: tankT+200 }], true);
+    fr.fillStyle(0xFFFF99, 0.04);
+    fr.fillPoints([{ x: W/2-60, y: tankT }, { x: W/2+60, y: tankT }, { x: W/2+90, y: tankT+120 }, { x: W/2-90, y: tankT+120 }], true);
+    // Hanging sign
+    const signW = 160, signH = 44, signX = W / 2 + 100, signY = 88 + 36;
+    fr.lineStyle(2.5, 0x6B3A10, 1);
+    fr.beginPath(); fr.moveTo(signX - signW/2 + 16, 88); fr.lineTo(signX - signW/2 + 16, signY - signH/2); fr.strokePath();
+    fr.beginPath(); fr.moveTo(signX + signW/2 - 16, 88); fr.lineTo(signX + signW/2 - 16, signY - signH/2); fr.strokePath();
+    fr.fillStyle(0x4A2208, 1);
+    fr.fillCircle(signX - signW/2 + 16, signY - signH/2, 4);
+    fr.fillCircle(signX + signW/2 - 16, signY - signH/2, 4);
+    fr.fillStyle(0xC8A060, 1); fr.fillRoundedRect(signX - signW/2, signY - signH/2, signW, signH, 8);
+    fr.fillStyle(0xDDBB78, 0.55); fr.fillRoundedRect(signX - signW/2 + 3, signY - signH/2 + 3, signW - 6, signH * 0.45, { tl: 6, tr: 6, bl: 0, br: 0 });
+    fr.lineStyle(2, 0x8B5A20, 0.70); fr.strokeRoundedRect(signX - signW/2, signY - signH/2, signW, signH, 8);
+    fr.lineStyle(1, 0xAA7A40, 0.35); fr.strokeRoundedRect(signX - signW/2 + 3, signY - signH/2 + 3, signW - 6, signH - 6, 5);
+    const habitatLabels: Record<string, string> = { dirt: '🪨 บ้านดินน้อย', grass: '🌿 บ้านป่าน้อย', aquatic: '🌊 บ้านใต้น้ำ' };
+    this.add.text(signX, signY, habitatLabels[this._sp.habitat] ?? '🏠 บ้าน', {
+      fontFamily: FONT, fontSize: '15px', fontStyle: 'bold', color: '#5C3A10',
+    }).setOrigin(0.5).setDepth(15);
   }
 
   // ── MONSTER AREA ──────────────────────────────────────────────────────────
