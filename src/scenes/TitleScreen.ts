@@ -180,7 +180,6 @@ export class TitleScreen extends Phaser.Scene {
       stroke: '#882200', strokeThickness: 5,
       shadow: { offsetX: 0, offsetY: 3, color: '#CC4400', blur: 0, stroke: false, fill: true },
     }).setOrigin(0.5).setDepth(9);
-    this.tweens.add({ targets: btnG, scaleX: { from: 1, to: 1.03 }, scaleY: { from: 1, to: 1.03 }, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
 
     // ── Interactivity ─────────────────────────────────────────────────────
     this.add.rectangle(W / 2, H / 2, W, H)
