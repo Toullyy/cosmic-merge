@@ -57,6 +57,7 @@ export class HabitatRoom extends Phaser.Scene {
   private _bowlY: number = 0;
   private _xpBar: Phaser.GameObjects.Graphics | null = null;
   private _xpLevelTxt: Phaser.GameObjects.Text | null = null;
+  private _statsY: number = 0;
 
   constructor() { super({ key: 'HabitatRoom' }); }
 
@@ -109,25 +110,25 @@ export class HabitatRoom extends Phaser.Scene {
   private _drawBackground(W: number, H: number, habitat: HabitatType) {
     const g = this.add.graphics().setDepth(0);
 
-    // Warm cozy room wall behind tank
-    g.fillGradientStyle(0xF5E8D0, 0xF5E8D0, 0xE8D4B0, 0xE8D4B0, 1);
-    g.fillRect(0, 0, W, H);
-    g.lineStyle(1, 0xC8A870, 0.18);
-    for (let wy = 20; wy < H; wy += 32) {
-      g.beginPath(); g.moveTo(0, wy); g.lineTo(W, wy); g.strokePath();
+    // Warm cozy room wall behind tank — clean gradient, no busy grain lines
+    g.fillGradientStyle(0xF2E4C8, 0xF2E4C8, 0xE0CC9E, 0xE0CC9E, 1);
+    g.fillRect(0, 0, W, 700);
+    // Subtle wall texture — vertical grain only in narrow side margins
+    g.lineStyle(1, 0xC0965A, 0.12);
+    for (let wy = 40; wy < 700; wy += 48) {
+      g.beginPath(); g.moveTo(0, wy); g.lineTo(18, wy); g.strokePath();
+      g.beginPath(); g.moveTo(W - 18, wy); g.lineTo(W, wy); g.strokePath();
     }
-    // Wooden shelf below tank
-    g.fillStyle(0x8B5A2A, 1); g.fillRect(0, 700, W, H - 700);
-    g.fillStyle(0xAA7A3A, 0.6); g.fillRect(0, 700, W, 12);
-    g.lineStyle(1, 0x6B3A14, 0.35);
-    for (let wx = 0; wx < W; wx += 68) {
-      g.beginPath(); g.moveTo(wx, 700); g.lineTo(wx, H); g.strokePath();
+    // Dark shadow behind stats area for readability
+    g.fillGradientStyle(0x1A0E06, 0x1A0E06, 0x2A1808, 0x2A1808, 1);
+    g.fillRect(0, 700, W, H - 700);
+    // Shelf edge highlight
+    g.fillStyle(0xAA7A3A, 0.55); g.fillRect(0, 700, W, 6);
+    // Vertical plank dividers on shelf
+    g.lineStyle(1, 0x0A0604, 0.25);
+    for (let wx = 68; wx < W; wx += 68) {
+      g.beginPath(); g.moveTo(wx, 706); g.lineTo(wx, H); g.strokePath();
     }
-    // Ambient room objects at edges
-    g.fillStyle(0x5A8A30, 0.35); g.fillCircle(14, 320, 22);
-    g.fillStyle(0x7B4A1A, 0.45); g.fillRect(8, 340, 12, 28);
-    g.fillStyle(0x8844AA, 0.28); g.fillRect(W - 26, 280, 18, 50);
-    g.fillStyle(0x4466CC, 0.28); g.fillRect(W - 26, 330, 18, 40);
 
     // Habitat interior fill inside tank (y=88-672, x=20-520)
     if (habitat === 'dirt') {
@@ -740,7 +741,8 @@ export class HabitatRoom extends Phaser.Scene {
   // ── STATS BARS ────────────────────────────────────────────────────────────
 
   private _buildStats(W: number, H: number) {
-    const statsY = H * 0.64 + 18;
+    const statsY = 716;        // below terrarium bottom frame (y=700)
+    this._statsY = statsY;
     const barW = W - 92;
 
     // Frosted glass backing panel behind all bars + xp row
@@ -837,7 +839,7 @@ export class HabitatRoom extends Phaser.Scene {
       const xpNeeded = XP_TABLE[this._monster.level] ?? 999;
       const xpPct = Math.min(1, this._monster.xp / xpNeeded);
       const xpBx = 54, xpBw = this._W - 92;
-      const xpRowY = this._H * 0.64 + 18 + 3 * 44 + 10;
+      const xpRowY = this._statsY + 3 * 44 + 10;
       const xpFillW = Math.max(10, xpBw * xpPct);
       this._xpBar.clear();
       this._xpBar.fillStyle(0xAA44FF, 1);
