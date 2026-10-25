@@ -748,7 +748,7 @@ export class HabitatRoom extends Phaser.Scene {
     // Frosted glass backing panel behind all bars + xp row
     const habCol = this._sp.habitat === 'dirt' ? 0xFF8800 : this._sp.habitat === 'grass' ? 0x44AA22 : 0x22AAEE;
     const panelY = statsY - 20;
-    const panelH = 44 * 3 + 38;
+    const panelH = 36 * 3 + 30;
     const panel = this.add.graphics().setDepth(9);
     panel.fillStyle(0x000000, 0.42);
     panel.fillRoundedRect(8, panelY, W - 16, panelH, 14);
@@ -767,7 +767,7 @@ export class HabitatRoom extends Phaser.Scene {
     this._bars = {};
 
     defs.forEach((d, i) => {
-      const by = statsY + i * 44;
+      const by = statsY + i * 36;
 
       // Icon with drop shadow for depth
       this.add.text(26, by + 2, d.label, { fontFamily: FONT, fontSize: '20px', color: '#000000' })
@@ -791,7 +791,7 @@ export class HabitatRoom extends Phaser.Scene {
     });
 
     // XP progress bar at the bottom of the stats panel
-    const xpRowY = statsY + 3 * 44 + 10;
+    const xpRowY = statsY + 3 * 36 + 8;
     this.add.text(26, xpRowY + 1, '⭐', { fontFamily: FONT, fontSize: '15px' })
       .setOrigin(0, 0.5).setDepth(10);
     const xpBg = this.add.graphics().setDepth(10);
@@ -839,7 +839,7 @@ export class HabitatRoom extends Phaser.Scene {
       const xpNeeded = XP_TABLE[this._monster.level] ?? 999;
       const xpPct = Math.min(1, this._monster.xp / xpNeeded);
       const xpBx = 54, xpBw = this._W - 92;
-      const xpRowY = this._statsY + 3 * 44 + 10;
+      const xpRowY = this._statsY + 3 * 36 + 8;
       const xpFillW = Math.max(10, xpBw * xpPct);
       this._xpBar.clear();
       this._xpBar.fillStyle(0xAA44FF, 1);
