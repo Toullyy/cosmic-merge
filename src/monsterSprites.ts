@@ -10,7 +10,6 @@ function h(c: number): string {
 function bugSVG(bc: number, sc: number, lc: number, ec: number, habitat: string): string {
   const b = h(bc), s = h(sc), l = h(lc), e = h(ec);
 
-  // Habitat extras drawn BEHIND head
   const gExt = habitat === 'grass' ? `
 <ellipse cx="28" cy="48" rx="12" ry="17" fill="#4CAF50" opacity="0.88" transform="rotate(-14,28,48)"/>
 <ellipse cx="100" cy="48" rx="12" ry="17" fill="#4CAF50" opacity="0.88" transform="rotate(14,100,48)"/>
@@ -35,7 +34,7 @@ function bugSVG(bc: number, sc: number, lc: number, ec: number, habitat: string)
 <defs>
 <radialGradient id="bg" cx="32%" cy="28%" r="72%">
 <stop offset="0%" stop-color="${l}"/>
-<stop offset="55%" stop-color="${b}"/>
+<stop offset="42%" stop-color="${b}"/>
 <stop offset="100%" stop-color="${s}"/>
 </radialGradient>
 </defs>
@@ -48,15 +47,44 @@ ${gExt}${dExt}
 <ellipse cx="74" cy="114" rx="9" ry="5" fill="${s}" stroke="#0A001E" stroke-width="2"/>
 <ellipse cx="54" cy="113" rx="5" ry="2.5" fill="${l}" opacity="0.30"/>
 <ellipse cx="74" cy="113" rx="5" ry="2.5" fill="${l}" opacity="0.30"/>
-<circle cx="64" cy="101" r="14" fill="#0A001E" opacity="0.88"/>
+<ellipse cx="64" cy="90" rx="20" ry="5" fill="#0A001E" opacity="0.22"/>
+<circle cx="65" cy="101" r="14" fill="#0A001E" opacity="0.88"/>
 <ellipse cx="65" cy="102" rx="13" ry="8" fill="${s}" opacity="0.28"/>
 <ellipse cx="64" cy="100" rx="20" ry="13" fill="url(#bg)" stroke="#0A001E" stroke-width="4"/>
+<g fill="${l}" opacity="0.45">
+<ellipse cx="46" cy="93" rx="4" ry="2" transform="rotate(-50,46,93)"/>
+<ellipse cx="52" cy="108" rx="3.5" ry="1.8" transform="rotate(-90,52,108)"/>
+<ellipse cx="76" cy="108" rx="3.5" ry="1.8" transform="rotate(90,76,108)"/>
+<ellipse cx="82" cy="93" rx="4" ry="2" transform="rotate(50,82,93)"/>
+</g>
 ${aExt}
 <circle cx="65" cy="51" r="37" fill="#0A001E" opacity="0.88"/>
 <circle cx="66" cy="52" r="34" fill="${s}" opacity="0.25"/>
 <circle cx="64" cy="50" r="34" fill="url(#bg)" stroke="#0A001E" stroke-width="4.5"/>
 <ellipse cx="50" cy="36" rx="15" ry="9" fill="white" opacity="0.45"/>
 <ellipse cx="47" cy="33" rx="6" ry="3.5" fill="white" opacity="0.60"/>
+<g fill="${l}" opacity="0.55">
+<ellipse cx="36" cy="38" rx="5" ry="3" transform="rotate(-40,36,38)"/>
+<ellipse cx="32" cy="50" rx="5" ry="2.5" transform="rotate(-70,32,50)"/>
+<ellipse cx="36" cy="62" rx="5" ry="3" transform="rotate(-100,36,62)"/>
+<ellipse cx="44" cy="72" rx="5" ry="2.5" transform="rotate(-130,44,72)"/>
+<ellipse cx="64" cy="77" rx="5.5" ry="2.5" transform="rotate(180,64,77)"/>
+<ellipse cx="84" cy="72" rx="5" ry="2.5" transform="rotate(130,84,72)"/>
+<ellipse cx="92" cy="62" rx="5" ry="3" transform="rotate(100,92,62)"/>
+<ellipse cx="96" cy="50" rx="5" ry="2.5" transform="rotate(70,96,50)"/>
+<ellipse cx="92" cy="38" rx="5" ry="3" transform="rotate(40,92,38)"/>
+<ellipse cx="84" cy="28" rx="5" ry="2.5" transform="rotate(20,84,28)"/>
+<ellipse cx="64" cy="22" rx="5.5" ry="2.5" transform="rotate(0,64,22)"/>
+<ellipse cx="44" cy="28" rx="5" ry="2.5" transform="rotate(-20,44,28)"/>
+</g>
+<g fill="${l}" opacity="0.28">
+<ellipse cx="42" cy="44" rx="4" ry="2" transform="rotate(-30,42,44)"/>
+<ellipse cx="40" cy="56" rx="3.5" ry="2" transform="rotate(-60,40,56)"/>
+<ellipse cx="52" cy="70" rx="4" ry="2" transform="rotate(-120,52,70)"/>
+<ellipse cx="76" cy="70" rx="4" ry="2" transform="rotate(120,76,70)"/>
+<ellipse cx="88" cy="56" rx="3.5" ry="2" transform="rotate(60,88,56)"/>
+<ellipse cx="86" cy="44" rx="4" ry="2" transform="rotate(30,86,44)"/>
+</g>
 <circle cx="48" cy="52" r="18" fill="${e}" opacity="0.14"/>
 <circle cx="80" cy="52" r="18" fill="${e}" opacity="0.14"/>
 <circle cx="48" cy="52" r="14" fill="white"/>
@@ -71,9 +99,21 @@ ${aExt}
 <circle cx="78.5" cy="57" r="2" fill="white" opacity="0.65"/>
 <circle cx="48" cy="52" r="14" fill="none" stroke="#0A001E" stroke-width="2.5"/>
 <circle cx="80" cy="52" r="14" fill="none" stroke="#0A001E" stroke-width="2.5"/>
+<circle cx="48" cy="53" r="10" fill="none" stroke="#0A001E" stroke-width="1.8" opacity="0.55"/>
+<circle cx="80" cy="53" r="10" fill="none" stroke="#0A001E" stroke-width="1.8" opacity="0.55"/>
+<circle cx="44" cy="58" r="1.5" fill="white" opacity="0.50"/>
+<circle cx="76" cy="58" r="1.5" fill="white" opacity="0.50"/>
 <ellipse cx="32" cy="63" rx="15" ry="8" fill="#FF3366" opacity="0.50"/>
 <ellipse cx="96" cy="63" rx="15" ry="8" fill="#FF3366" opacity="0.50"/>
-<path d="M 54 68 Q 64 76 74 68" stroke="#0A001E" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+<path d="M 50 68 Q 64 82 78 68" fill="#2A0010" stroke="#0A001E" stroke-width="2.5"/>
+<path d="M 52 68 Q 64 78 76 68" fill="#CC1140"/>
+<path d="M 52 68 L 58 68 L 57 74 L 53 74 Z" fill="white"/>
+<path d="M 59 68 L 65 68 L 65 74 L 59 74 Z" fill="white"/>
+<path d="M 66 68 L 72 68 L 71 74 L 67 74 Z" fill="white"/>
+<line x1="58" y1="68" x2="57" y2="74" stroke="#DDDDDD" stroke-width="0.8"/>
+<line x1="65" y1="68" x2="65" y2="74" stroke="#DDDDDD" stroke-width="0.8"/>
+<ellipse cx="64" cy="77" rx="7" ry="3.5" fill="#FF4477" opacity="0.75"/>
+<path d="M 50 68 Q 64 82 78 68" fill="none" stroke="#0A001E" stroke-width="2.5"/>
 </svg>`;
 }
 
@@ -105,7 +145,7 @@ function slimeSVG(bc: number, sc: number, lc: number, ec: number, habitat: strin
 <defs>
 <radialGradient id="bg" cx="35%" cy="28%" r="70%">
 <stop offset="0%" stop-color="${l}"/>
-<stop offset="55%" stop-color="${b}"/>
+<stop offset="42%" stop-color="${b}"/>
 <stop offset="100%" stop-color="${s}"/>
 </radialGradient>
 </defs>
@@ -120,6 +160,27 @@ ${gExt}${dExt}${aExt}
 <path d="${blob}" fill="url(#bg)" stroke="#0A001E" stroke-width="4.5"/>
 <ellipse cx="50" cy="38" rx="15" ry="9" fill="white" opacity="0.45"/>
 <ellipse cx="47" cy="35" rx="6" ry="3.5" fill="white" opacity="0.60"/>
+<g fill="${l}" opacity="0.50">
+<ellipse cx="38" cy="30" rx="5" ry="3" transform="rotate(-40,38,30)"/>
+<ellipse cx="24" cy="48" rx="5" ry="2.5" transform="rotate(-70,24,48)"/>
+<ellipse cx="22" cy="66" rx="5" ry="3" transform="rotate(-90,22,66)"/>
+<ellipse cx="26" cy="84" rx="5" ry="2.5" transform="rotate(-110,26,84)"/>
+<ellipse cx="44" cy="18" rx="5" ry="2.5" transform="rotate(-20,44,18)"/>
+<ellipse cx="64" cy="14" rx="5.5" ry="2.5" transform="rotate(0,64,14)"/>
+<ellipse cx="84" cy="18" rx="5" ry="2.5" transform="rotate(20,84,18)"/>
+<ellipse cx="100" cy="30" rx="5" ry="3" transform="rotate(40,100,30)"/>
+<ellipse cx="106" cy="48" rx="5" ry="2.5" transform="rotate(70,106,48)"/>
+<ellipse cx="106" cy="66" rx="5" ry="3" transform="rotate(90,106,66)"/>
+<ellipse cx="102" cy="84" rx="5" ry="2.5" transform="rotate(110,102,84)"/>
+</g>
+<g fill="${l}" opacity="0.25">
+<ellipse cx="32" cy="40" rx="4" ry="2" transform="rotate(-30,32,40)"/>
+<ellipse cx="28" cy="60" rx="3.5" ry="2" transform="rotate(-60,28,60)"/>
+<ellipse cx="36" cy="80" rx="4" ry="2" transform="rotate(-100,36,80)"/>
+<ellipse cx="92" cy="40" rx="4" ry="2" transform="rotate(30,92,40)"/>
+<ellipse cx="100" cy="60" rx="3.5" ry="2" transform="rotate(60,100,60)"/>
+<ellipse cx="92" cy="80" rx="4" ry="2" transform="rotate(100,92,80)"/>
+</g>
 <circle cx="48" cy="54" r="18" fill="${e}" opacity="0.14"/>
 <circle cx="80" cy="54" r="18" fill="${e}" opacity="0.14"/>
 <circle cx="48" cy="54" r="14" fill="white"/>
@@ -134,9 +195,21 @@ ${gExt}${dExt}${aExt}
 <circle cx="78.5" cy="59" r="2" fill="white" opacity="0.65"/>
 <circle cx="48" cy="54" r="14" fill="none" stroke="#0A001E" stroke-width="2.5"/>
 <circle cx="80" cy="54" r="14" fill="none" stroke="#0A001E" stroke-width="2.5"/>
+<circle cx="48" cy="55" r="10" fill="none" stroke="#0A001E" stroke-width="1.8" opacity="0.55"/>
+<circle cx="80" cy="55" r="10" fill="none" stroke="#0A001E" stroke-width="1.8" opacity="0.55"/>
+<circle cx="44" cy="60" r="1.5" fill="white" opacity="0.50"/>
+<circle cx="76" cy="60" r="1.5" fill="white" opacity="0.50"/>
 <ellipse cx="30" cy="66" rx="15" ry="8" fill="#FF3366" opacity="0.50"/>
 <ellipse cx="98" cy="66" rx="15" ry="8" fill="#FF3366" opacity="0.50"/>
-<path d="M 54 72 Q 64 80 74 72" stroke="#0A001E" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+<path d="M 50 72 Q 64 86 78 72" fill="#2A0010" stroke="#0A001E" stroke-width="2.5"/>
+<path d="M 52 72 Q 64 82 76 72" fill="#CC1140"/>
+<path d="M 52 72 L 58 72 L 57 78 L 53 78 Z" fill="white"/>
+<path d="M 59 72 L 65 72 L 65 78 L 59 78 Z" fill="white"/>
+<path d="M 66 72 L 72 72 L 71 78 L 67 78 Z" fill="white"/>
+<line x1="58" y1="72" x2="57" y2="78" stroke="#DDDDDD" stroke-width="0.8"/>
+<line x1="65" y1="72" x2="65" y2="78" stroke="#DDDDDD" stroke-width="0.8"/>
+<ellipse cx="64" cy="81" rx="7" ry="3.5" fill="#FF4477" opacity="0.75"/>
+<path d="M 50 72 Q 64 86 78 72" fill="none" stroke="#0A001E" stroke-width="2.5"/>
 </svg>`;
 }
 
@@ -148,7 +221,6 @@ function salamanderSVG(bc: number, sc: number, lc: number, ec: number, habitat: 
   const spikeHalf = habitat === 'dirt' ? 8  : 6;
   const spikeBase = habitat === 'dirt' ? 28 : 26;
 
-  // Spikes drawn BEHIND head
   const spikes = `
 <polygon points="50,${16 - spikeSize} ${50 - spikeHalf},${spikeBase} ${50 + spikeHalf},${spikeBase}" fill="${s}"/>
 <polygon points="64,${14 - spikeSize} ${64 - spikeHalf},${spikeBase} ${64 + spikeHalf},${spikeBase}" fill="${s}"/>
@@ -173,7 +245,7 @@ function salamanderSVG(bc: number, sc: number, lc: number, ec: number, habitat: 
 <defs>
 <radialGradient id="bg" cx="35%" cy="25%" r="70%">
 <stop offset="0%" stop-color="${l}"/>
-<stop offset="55%" stop-color="${b}"/>
+<stop offset="42%" stop-color="${b}"/>
 <stop offset="100%" stop-color="${s}"/>
 </radialGradient>
 </defs>
@@ -187,15 +259,44 @@ ${gExt}${spikes}
 <ellipse cx="79" cy="109" rx="4" ry="2.5" fill="${l}" opacity="0.30"/>
 <ellipse cx="86" cy="98" rx="8" ry="5" fill="${s}" opacity="0.75"/>
 <ellipse cx="90" cy="94" rx="5" ry="4" fill="${s}" opacity="0.65"/>
+<ellipse cx="64" cy="90" rx="18" ry="5" fill="#0A001E" opacity="0.22"/>
 <circle cx="65" cy="101" r="13" fill="#0A001E" opacity="0.88"/>
 <ellipse cx="65" cy="101" rx="12" ry="8" fill="${s}" opacity="0.25"/>
 <ellipse cx="64" cy="100" rx="18" ry="12" fill="url(#bg)" stroke="#0A001E" stroke-width="4"/>
+<g fill="${l}" opacity="0.45">
+<ellipse cx="48" cy="93" rx="4" ry="2" transform="rotate(-50,48,93)"/>
+<ellipse cx="54" cy="107" rx="3.5" ry="1.8" transform="rotate(-90,54,107)"/>
+<ellipse cx="74" cy="107" rx="3.5" ry="1.8" transform="rotate(90,74,107)"/>
+<ellipse cx="80" cy="93" rx="4" ry="2" transform="rotate(50,80,93)"/>
+</g>
 ${aExt}
 <circle cx="65" cy="51" r="37" fill="#0A001E" opacity="0.88"/>
 <circle cx="66" cy="52" r="34" fill="${s}" opacity="0.25"/>
 <circle cx="64" cy="50" r="34" fill="url(#bg)" stroke="#0A001E" stroke-width="4.5"/>
 <ellipse cx="50" cy="36" rx="15" ry="9" fill="white" opacity="0.45"/>
 <ellipse cx="47" cy="33" rx="6" ry="3.5" fill="white" opacity="0.60"/>
+<g fill="${l}" opacity="0.55">
+<ellipse cx="36" cy="38" rx="5" ry="3" transform="rotate(-40,36,38)"/>
+<ellipse cx="32" cy="50" rx="5" ry="2.5" transform="rotate(-70,32,50)"/>
+<ellipse cx="36" cy="62" rx="5" ry="3" transform="rotate(-100,36,62)"/>
+<ellipse cx="44" cy="72" rx="5" ry="2.5" transform="rotate(-130,44,72)"/>
+<ellipse cx="64" cy="77" rx="5.5" ry="2.5" transform="rotate(180,64,77)"/>
+<ellipse cx="84" cy="72" rx="5" ry="2.5" transform="rotate(130,84,72)"/>
+<ellipse cx="92" cy="62" rx="5" ry="3" transform="rotate(100,92,62)"/>
+<ellipse cx="96" cy="50" rx="5" ry="2.5" transform="rotate(70,96,50)"/>
+<ellipse cx="92" cy="38" rx="5" ry="3" transform="rotate(40,92,38)"/>
+<ellipse cx="84" cy="28" rx="5" ry="2.5" transform="rotate(20,84,28)"/>
+<ellipse cx="64" cy="22" rx="5.5" ry="2.5" transform="rotate(0,64,22)"/>
+<ellipse cx="44" cy="28" rx="5" ry="2.5" transform="rotate(-20,44,28)"/>
+</g>
+<g fill="${l}" opacity="0.28">
+<ellipse cx="42" cy="44" rx="4" ry="2" transform="rotate(-30,42,44)"/>
+<ellipse cx="40" cy="56" rx="3.5" ry="2" transform="rotate(-60,40,56)"/>
+<ellipse cx="52" cy="70" rx="4" ry="2" transform="rotate(-120,52,70)"/>
+<ellipse cx="76" cy="70" rx="4" ry="2" transform="rotate(120,76,70)"/>
+<ellipse cx="88" cy="56" rx="3.5" ry="2" transform="rotate(60,88,56)"/>
+<ellipse cx="86" cy="44" rx="4" ry="2" transform="rotate(30,86,44)"/>
+</g>
 <circle cx="48" cy="52" r="18" fill="${e}" opacity="0.14"/>
 <circle cx="80" cy="52" r="18" fill="${e}" opacity="0.14"/>
 <circle cx="48" cy="52" r="14" fill="white"/>
@@ -210,9 +311,21 @@ ${aExt}
 <circle cx="78.5" cy="57" r="2" fill="white" opacity="0.65"/>
 <circle cx="48" cy="52" r="14" fill="none" stroke="#0A001E" stroke-width="2.5"/>
 <circle cx="80" cy="52" r="14" fill="none" stroke="#0A001E" stroke-width="2.5"/>
+<circle cx="48" cy="53" r="10" fill="none" stroke="#0A001E" stroke-width="1.8" opacity="0.55"/>
+<circle cx="80" cy="53" r="10" fill="none" stroke="#0A001E" stroke-width="1.8" opacity="0.55"/>
+<circle cx="44" cy="58" r="1.5" fill="white" opacity="0.50"/>
+<circle cx="76" cy="58" r="1.5" fill="white" opacity="0.50"/>
 <ellipse cx="32" cy="63" rx="15" ry="8" fill="#FF3366" opacity="0.50"/>
 <ellipse cx="96" cy="63" rx="15" ry="8" fill="#FF3366" opacity="0.50"/>
-<path d="M 54 68 Q 64 76 74 68" stroke="#0A001E" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+<path d="M 50 68 Q 64 82 78 68" fill="#2A0010" stroke="#0A001E" stroke-width="2.5"/>
+<path d="M 52 68 Q 64 78 76 68" fill="#CC1140"/>
+<path d="M 52 68 L 58 68 L 57 74 L 53 74 Z" fill="white"/>
+<path d="M 59 68 L 65 68 L 65 74 L 59 74 Z" fill="white"/>
+<path d="M 66 68 L 72 68 L 71 74 L 67 74 Z" fill="white"/>
+<line x1="58" y1="68" x2="57" y2="74" stroke="#DDDDDD" stroke-width="0.8"/>
+<line x1="65" y1="68" x2="65" y2="74" stroke="#DDDDDD" stroke-width="0.8"/>
+<ellipse cx="64" cy="77" rx="7" ry="3.5" fill="#FF4477" opacity="0.75"/>
+<path d="M 50 68 Q 64 82 78 68" fill="none" stroke="#0A001E" stroke-width="2.5"/>
 </svg>`;
 }
 
@@ -242,7 +355,7 @@ function geckoSVG(bc: number, sc: number, lc: number, ec: number, habitat: strin
 <defs>
 <radialGradient id="bg" cx="35%" cy="28%" r="68%">
 <stop offset="0%" stop-color="${l}"/>
-<stop offset="55%" stop-color="${b}"/>
+<stop offset="42%" stop-color="${b}"/>
 <stop offset="100%" stop-color="${s}"/>
 </radialGradient>
 </defs>
@@ -256,18 +369,47 @@ ${gExt}${dExt}
 <circle cx="80" cy="118" r="5" fill="${s}" stroke="#0A001E" stroke-width="2"/>
 <circle cx="46" cy="111" r="2.8" fill="${l}" opacity="0.35"/>
 <circle cx="82" cy="111" r="2.8" fill="${l}" opacity="0.35"/>
+<ellipse cx="64" cy="90" rx="22" ry="5" fill="#0A001E" opacity="0.22"/>
 <circle cx="65" cy="101" r="14" fill="#0A001E" opacity="0.88"/>
 <ellipse cx="65" cy="101" rx="13" ry="8" fill="${s}" opacity="0.25"/>
 <ellipse cx="64" cy="100" rx="22" ry="12" fill="url(#bg)" stroke="#0A001E" stroke-width="4"/>
 <ellipse cx="50" cy="95" rx="5" ry="3" fill="${l}" opacity="0.35"/>
 <ellipse cx="64" cy="93" rx="5" ry="3" fill="${l}" opacity="0.32"/>
 <ellipse cx="78" cy="95" rx="5" ry="3" fill="${l}" opacity="0.35"/>
+<g fill="${l}" opacity="0.45">
+<ellipse cx="44" cy="93" rx="4" ry="2" transform="rotate(-50,44,93)"/>
+<ellipse cx="50" cy="108" rx="3.5" ry="1.8" transform="rotate(-90,50,108)"/>
+<ellipse cx="78" cy="108" rx="3.5" ry="1.8" transform="rotate(90,78,108)"/>
+<ellipse cx="84" cy="93" rx="4" ry="2" transform="rotate(50,84,93)"/>
+</g>
 ${aExt}
 <circle cx="65" cy="51" r="37" fill="#0A001E" opacity="0.88"/>
 <circle cx="66" cy="52" r="34" fill="${s}" opacity="0.25"/>
 <circle cx="64" cy="50" r="34" fill="url(#bg)" stroke="#0A001E" stroke-width="4.5"/>
 <ellipse cx="50" cy="36" rx="15" ry="9" fill="white" opacity="0.45"/>
 <ellipse cx="47" cy="33" rx="6" ry="3.5" fill="white" opacity="0.60"/>
+<g fill="${l}" opacity="0.55">
+<ellipse cx="36" cy="38" rx="5" ry="3" transform="rotate(-40,36,38)"/>
+<ellipse cx="32" cy="50" rx="5" ry="2.5" transform="rotate(-70,32,50)"/>
+<ellipse cx="36" cy="62" rx="5" ry="3" transform="rotate(-100,36,62)"/>
+<ellipse cx="44" cy="72" rx="5" ry="2.5" transform="rotate(-130,44,72)"/>
+<ellipse cx="64" cy="77" rx="5.5" ry="2.5" transform="rotate(180,64,77)"/>
+<ellipse cx="84" cy="72" rx="5" ry="2.5" transform="rotate(130,84,72)"/>
+<ellipse cx="92" cy="62" rx="5" ry="3" transform="rotate(100,92,62)"/>
+<ellipse cx="96" cy="50" rx="5" ry="2.5" transform="rotate(70,96,50)"/>
+<ellipse cx="92" cy="38" rx="5" ry="3" transform="rotate(40,92,38)"/>
+<ellipse cx="84" cy="28" rx="5" ry="2.5" transform="rotate(20,84,28)"/>
+<ellipse cx="64" cy="22" rx="5.5" ry="2.5" transform="rotate(0,64,22)"/>
+<ellipse cx="44" cy="28" rx="5" ry="2.5" transform="rotate(-20,44,28)"/>
+</g>
+<g fill="${l}" opacity="0.28">
+<ellipse cx="42" cy="44" rx="4" ry="2" transform="rotate(-30,42,44)"/>
+<ellipse cx="40" cy="56" rx="3.5" ry="2" transform="rotate(-60,40,56)"/>
+<ellipse cx="52" cy="70" rx="4" ry="2" transform="rotate(-120,52,70)"/>
+<ellipse cx="76" cy="70" rx="4" ry="2" transform="rotate(120,76,70)"/>
+<ellipse cx="88" cy="56" rx="3.5" ry="2" transform="rotate(60,88,56)"/>
+<ellipse cx="86" cy="44" rx="4" ry="2" transform="rotate(30,86,44)"/>
+</g>
 <circle cx="48" cy="52" r="18" fill="${e}" opacity="0.14"/>
 <circle cx="80" cy="52" r="18" fill="${e}" opacity="0.14"/>
 <circle cx="48" cy="52" r="14" fill="white"/>
@@ -282,9 +424,21 @@ ${aExt}
 <circle cx="78.5" cy="57" r="2" fill="white" opacity="0.65"/>
 <circle cx="48" cy="52" r="14" fill="none" stroke="#0A001E" stroke-width="2.5"/>
 <circle cx="80" cy="52" r="14" fill="none" stroke="#0A001E" stroke-width="2.5"/>
+<circle cx="48" cy="53" r="10" fill="none" stroke="#0A001E" stroke-width="1.8" opacity="0.55"/>
+<circle cx="80" cy="53" r="10" fill="none" stroke="#0A001E" stroke-width="1.8" opacity="0.55"/>
+<circle cx="44" cy="58" r="1.5" fill="white" opacity="0.50"/>
+<circle cx="76" cy="58" r="1.5" fill="white" opacity="0.50"/>
 <ellipse cx="32" cy="63" rx="15" ry="8" fill="#FF3366" opacity="0.50"/>
 <ellipse cx="96" cy="63" rx="15" ry="8" fill="#FF3366" opacity="0.50"/>
-<path d="M 54 68 Q 64 76 74 68" stroke="#0A001E" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+<path d="M 50 68 Q 64 82 78 68" fill="#2A0010" stroke="#0A001E" stroke-width="2.5"/>
+<path d="M 52 68 Q 64 78 76 68" fill="#CC1140"/>
+<path d="M 52 68 L 58 68 L 57 74 L 53 74 Z" fill="white"/>
+<path d="M 59 68 L 65 68 L 65 74 L 59 74 Z" fill="white"/>
+<path d="M 66 68 L 72 68 L 71 74 L 67 74 Z" fill="white"/>
+<line x1="58" y1="68" x2="57" y2="74" stroke="#DDDDDD" stroke-width="0.8"/>
+<line x1="65" y1="68" x2="65" y2="74" stroke="#DDDDDD" stroke-width="0.8"/>
+<ellipse cx="64" cy="77" rx="7" ry="3.5" fill="#FF4477" opacity="0.75"/>
+<path d="M 50 68 Q 64 82 78 68" fill="none" stroke="#0A001E" stroke-width="2.5"/>
 </svg>`;
 }
 
@@ -308,23 +462,30 @@ function caterpillarSVG(bc: number, sc: number, lc: number, ec: number, habitat:
 <defs>
 <radialGradient id="bg" cx="35%" cy="28%" r="68%">
 <stop offset="0%" stop-color="${l}"/>
-<stop offset="55%" stop-color="${b}"/>
+<stop offset="42%" stop-color="${b}"/>
 <stop offset="100%" stop-color="${s}"/>
 </radialGradient>
 <radialGradient id="bg2" cx="38%" cy="30%" r="65%">
 <stop offset="0%" stop-color="${l}"/>
-<stop offset="60%" stop-color="${b}"/>
+<stop offset="42%" stop-color="${b}"/>
 <stop offset="100%" stop-color="${s}"/>
 </radialGradient>
 </defs>
 <ellipse cx="64" cy="122" rx="22" ry="6" fill="black" opacity="0.15"/>
 ${gExt}${dExt}${aExt}
+<ellipse cx="64" cy="79" rx="14" ry="4" fill="#0A001E" opacity="0.20"/>
 <circle cx="64" cy="111" r="13" fill="#0A001E" opacity="0.85"/>
 <circle cx="64" cy="110" r="11" fill="url(#bg2)" stroke="#0A001E" stroke-width="3"/>
 <ellipse cx="59" cy="105" rx="5" ry="3" fill="${l}" opacity="0.28"/>
 <circle cx="64" cy="88" r="16" fill="#0A001E" opacity="0.85"/>
 <circle cx="64" cy="87" r="14" fill="url(#bg2)" stroke="#0A001E" stroke-width="3.5"/>
 <ellipse cx="58" cy="82" rx="6" ry="3.5" fill="${l}" opacity="0.28"/>
+<g fill="${l}" opacity="0.40">
+<ellipse cx="52" cy="82" rx="3.5" ry="1.8" transform="rotate(-80,52,82)"/>
+<ellipse cx="76" cy="82" rx="3.5" ry="1.8" transform="rotate(80,76,82)"/>
+<ellipse cx="54" cy="106" rx="3" ry="1.5" transform="rotate(-80,54,106)"/>
+<ellipse cx="74" cy="106" rx="3" ry="1.5" transform="rotate(80,74,106)"/>
+</g>
 <path d="M 56 14 Q 48 4 44 0" stroke="${s}" stroke-width="2.5" fill="none" stroke-linecap="round"/>
 <path d="M 72 14 Q 80 4 84 0" stroke="${s}" stroke-width="2.5" fill="none" stroke-linecap="round"/>
 <circle cx="44" cy="0" r="4.5" fill="${l}"/>
@@ -336,6 +497,28 @@ ${gExt}${dExt}${aExt}
 <circle cx="64" cy="44" r="32" fill="url(#bg)" stroke="#0A001E" stroke-width="4.5"/>
 <ellipse cx="50" cy="30" rx="14" ry="8" fill="white" opacity="0.45"/>
 <ellipse cx="47" cy="28" rx="5.5" ry="3" fill="white" opacity="0.60"/>
+<g fill="${l}" opacity="0.55">
+<ellipse cx="36" cy="32" rx="5" ry="3" transform="rotate(-40,36,32)"/>
+<ellipse cx="32" cy="44" rx="5" ry="2.5" transform="rotate(-70,32,44)"/>
+<ellipse cx="36" cy="56" rx="5" ry="3" transform="rotate(-100,36,56)"/>
+<ellipse cx="44" cy="66" rx="5" ry="2.5" transform="rotate(-130,44,66)"/>
+<ellipse cx="64" cy="70" rx="5.5" ry="2.5" transform="rotate(180,64,70)"/>
+<ellipse cx="84" cy="66" rx="5" ry="2.5" transform="rotate(130,84,66)"/>
+<ellipse cx="92" cy="56" rx="5" ry="3" transform="rotate(100,92,56)"/>
+<ellipse cx="96" cy="44" rx="5" ry="2.5" transform="rotate(70,96,44)"/>
+<ellipse cx="92" cy="32" rx="5" ry="3" transform="rotate(40,92,32)"/>
+<ellipse cx="84" cy="22" rx="5" ry="2.5" transform="rotate(20,84,22)"/>
+<ellipse cx="64" cy="16" rx="5.5" ry="2.5" transform="rotate(0,64,16)"/>
+<ellipse cx="44" cy="22" rx="5" ry="2.5" transform="rotate(-20,44,22)"/>
+</g>
+<g fill="${l}" opacity="0.28">
+<ellipse cx="42" cy="38" rx="4" ry="2" transform="rotate(-30,42,38)"/>
+<ellipse cx="40" cy="50" rx="3.5" ry="2" transform="rotate(-60,40,50)"/>
+<ellipse cx="52" cy="64" rx="4" ry="2" transform="rotate(-120,52,64)"/>
+<ellipse cx="76" cy="64" rx="4" ry="2" transform="rotate(120,76,64)"/>
+<ellipse cx="88" cy="50" rx="3.5" ry="2" transform="rotate(60,88,50)"/>
+<ellipse cx="86" cy="38" rx="4" ry="2" transform="rotate(30,86,38)"/>
+</g>
 <circle cx="50" cy="44" r="18" fill="${e}" opacity="0.14"/>
 <circle cx="78" cy="44" r="18" fill="${e}" opacity="0.14"/>
 <circle cx="50" cy="44" r="14" fill="white"/>
@@ -350,9 +533,21 @@ ${gExt}${dExt}${aExt}
 <circle cx="76.5" cy="49" r="2" fill="white" opacity="0.65"/>
 <circle cx="50" cy="44" r="14" fill="none" stroke="#0A001E" stroke-width="2.5"/>
 <circle cx="78" cy="44" r="14" fill="none" stroke="#0A001E" stroke-width="2.5"/>
+<circle cx="50" cy="45" r="10" fill="none" stroke="#0A001E" stroke-width="1.8" opacity="0.55"/>
+<circle cx="78" cy="45" r="10" fill="none" stroke="#0A001E" stroke-width="1.8" opacity="0.55"/>
+<circle cx="46" cy="50" r="1.5" fill="white" opacity="0.50"/>
+<circle cx="74" cy="50" r="1.5" fill="white" opacity="0.50"/>
 <ellipse cx="34" cy="56" rx="15" ry="8" fill="#FF3366" opacity="0.50"/>
 <ellipse cx="94" cy="56" rx="15" ry="8" fill="#FF3366" opacity="0.50"/>
-<path d="M 54 60 Q 64 68 74 60" stroke="#0A001E" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+<path d="M 50 60 Q 64 74 78 60" fill="#2A0010" stroke="#0A001E" stroke-width="2.5"/>
+<path d="M 52 60 Q 64 70 76 60" fill="#CC1140"/>
+<path d="M 52 60 L 58 60 L 57 66 L 53 66 Z" fill="white"/>
+<path d="M 59 60 L 65 60 L 65 66 L 59 66 Z" fill="white"/>
+<path d="M 66 60 L 72 60 L 71 66 L 67 66 Z" fill="white"/>
+<line x1="58" y1="60" x2="57" y2="66" stroke="#DDDDDD" stroke-width="0.8"/>
+<line x1="65" y1="60" x2="65" y2="66" stroke="#DDDDDD" stroke-width="0.8"/>
+<ellipse cx="64" cy="69" rx="7" ry="3.5" fill="#FF4477" opacity="0.75"/>
+<path d="M 50 60 Q 64 74 78 60" fill="none" stroke="#0A001E" stroke-width="2.5"/>
 </svg>`;
 }
 
