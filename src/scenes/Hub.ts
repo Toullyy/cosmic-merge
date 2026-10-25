@@ -1,6 +1,6 @@
 ﻿import Phaser from 'phaser';
 import { Game, FONT, store, sfx, getNewAchievements } from '../utils';
-import { SPECIES, HABITATS, TANK_COST, TANK_CAPACITY, MAX_TANKS, getLevelName, AD_COINS_REWARD, AD_COOLDOWN_MS, checkAndUpdateVisitor, VISITOR_DURATION_MS, TRAITS, ACHIEVEMENTS } from '../data';
+import { SPECIES, HABITATS, TANK_COST, TANK_CAPACITY, MAX_TANKS, getLevelName, AD_COINS_REWARD, AD_COOLDOWN_MS, checkAndUpdateVisitor, VISITOR_DURATION_MS, TRAITS, ACHIEVEMENTS, DAILY_REWARDS } from '../data';
 import { t, currentLang, setLang } from '../i18n';
 import type { Achievement } from '../data';
 import { makeMonsterTexture, getVariantModifiers, shiftHue, darken, lighten } from '../MonsterRenderer';
@@ -56,6 +56,8 @@ export class Hub extends Phaser.Scene {
 
     const boot = document.getElementById('boot');
     if (boot) boot.style.display = 'none';
+
+    this.time.delayedCall(400, () => this._checkDailyLogin());
   }
 
   private _buildBackground(W: number, H: number) {
@@ -622,6 +624,142 @@ export class Hub extends Phaser.Scene {
         this._updateVisitorBanner();
         store.setJSON('mps_state', Game.state);
       },
+    });
+  }
+
+  private _checkDailyLogin() {
+    const state = Game.state!;
+    const today = new Date().toISOString().slice(0, 10);
+    if (state.lastLoginDate === today) return;
+
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    if (state.lastLoginDate === yesterday) {
+      state.loginStreak = (state.loginStreak ?? 0) + 1;
+    } else {
+      state.loginStreak = 1;
+    }
+    if ((state.loginStreak ?? 0) > (state.longestStreak ?? 0)) {
+      state.longestStreak = state.loginStreak;
+    }
+    state.lastLoginDate = today;
+
+    const dayIdx = ((state.loginStreak! - 1) % DAILY_REWARDS.length);
+    const reward = DAILY_REWARDS[dayIdx];
+    state.coins += reward.coins;
+    state.diamonds = (state.diamonds ?? 0) + reward.diamonds;
+    store.setJSON('mps_state', state);
+    if (this._coinTxt) this._coinTxt.setText('🪙 ' + state.coins);
+    if (this._diamondTxt) this._diamondTxt.setText(String(state.diamonds));
+
+    this._showDailyLoginPopup(reward, state.loginStreak!);
+  }
+
+  private _showDailyLoginPopup(reward: typeof DAILY_REWARDS[0], streak: number) {
+    const W = this.scale.width, H = this.scale.height;
+    const cx = W / 2;
+    const panelW = 400, panelH = 420;
+    const px = cx - panelW / 2, py = H / 2 - panelH / 2 - 20;
+
+    const popup = this.add.container(0, 0).setDepth(55);
+
+    // Overlay
+    const overlay = this.add.graphics();
+    overlay.fillStyle(0x000000, 0.70);
+    overlay.fillRect(0, 0, W, H);
+    popup.add(overlay);
+
+    // Panel
+    const panel = this.add.graphics();
+    panel.fillStyle(0x0d0828, 1);
+    panel.fillRoundedRect(px, py, panelW, panelH, 22);
+    panel.lineStyle(2.5, 0x9955FF, 1);
+    panel.strokeRoundedRect(px, py, panelW, panelH, 22);
+    panel.fillStyle(0x3311AA, 0.12);
+    panel.fillRoundedRect(px + 4, py + 4, panelW - 8, 64, { tl: 18, tr: 18, bl: 0, br: 0 });
+    popup.add(panel);
+
+    // Header
+    popup.add(this.add.text(cx, py + 34, '🎁  รางวัลเข้าสู่ระบบประจำวัน', {
+      fontFamily: FONT, fontSize: '19px', fontStyle: 'bold', color: '#FFFFFF',
+    }).setOrigin(0.5));
+
+    // Streak text
+    popup.add(this.add.text(cx, py + 76, `ต่อเนื่อง  ${streak}  วัน`, {
+      fontFamily: FONT, fontSize: '15px', color: '#BB88FF',
+    }).setOrigin(0.5));
+
+    // 7-day row
+    const dayW = 46, dayGap = 8;
+    const rowW = 7 * dayW + 6 * dayGap;
+    const rowX = cx - rowW / 2;
+    const rowY = py + 102;
+    DAILY_REWARDS.forEach((r, i) => {
+      const dx = rowX + i * (dayW + dayGap);
+      const isToday = i === (streak - 1) % DAILY_REWARDS.length;
+      const isPast  = streak > i + 1 || (streak === DAILY_REWARDS.length && i < streak - 1);
+
+      const card = this.add.graphics();
+      card.fillStyle(isToday ? 0x5522BB : (isPast ? 0x221144 : 0x120830), 1);
+      card.fillRoundedRect(dx, rowY, dayW, 56, 10);
+      card.lineStyle(1.5, isToday ? 0xCC88FF : 0x442288, isToday ? 1 : 0.55);
+      card.strokeRoundedRect(dx, rowY, dayW, 56, 10);
+      if (isToday) {
+        card.lineStyle(2.5, 0xFF99FF, 0.45);
+        card.strokeRoundedRect(dx - 2, rowY - 2, dayW + 4, 60, 12);
+      }
+      popup.add(card);
+
+      popup.add(this.add.text(dx + dayW / 2, rowY + 14, isPast ? '✓' : r.emoji, {
+        fontFamily: FONT, fontSize: '18px', color: isPast ? '#8866AA' : '#FFFFFF',
+      }).setOrigin(0.5));
+      popup.add(this.add.text(dx + dayW / 2, rowY + 40, `D${i + 1}`, {
+        fontFamily: FONT, fontSize: '11px', color: isToday ? '#EE99FF' : '#665588',
+      }).setOrigin(0.5));
+    });
+
+    // Big reward display
+    const rewardY = py + 194;
+    popup.add(this.add.text(cx, rewardY, 'รางวัลวันนี้', {
+      fontFamily: FONT, fontSize: '14px', color: '#AA88CC',
+    }).setOrigin(0.5));
+
+    const rewardLine = `🪙 ${reward.coins}` + (reward.diamonds > 0 ? `    💎 ${reward.diamonds}` : '');
+    popup.add(this.add.text(cx, rewardY + 34, rewardLine, {
+      fontFamily: FONT, fontSize: '32px', fontStyle: 'bold', color: '#FFD700',
+    }).setOrigin(0.5));
+
+    // Streak bonus note (day 7 special)
+    if (streak % DAILY_REWARDS.length === 0) {
+      popup.add(this.add.text(cx, rewardY + 76, '🎉 ครบ 7 วัน! โบนัสสูงสุด', {
+        fontFamily: FONT, fontSize: '13px', color: '#FF99CC',
+      }).setOrigin(0.5));
+    }
+
+    // Claim button
+    const btnY = py + panelH - 62;
+    const btnG = this.add.graphics();
+    btnG.fillStyle(0x4411BB, 1);
+    btnG.fillRoundedRect(cx - 120, btnY, 240, 50, 25);
+    btnG.lineStyle(2, 0xAA66FF, 1);
+    btnG.strokeRoundedRect(cx - 120, btnY, 240, 50, 25);
+    popup.add(btnG);
+    const btnTxt = this.add.text(cx, btnY + 25, '✓  รับรางวัล', {
+      fontFamily: FONT, fontSize: '20px', fontStyle: 'bold', color: '#FFFFFF',
+    }).setOrigin(0.5);
+    popup.add(btnTxt);
+
+    const btnZone = this.add.zone(cx, btnY + 25, 240, 50).setInteractive();
+    btnZone.on('pointerover',  () => { btnG.clear(); btnG.fillStyle(0x6622EE, 1); btnG.fillRoundedRect(cx - 120, btnY, 240, 50, 25); btnG.lineStyle(2, 0xCC88FF, 1); btnG.strokeRoundedRect(cx - 120, btnY, 240, 50, 25); });
+    btnZone.on('pointerout',   () => { btnG.clear(); btnG.fillStyle(0x4411BB, 1); btnG.fillRoundedRect(cx - 120, btnY, 240, 50, 25); btnG.lineStyle(2, 0xAA66FF, 1); btnG.strokeRoundedRect(cx - 120, btnY, 240, 50, 25); });
+    btnZone.on('pointerdown',  () => { popup.destroy(); });
+    popup.add(btnZone);
+
+    // Entrance tween
+    popup.setAlpha(0);
+    popup.setScale(0.88);
+    this.tweens.add({
+      targets: popup, alpha: 1, scaleX: 1, scaleY: 1,
+      duration: 220, ease: 'Back.Out',
     });
   }
 

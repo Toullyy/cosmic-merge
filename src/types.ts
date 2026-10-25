@@ -107,6 +107,9 @@ export interface GameState {
   quests?: Quest[];
   questResetAt?: number;
   achievements?: string[];
+  loginStreak?: number;
+  lastLoginDate?: string;
+  longestStreak?: number;
 }
 
 export interface VariantModifiers {

@@ -145,6 +145,16 @@ export const XP_TABLE = [0, 50, 120, 210, 320, 450, 600, 780, 980, 1200];
 
 // ── VISITOR EVENTS ────────────────────────────────────────────────────────────
 export const VISITOR_INTERVAL_MS = 2 * 60 * 60 * 1000;
+
+export const DAILY_REWARDS = [
+  { day: 1, coins: 100, diamonds: 0, emoji: '🪙' },
+  { day: 2, coins: 150, diamonds: 0, emoji: '🪙' },
+  { day: 3, coins: 200, diamonds: 1, emoji: '💎' },
+  { day: 4, coins: 300, diamonds: 0, emoji: '🪙' },
+  { day: 5, coins: 400, diamonds: 2, emoji: '💎' },
+  { day: 6, coins: 500, diamonds: 0, emoji: '🪙' },
+  { day: 7, coins: 700, diamonds: 3, emoji: '🎉' },
+];
 export const VISITOR_DURATION_MS = 10 * 60 * 1000;
 
 export function generateVisitor(state: GameState): void {

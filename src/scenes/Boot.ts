@@ -77,6 +77,9 @@ export class Boot extends Phaser.Scene {
       if (!Game.state.achievements) Game.state.achievements = [];
       if (Game.state.stats.questsCompleted === undefined) Game.state.stats.questsCompleted = 0;
       if (Game.state.stats.visitorSales === undefined) Game.state.stats.visitorSales = 0;
+      if (Game.state.loginStreak   === undefined) Game.state.loginStreak   = 0;
+      if (Game.state.longestStreak === undefined) Game.state.longestStreak = 0;
+      if (Game.state.lastLoginDate === undefined) Game.state.lastLoginDate = '';
       reconcileOfflineTime(Game.state);
       // retroactive achievement check (silent — no popups, just awards diamonds for past play)
       getNewAchievements(Game.state);
@@ -93,10 +96,10 @@ export class Boot extends Phaser.Scene {
     // Preload all monster SVG textures before showing Hub
     const monsters = Game.state!.monsters;
     if (monsters.length === 0) {
-      this.scene.start('Hub');
+      this.scene.start('TitleScreen');
     } else {
       Promise.all(monsters.map(m => preloadMonsterTexture(this, m))).then(() => {
-        this.scene.start('Hub');
+        this.scene.start('TitleScreen');
       });
     }
   }
