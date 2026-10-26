@@ -729,7 +729,7 @@ export class HabitatRoom extends Phaser.Scene {
     // Label
     if (this._bowlLabelTxt) {
       if (hasFood) {
-        this._bowlLabelTxt.setText(Math.round(bowl!.remaining) + '/' + bowl!.maxAmount);
+        this._bowlLabelTxt.setText(Math.round(bowl!.remaining) + '/' + Math.round(bowl!.maxAmount));
         this._bowlLabelTxt.setColor('#DDBB88');
       } else {
         this._bowlLabelTxt.setText(t('bowl.empty'));

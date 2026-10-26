@@ -278,21 +278,30 @@ function drawGoldenGlow(g: Phaser.GameObjects.Graphics, cx: number, cy: number, 
   });
 }
 
-// Flood-fill from the 4 corners to erase AI-generated backgrounds.
-// Stops at pixels whose color distance from the sampled corner color exceeds TOL.
+// Flood-fill from border points to erase AI-generated backgrounds.
+// Pass 1: flood from 12 border seeds at TOL=90.
+// Pass 2: remove dark, low-saturation pixels in the bottom 40% (floor shadows).
 function removePNGBackground(ctx: CanvasRenderingContext2D, size: number): void {
   const imgData = ctx.getImageData(0, 0, size, size);
   const px = imgData.data;
+  const m = size >> 1;
+  const seeds: [number, number][] = [
+    [0,0],[size-1,0],[0,size-1],[size-1,size-1],
+    [m,0],[m,size-1],[0,m],[size-1,m],
+    [m>>1,0],[(m+size-1)>>1,0],[m>>1,size-1],[(m+size-1)>>1,size-1],
+  ];
   let bR = 0, bG = 0, bB = 0;
-  for (const [x, y] of [[0,0],[size-1,0],[0,size-1],[size-1,size-1]] as [number,number][]) {
+  for (const [x, y] of seeds) {
     const i = (y * size + x) * 4;
     bR += px[i]; bG += px[i+1]; bB += px[i+2];
   }
-  bR /= 4; bG /= 4; bB /= 4;
-  const TOL = 60;
+  bR /= seeds.length; bG /= seeds.length; bB /= seeds.length;
+
+  // Pass 1: flood-fill from borders (catches most of the background)
+  const TOL = 90;
   const visited = new Uint8Array(size * size);
   const stack: number[] = [];
-  for (const [x, y] of [[0,0],[size-1,0],[0,size-1],[size-1,size-1]] as [number,number][]) {
+  for (const [x, y] of seeds) {
     const idx = y * size + x;
     if (!visited[idx]) { visited[idx] = 1; stack.push(idx); }
   }
@@ -311,6 +320,25 @@ function removePNGBackground(ctx: CanvasRenderingContext2D, size: number): void 
       if (Math.sqrt(dr*dr+dg*dg+db*db) < TOL) { visited[ni] = 1; stack.push(ni); }
     }
   }
+
+  // Pass 2: erase floor-shadow pixels — dark + desaturated in the bottom 40%.
+  // 3D renders leave a circular shadow disk that the flood-fill can't reach
+  // because it blends into the monster body colour. Shadows are always:
+  //   • dark  (luminance < 115)
+  //   • grey  (saturation = max-min < 48)
+  // Monster bodies are colourful (saturation >> 48) so they are not affected.
+  const shadowTop = Math.round(size * 0.60); // bottom 40%
+  for (let y = shadowTop; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const pi = (y * size + x) * 4;
+      if (px[pi+3] === 0) continue;           // already transparent
+      const r = px[pi], g = px[pi+1], b = px[pi+2];
+      const lum = (r + g + b) / 3;
+      const sat = Math.max(r, g, b) - Math.min(r, g, b);
+      if (lum < 115 && sat < 48) px[pi+3] = 0;
+    }
+  }
+
   ctx.putImageData(imgData, 0, 0);
 }
 
