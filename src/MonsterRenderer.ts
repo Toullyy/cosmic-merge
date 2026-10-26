@@ -278,9 +278,8 @@ function drawGoldenGlow(g: Phaser.GameObjects.Graphics, cx: number, cy: number, 
   });
 }
 
-// Flood-fill from border points to erase AI-generated backgrounds.
-// Pass 1: flood from 12 border seeds at TOL=90.
-// Pass 2: remove dark, low-saturation pixels in the bottom 40% (floor shadows).
+// Flood-fill from 12 border seeds to erase AI-generated backgrounds.
+// Stops at pixels whose colour distance from the sampled background exceeds TOL.
 function removePNGBackground(ctx: CanvasRenderingContext2D, size: number): void {
   const imgData = ctx.getImageData(0, 0, size, size);
   const px = imgData.data;
@@ -296,9 +295,7 @@ function removePNGBackground(ctx: CanvasRenderingContext2D, size: number): void 
     bR += px[i]; bG += px[i+1]; bB += px[i+2];
   }
   bR /= seeds.length; bG /= seeds.length; bB /= seeds.length;
-
-  // Pass 1: flood-fill from borders (catches most of the background)
-  const TOL = 90;
+  const TOL = 70;
   const visited = new Uint8Array(size * size);
   const stack: number[] = [];
   for (const [x, y] of seeds) {
@@ -320,25 +317,6 @@ function removePNGBackground(ctx: CanvasRenderingContext2D, size: number): void 
       if (Math.sqrt(dr*dr+dg*dg+db*db) < TOL) { visited[ni] = 1; stack.push(ni); }
     }
   }
-
-  // Pass 2: erase floor-shadow pixels — dark + desaturated in the bottom 40%.
-  // 3D renders leave a circular shadow disk that the flood-fill can't reach
-  // because it blends into the monster body colour. Shadows are always:
-  //   • dark  (luminance < 115)
-  //   • grey  (saturation = max-min < 48)
-  // Monster bodies are colourful (saturation >> 48) so they are not affected.
-  const shadowTop = Math.round(size * 0.60); // bottom 40%
-  for (let y = shadowTop; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const pi = (y * size + x) * 4;
-      if (px[pi+3] === 0) continue;           // already transparent
-      const r = px[pi], g = px[pi+1], b = px[pi+2];
-      const lum = (r + g + b) / 3;
-      const sat = Math.max(r, g, b) - Math.min(r, g, b);
-      if (lum < 115 && sat < 48) px[pi+3] = 0;
-    }
-  }
-
   ctx.putImageData(imgData, 0, 0);
 }
 
