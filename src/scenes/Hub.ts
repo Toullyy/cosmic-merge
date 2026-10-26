@@ -10,9 +10,9 @@ import { Ads } from '../ads';
 import type { Monster, Egg, HabitatType } from '../types';
 
 const HAB_PLATE: Record<string, [number, string]> = {
-  dirt:    [0x4A2808, '#FFD8A8'],
-  grass:   [0x0D3008, '#AAFFAA'],
-  aquatic: [0x062030, '#88EEFF'],
+  dirt:    [0x7A4420, '#FFE8B0'],
+  grass:   [0x2A6020, '#CCFFAA'],
+  aquatic: [0x145070, '#AAFFFF'],
 };
 
 export class Hub extends Phaser.Scene {
@@ -1086,8 +1086,8 @@ export class Hub extends Phaser.Scene {
     this._drawScrew(screwG, vpX + 10, plateY + plateH/2); this._drawScrew(screwG, vpX + vpW - 10, plateY + plateH/2);
     this._displayGroup.add(screwG);
     this._displayGroup.add(this.add.text(cx, plateY + plateH/2, t('hub.buyTank'), {
-      fontFamily: FONT, fontSize: '14px', fontStyle: 'bold', color: tankNameColor,
-      stroke: '#000000', strokeThickness: 2,
+      fontFamily: FONT, fontSize: '16px', fontStyle: 'bold', color: tankNameColor,
+      stroke: '#000000', strokeThickness: 1,
     }).setOrigin(0.5).setDepth(23));
 
     const vpCY = vpY + vpH/2;
@@ -1176,8 +1176,8 @@ export class Hub extends Phaser.Scene {
 
     const displayName = (mon.nickname ?? sp.name).toUpperCase();
     this._displayGroup.add(this.add.text(cx, plateCY, displayName, {
-      fontFamily: FONT, fontSize: '14px', fontStyle: 'bold', color: nameColor,
-      stroke: '#000000', strokeThickness: 2,
+      fontFamily: FONT, fontSize: '16px', fontStyle: 'bold', color: nameColor,
+      stroke: '#000000', strokeThickness: 1,
     }).setOrigin(0.5).setDepth(23));
 
     // Level badge top-left
@@ -1311,8 +1311,8 @@ export class Hub extends Phaser.Scene {
     this._displayGroup.add(screwG);
 
     this._displayGroup.add(this.add.text(cx, plateCY, isReady ? '🥚 READY!' : sp.name.toUpperCase() + ' EGG', {
-      fontFamily: FONT, fontSize: '14px', fontStyle: 'bold',
-      color: isReady ? '#CCFFAA' : eNameColor, stroke: '#000000', strokeThickness: 2,
+      fontFamily: FONT, fontSize: '16px', fontStyle: 'bold',
+      color: isReady ? '#CCFFAA' : eNameColor, stroke: '#000000', strokeThickness: 1,
     }).setOrigin(0.5).setDepth(23));
 
     const vpCY = vpY + vpH / 2;
