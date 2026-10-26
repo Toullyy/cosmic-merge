@@ -1235,23 +1235,24 @@ export class HabitatRoom extends Phaser.Scene {
       const by = fpY + 28 + row * (btnH + 10) + btnH / 2;
       const canAfford = Game.state!.coins >= food.cost;
       const stars = '★'.repeat(food.tier);
-      const lbl = food.name + ' ' + stars + '\n' + food.hungerGain + ' bowl +' + food.happinessGain + '💛\n' + food.cost + '💰';
+      const lbl = food.name + ' ' + stars + '\n🍖+' + food.hungerGain + '  💛+' + food.happinessGain + '\n💰' + food.cost;
       const tierColors = [0x2A4A18, 0x2A4A28, 0x3A3010];
       const fbtn = makeButton(this, bx, by, btnW - 2, btnH, lbl,
         canAfford ? tierColors[food.tier - 1] : 0x1A1A2A, () => {
           if (Game.state!.coins < food.cost) { showToast(this, t('toast.notEnoughCoins'), '#ff9999'); return; }
           Game.state!.coins -= food.cost;
-          // Food goes into bowl; happiness gained immediately (seeing food makes them happy)
           const bowlColor = FOOD_COLORS[food.id] ?? 0xFFB300;
+          let actualHungerAdded = 0;
           if (this._monster.bowl && this._monster.bowl.remaining > 0) {
             const space = 100 - this._monster.bowl.remaining;
-            const added = Math.min(food.hungerGain, Math.max(0, space));
-            this._monster.bowl.remaining += added;
+            actualHungerAdded = Math.min(food.hungerGain, Math.max(0, space));
+            this._monster.bowl.remaining += actualHungerAdded;
             this._monster.bowl.maxAmount = this._monster.bowl.remaining;
             this._monster.bowl.color = bowlColor;
-            this._monster.hunger = Math.min(100, this._monster.hunger + added);
-            if (added < food.hungerGain) showToast(this, t('toast.bowlTopped'), '#ffcc88');
+            this._monster.hunger = Math.min(100, this._monster.hunger + actualHungerAdded);
+            if (actualHungerAdded < food.hungerGain) showToast(this, t('toast.bowlTopped'), '#ffcc88');
           } else {
+            actualHungerAdded = food.hungerGain;
             this._monster.bowl = { foodId: food.id, remaining: food.hungerGain, maxAmount: food.hungerGain, color: bowlColor };
             this._monster.hunger = Math.min(100, this._monster.hunger + food.hungerGain);
           }
@@ -1263,7 +1264,7 @@ export class HabitatRoom extends Phaser.Scene {
           store.setJSON('mps_state', Game.state);
           sfx.feed();
           this._playBowlFeedAnim(food.id, food.tier);
-          showFloat(this, this._bowlX, this._bowlY - 42, '+' + food.hungerGain + '🍖 +' + food.happinessGain + '💛', '#ffcc44');
+          showFloat(this, this._bowlX, this._bowlY - 42, '+' + actualHungerAdded + '🍖 +' + food.happinessGain + '💛', '#ffcc44');
           this._refreshStats();
           this._drawBowl();
           this._updateCoinDisplay();
