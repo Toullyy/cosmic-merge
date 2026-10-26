@@ -355,7 +355,7 @@ export function preloadMonsterTexture(scene: Phaser.Scene, monster: Monster): Pr
 
     // Spot pattern (patternType >= 1)
     if (mods.patternType >= 1) {
-      const sc2 = darken(bc, 58);
+      const sc2 = lighten(bc, 45);
       const sR = (sc2 >> 16) & 0xff, sG = (sc2 >> 8) & 0xff, sB = sc2 & 0xff;
       ctx.globalCompositeOperation = 'source-atop';
       ctx.fillStyle = `rgb(${sR},${sG},${sB})`;
@@ -366,7 +366,7 @@ export function preloadMonsterTexture(scene: Phaser.Scene, monster: Monster): Pr
         [0.41, 0.54, 0.031], [0.60, 0.83, 0.034],
       ];
       for (const [rx, ry, rr] of spots) {
-        ctx.globalAlpha = 0.48;
+        ctx.globalAlpha = 0.42;
         ctx.beginPath();
         ctx.arc(rx * SIZE, ry * SIZE, rr * SIZE, 0, Math.PI * 2);
         ctx.fill();
@@ -433,7 +433,7 @@ export function preloadMonsterTexture(scene: Phaser.Scene, monster: Monster): Pr
 
   const fallbackToSVG = () => new Promise<string>(resolve => {
     const bc     = shiftHue(sp.baseColor, mods.hueShift);
-    const sc     = darken(bc, 50);
+    const sc     = lighten(bc, 45);
     const lc     = lighten(bc, 48);
     const ec     = shiftHue(bc, 150);
     const svgStr = buildMonsterSVG(sp.bodyShape, bc, sc, lc, ec, sp.habitat, mods.isGolden, mods.patternType);
