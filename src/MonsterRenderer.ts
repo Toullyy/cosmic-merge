@@ -278,6 +278,42 @@ function drawGoldenGlow(g: Phaser.GameObjects.Graphics, cx: number, cy: number, 
   });
 }
 
+// Flood-fill from the 4 corners to erase AI-generated backgrounds.
+// Stops at pixels whose color distance from the sampled corner color exceeds TOL.
+function removePNGBackground(ctx: CanvasRenderingContext2D, size: number): void {
+  const imgData = ctx.getImageData(0, 0, size, size);
+  const px = imgData.data;
+  let bR = 0, bG = 0, bB = 0;
+  for (const [x, y] of [[0,0],[size-1,0],[0,size-1],[size-1,size-1]] as [number,number][]) {
+    const i = (y * size + x) * 4;
+    bR += px[i]; bG += px[i+1]; bB += px[i+2];
+  }
+  bR /= 4; bG /= 4; bB /= 4;
+  const TOL = 60;
+  const visited = new Uint8Array(size * size);
+  const stack: number[] = [];
+  for (const [x, y] of [[0,0],[size-1,0],[0,size-1],[size-1,size-1]] as [number,number][]) {
+    const idx = y * size + x;
+    if (!visited[idx]) { visited[idx] = 1; stack.push(idx); }
+  }
+  while (stack.length) {
+    const idx = stack.pop()!;
+    const pi = idx * 4;
+    px[pi+3] = 0;
+    const x = idx % size, y = (idx / size) | 0;
+    for (const [dx, dy] of [[-1,0],[1,0],[0,-1],[0,1]] as [number,number][]) {
+      const nx = x+dx, ny = y+dy;
+      if (nx < 0 || nx >= size || ny < 0 || ny >= size) continue;
+      const ni = ny * size + nx;
+      if (visited[ni]) continue;
+      const np = ni * 4;
+      const dr = px[np]-bR, dg = px[np+1]-bG, db = px[np+2]-bB;
+      if (Math.sqrt(dr*dr+dg*dg+db*db) < TOL) { visited[ni] = 1; stack.push(ni); }
+    }
+  }
+  ctx.putImageData(imgData, 0, 0);
+}
+
 // ── PNG sprite loader (with SVG fallback) ─────────────────────────────────────
 
 export function preloadMonsterTexture(scene: Phaser.Scene, monster: Monster): Promise<string> {
@@ -295,6 +331,7 @@ export function preloadMonsterTexture(scene: Phaser.Scene, monster: Monster): Pr
     if (mods.hueShift !== 0) ctx.filter = `hue-rotate(${mods.hueShift}deg)`;
     ctx.drawImage(src as HTMLImageElement, 0, 0, SIZE, SIZE);
     ctx.filter = 'none';
+    removePNGBackground(ctx, SIZE);
 
     // Species color tint — differentiates species sharing the same body+habitat PNG
     const bc = shiftHue(sp.baseColor, mods.hueShift);
