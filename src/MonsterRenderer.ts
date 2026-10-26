@@ -353,25 +353,6 @@ export function preloadMonsterTexture(scene: Phaser.Scene, monster: Monster): Pr
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = 1;
 
-    // Spot pattern (patternType >= 1) — soft white shimmer dots
-    if (mods.patternType >= 1) {
-      ctx.globalCompositeOperation = 'source-atop';
-      ctx.fillStyle = 'rgb(255,255,255)';
-      const spots: [number, number, number][] = [
-        [0.37, 0.62, 0.052], [0.56, 0.71, 0.044],
-        [0.44, 0.79, 0.038], [0.63, 0.60, 0.043],
-        [0.50, 0.84, 0.037], [0.67, 0.70, 0.040],
-        [0.41, 0.54, 0.031], [0.60, 0.83, 0.034],
-      ];
-      for (const [rx, ry, rr] of spots) {
-        ctx.globalAlpha = 0.18;
-        ctx.beginPath();
-        ctx.arc(rx * SIZE, ry * SIZE, rr * SIZE, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.globalCompositeOperation = 'source-over';
-      ctx.globalAlpha = 1;
-    }
 
     // Rare species shimmer (id >= 15)
     if (sp.id >= 15) {

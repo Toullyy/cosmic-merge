@@ -571,15 +571,7 @@ function injectGolden(svg: string, golden: boolean): string {
 }
 
 function injectSpots(svg: string, _sc: number): string {
-  const circles = [
-    `<circle cx="46" cy="85" r="8.5" fill="#ffffff" opacity="0.18"/>`,
-    `<circle cx="68" cy="93" r="7.0" fill="#ffffff" opacity="0.18"/>`,
-    `<circle cx="82" cy="84" r="6.5" fill="#ffffff" opacity="0.18"/>`,
-    `<circle cx="54" cy="101" r="6.0" fill="#ffffff" opacity="0.18"/>`,
-    `<circle cx="76" cy="102" r="5.5" fill="#ffffff" opacity="0.18"/>`,
-    `<circle cx="88" cy="94" r="5.0" fill="#ffffff" opacity="0.18"/>`,
-  ].join('');
-  return svg.replace('</svg>', circles + '</svg>');
+  return svg;
 }
 
 export function buildMonsterSVG(
