@@ -1,5 +1,5 @@
 // Service worker — offline support (bump CACHE on every deploy)
-var CACHE = 'mps-v2';
+var CACHE = 'mps-v3';
 var CORE = [
   './',
   'index.html',

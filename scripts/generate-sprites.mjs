@@ -39,20 +39,19 @@ const HABITAT_PROMPTS = {
 };
 
 const BASE_STYLE =
-  'chibi super deformed character, enormous round head that is 65% of total character height, ' +
-  'tiny cute body barely visible below the oversized head, ' +
-  'huge sparkling anime eyes with big white highlight dot, rosy pink blush circles on cheeks, ' +
-  'happy cute smile, thick clean black outline, 3D clay toy render, soft pastel lighting, ' +
-  'bright vibrant saturated colors, pure white background, centered, ' +
-  'single character only, no text no scenery, professional game sprite art';
+  'cute chibi anime monster, super deformed style, big round head taking up 2/3 of body, ' +
+  'tiny cute stubby body and legs, huge sparkling anime eyes with white catchlight, ' +
+  'rosy round blush marks on cheeks, happy little smile, ' +
+  'clean anime illustration style, flat pure white background, ' +
+  'full body visible, centered on white, single character, game sprite';
 
 const NEGATIVE =
-  'realistic body proportions, normal head size, small head, large body, elongated neck, ' +
-  'flat 2d, pixel art, photograph, scary, dark background, gray background, black background, ' +
-  'dark environment, studio backdrop, gradient background, dramatic lighting, evil, complex background, ' +
-  'multiple characters, human face, weapon, text, blurry, watermark, ' +
-  'ring shape, torus, donut shape, faceless, bodyless, headless, ' +
-  'dinosaur, lizard with realistic proportions, dragon with realistic proportions';
+  'realistic proportions, small eyes, large body, long neck, ' +
+  'background scenery, environment, ground shadow, vignette, glow background, atmospheric haze, ' +
+  'dark background, gray background, gradient background, moody lighting, dramatic lighting, ' +
+  'multiple characters, extra characters, human face, weapon, text, watermark, signature, ' +
+  'ring shape, torus, donut, faceless, photo, 3d render, clay, blurry, ' +
+  'scary, evil, gross, ugly';
 
 const SPRITES = [];
 for (const body of Object.keys(BODY_PROMPTS)) {
@@ -64,7 +63,7 @@ for (const body of Object.keys(BODY_PROMPTS)) {
 async function pollinationsGenerate(prompt, seed) {
   const encoded = encodeURIComponent(prompt);
   const url = `https://image.pollinations.ai/prompt/${encoded}` +
-    `?width=1024&height=1024&model=flux&nologo=true&seed=${seed}&negative=${encodeURIComponent(NEGATIVE)}`;
+    `?width=1024&height=1024&model=flux-anime&nologo=true&seed=${seed}&negative=${encodeURIComponent(NEGATIVE)}`;
 
   const res = await fetch(url, { signal: AbortSignal.timeout(120_000) });
   if (!res.ok) throw new Error(`Pollinations ${res.status}: ${await res.text()}`);

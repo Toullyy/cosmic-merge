@@ -239,25 +239,25 @@ export class Hub extends Phaser.Scene {
   private _buildHUD(W: number) {
     const hud = this.add.graphics().setDepth(10);
 
-    // Coin box — vivid amber
-    hud.fillStyle(0x000000, 0.30);
-    hud.fillRoundedRect(10, 11, 168, 52, 14);
-    hud.fillStyle(0xB86000, 1);
-    hud.fillRoundedRect(8, 8, 168, 52, 14);
-    hud.lineStyle(3, 0xFFE050, 1);
-    hud.strokeRoundedRect(8, 8, 168, 52, 14);
-    hud.fillStyle(0xffffff, 0.22);
-    hud.fillRoundedRect(9, 9, 166, 22, { tl: 13, tr: 13, bl: 0, br: 0 });
+    // Coin box — bright pastel amber
+    hud.fillStyle(0x000000, 0.18);
+    hud.fillRoundedRect(10, 11, 168, 52, 16);
+    hud.fillStyle(0xFF9900, 1);
+    hud.fillRoundedRect(8, 8, 168, 52, 16);
+    hud.lineStyle(3, 0xFFEE44, 1);
+    hud.strokeRoundedRect(8, 8, 168, 52, 16);
+    hud.fillStyle(0xffffff, 0.30);
+    hud.fillRoundedRect(9, 9, 166, 22, { tl: 15, tr: 15, bl: 0, br: 0 });
 
-    // Diamond box — vivid cyan
-    hud.fillStyle(0x000000, 0.30);
-    hud.fillRoundedRect(184, 11, 120, 52, 14);
-    hud.fillStyle(0x0468A8, 1);
-    hud.fillRoundedRect(182, 8, 120, 52, 14);
-    hud.lineStyle(3, 0x55EEFF, 1);
-    hud.strokeRoundedRect(182, 8, 120, 52, 14);
-    hud.fillStyle(0xffffff, 0.22);
-    hud.fillRoundedRect(183, 9, 118, 22, { tl: 13, tr: 13, bl: 0, br: 0 });
+    // Diamond box — bright pastel cyan
+    hud.fillStyle(0x000000, 0.18);
+    hud.fillRoundedRect(184, 11, 120, 52, 16);
+    hud.fillStyle(0x00AAEE, 1);
+    hud.fillRoundedRect(182, 8, 120, 52, 16);
+    hud.lineStyle(3, 0x88FFFF, 1);
+    hud.strokeRoundedRect(182, 8, 120, 52, 16);
+    hud.fillStyle(0xffffff, 0.30);
+    hud.fillRoundedRect(183, 9, 118, 22, { tl: 15, tr: 15, bl: 0, br: 0 });
 
     this.add.text(26, 34, '💰', {
       fontFamily: FONT, fontSize: '26px', color: '#FFD700',
@@ -351,14 +351,14 @@ export class Hub extends Phaser.Scene {
       const unlocked = Game.state!.habitats[type].unlocked;
       const isActive = type === this._currentHabitat;
       const tabBg = this.add.graphics().setDepth(5);
-      this._drawTab(tabBg, x, 76, tabW, 50, isActive, unlocked, type);
+      this._drawTab(tabBg, x, 76, tabW, 60, isActive, unlocked, type);
       const lbl = unlocked ? labels[type] : (labels[type] + ' 🔒');
-      const tabTxt = this.add.text(x + tabW/2, 101, lbl, {
+      const tabTxt = this.add.text(x + tabW/2, 102, lbl, {
         fontFamily: FONT, fontSize: '17px', fontStyle: isActive ? 'bold' : 'normal',
         color: isActive ? '#FFFFFF' : (unlocked ? '#E8D8C8' : '#BBAA99'),
       }).setOrigin(0.5).setDepth(6);
       this._tabBtns[type] = { bg: tabBg, txt: tabTxt };
-      const zone = this.add.zone(x + tabW/2, 101, tabW - 4, 46).setInteractive().setDepth(7);
+      const zone = this.add.zone(x + tabW/2, 106, tabW - 4, 56).setInteractive().setDepth(7);
       zone.on('pointerdown', () => {
         if (!Game.state!.habitats[type].unlocked) { this._tryUnlockHabitat(type); return; }
         this._currentHabitat = type;
@@ -372,30 +372,49 @@ export class Hub extends Phaser.Scene {
   private _drawTab(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number, active: boolean, unlocked: boolean, habitat?: HabitatType) {
     g.clear();
     const baseColors: Record<string, [number, number, number]> = {
-      dirt:    [0xC8682A, 0x8B4820, 0xFFBB80],
-      grass:   [0x38A020, 0x246414, 0x88EE44],
-      aquatic: [0x0878B8, 0x045688, 0x44CCFF],
+      dirt:    [0xE07830, 0x9B5428, 0xFFCC88],
+      grass:   [0x44BB22, 0x2A7A14, 0xAAFF55],
+      aquatic: [0x1199DD, 0x0668A0, 0x66EEFF],
     };
     const [activeCol, inactiveCol, borderCol] = baseColors[habitat ?? 'dirt'];
     const lockedCol: Record<string, number> = { dirt: 0x2A1208, grass: 0x0A2208, aquatic: 0x041828 };
     const fillCol = active ? activeCol : (unlocked ? inactiveCol : lockedCol[habitat ?? 'dirt']);
-    g.fillStyle(fillCol, active ? 1 : (unlocked ? 0.85 : 0.72));
-    g.fillRoundedRect(x + 2, y, w - 4, h, { tl: 10, tr: 10, bl: 0, br: 0 });
+    g.fillStyle(fillCol, active ? 1 : (unlocked ? 0.82 : 0.65));
+    g.fillRoundedRect(x + 2, y, w - 4, h, { tl: 12, tr: 12, bl: 0, br: 0 });
     if (active) {
-      g.lineStyle(2.5, borderCol, 1);
-      g.strokeRoundedRect(x + 2, y, w - 4, h, { tl: 10, tr: 10, bl: 0, br: 0 });
-      // glow strip at top
-      g.fillStyle(borderCol, 0.55);
-      g.fillRoundedRect(x + 6, y + 2, w - 12, 4, 2);
+      g.lineStyle(3, borderCol, 1);
+      g.strokeRoundedRect(x + 2, y, w - 4, h, { tl: 12, tr: 12, bl: 0, br: 0 });
+      g.fillStyle(borderCol, 0.60);
+      g.fillRoundedRect(x + 6, y + 2, w - 12, 5, 3);
     } else if (unlocked) {
-      g.lineStyle(1.5, borderCol, 0.45);
-      g.strokeRoundedRect(x + 2, y, w - 4, h, { tl: 10, tr: 10, bl: 0, br: 0 });
+      g.lineStyle(2, borderCol, 0.40);
+      g.strokeRoundedRect(x + 2, y, w - 4, h, { tl: 12, tr: 12, bl: 0, br: 0 });
     } else {
-      // locked: habitat-tinted border with subtle shimmer
-      g.lineStyle(1.5, borderCol, 0.30);
-      g.strokeRoundedRect(x + 2, y, w - 4, h, { tl: 10, tr: 10, bl: 0, br: 0 });
-      g.fillStyle(borderCol, 0.08);
-      g.fillRoundedRect(x + 4, y + 2, w - 8, 5, 2);
+      g.lineStyle(1.5, borderCol, 0.25);
+      g.strokeRoundedRect(x + 2, y, w - 4, h, { tl: 12, tr: 12, bl: 0, br: 0 });
+    }
+
+    // Habitat illustrations at the bottom of each tab
+    const alpha = active ? 0.85 : (unlocked ? 0.55 : 0.30);
+    const mx = x + w / 2;
+    const by = y + h - 6;
+    if (habitat === 'dirt') {
+      g.fillStyle(0xD4A870, alpha);
+      g.fillEllipse(mx, by - 4, 36, 12);
+      g.fillStyle(0xB88050, alpha * 0.8);
+      g.fillCircle(mx - 12, by - 9, 7);
+      g.fillCircle(mx + 11, by - 8, 6);
+    } else if (habitat === 'grass') {
+      g.fillStyle(0x88EE33, alpha);
+      g.fillEllipse(mx, by - 5, 38, 14);
+      g.fillStyle(0x55CC11, alpha * 0.8);
+      g.fillCircle(mx - 14, by - 10, 8);
+      g.fillCircle(mx + 13, by - 9, 7);
+    } else if (habitat === 'aquatic') {
+      g.fillStyle(0x88EEFF, alpha * 0.85);
+      g.fillEllipse(mx - 6, by - 5, 28, 10);
+      g.fillStyle(0x55CCFF, alpha * 0.65);
+      g.fillEllipse(mx + 10, by - 4, 22, 8);
     }
   }
 
@@ -408,7 +427,7 @@ export class Hub extends Phaser.Scene {
       const btn = this._tabBtns[type];
       const isActive = type === this._currentHabitat;
       const unlocked = Game.state!.habitats[type].unlocked;
-      this._drawTab(btn.bg, x, 76, tabW, 50, isActive, unlocked, type);
+      this._drawTab(btn.bg, x, 76, tabW, 60, isActive, unlocked, type);
       if (!unlocked) {
         const cost = HABITATS[type].unlockCost;
         btn.txt.setStyle({ fontSize: '13px', color: '#A09088', fontStyle: 'normal', align: 'center' });
@@ -504,46 +523,82 @@ export class Hub extends Phaser.Scene {
     const btnY = H - 54, bw = 118, bh = 52;
     const xs = [W/8, W*3/8, W*5/8, W*7/8];
 
-    // Vibrant nav backing strip
+    // Soft translucent backing pill (no dark strip)
     const navBg = this.add.graphics().setDepth(9);
-    navBg.fillStyle(0x1A0848, 1);
-    navBg.fillRoundedRect(0, H - 110, W, 112, { tl: 20, tr: 20, bl: 0, br: 0 });
-    navBg.fillStyle(0x5020C8, 0.28);
-    navBg.fillRoundedRect(0, H - 110, W, 38, { tl: 20, tr: 20, bl: 0, br: 0 });
-    navBg.lineStyle(2, 0x8855FF, 0.60);
-    navBg.strokeRoundedRect(0, H - 110, W, 112, { tl: 20, tr: 20, bl: 0, br: 0 });
+    navBg.fillStyle(0x000000, 0.18);
+    navBg.fillRoundedRect(6, H - 114, W - 12, 108, { tl: 24, tr: 24, bl: 0, br: 0 });
 
-    makeButton(this, xs[0], btnY, bw, bh, t('nav.shop'), 0x8030CC, () => {
+    makeButton(this, xs[0], btnY, bw, bh, t('nav.shop'), 0x22CC44, () => {
       Ads.maybeInterstitial(() => { this.scene.start('Merchant'); });
-    }, 17).setDepth(10);
+    }, 15).setDepth(10);
 
     const unclaimedCount = (Game.state!.quests ?? []).filter(q => q.completed && !q.claimed).length;
     const questLabel = unclaimedCount > 0 ? t('nav.questsDone') : t('nav.quests');
-    this._questBtn = makeButton(this, xs[1], btnY, bw, bh, questLabel, 0xCC8800, () => {
+    this._questBtn = makeButton(this, xs[1], btnY, bw, bh, questLabel, 0xFF4433, () => {
       this._showQuestsPanel();
-    }, 15).setDepth(10);
+    }, 14).setDepth(10);
     this._questDot = this.add.graphics().setDepth(12);
     this._updateQuestDot(xs[1], bw, btnY, bh, unclaimedCount > 0);
 
     const disc = Game.state!.stats.discovered.length;
     const hasNew = (Game.state!.newDiscoveries?.length ?? 0) > 0;
-    this._dexBtn = makeButton(this, xs[2], btnY, bw, bh, t('nav.dex', { n: disc }), 0x0898CC, () => {
+    this._dexBtn = makeButton(this, xs[2], btnY, bw, bh, t('nav.dex', { n: disc }), 0xFF77BB, () => {
       this.scene.start('PokedexScene');
-    }, 16).setDepth(10);
+    }, 13).setDepth(10);
     this._dexDot = this.add.graphics().setDepth(12);
     this._dexDotTxt = this.add.text(xs[2] + bw / 2 - 6, btnY - bh / 2 + 2, '!', {
       fontFamily: FONT, fontSize: '14px', fontStyle: 'bold', color: '#ffffff',
     }).setOrigin(0.5).setDepth(13);
     this._updateDexDot(xs[2], bw, btnY, bh, hasNew);
 
-    makeButton(this, xs[3], btnY, bw, bh, t('nav.breed'), 0xC82870, () => {
+    makeButton(this, xs[3], btnY, bw, bh, t('nav.breed'), 0xFFAA00, () => {
       const eligible = Game.state!.monsters.filter(m => m.level >= 4);
       if (eligible.length < 2) {
         showToast(this, t('toast.need2monsters'), '#ff9999');
       } else {
         Ads.maybeInterstitial(() => { this.scene.start('BreedingLab'); });
       }
-    }, 17).setDepth(10);
+    }, 14).setDepth(10);
+
+    xs.forEach((cx, i) => this._addBtnShimmer(cx, btnY, bw, bh, i * 480));
+  }
+
+  private _addBtnShimmer(cx: number, cy: number, w: number, h: number, startDelay: number) {
+    const r = Math.min(Math.floor(h / 2), 28);
+
+    // Geometry mask — clips sheen to the pill shape
+    const maskG = this.add.graphics();
+    maskG.fillStyle(0xffffff, 1);
+    maskG.fillRoundedRect(cx - w / 2, cy - h / 2, w, h, r);
+    const mask = maskG.createGeometryMask();
+    maskG.setVisible(false);
+
+    // Sheen stripe drawn in world coords, initially hidden far left
+    const slant = 10, sw = 28;
+    const sheen = this.add.graphics().setDepth(11).setMask(mask);
+    sheen.fillStyle(0xffffff, 0.26);
+    sheen.fillPoints([
+      { x: cx - w / 2 - slant,      y: cy - h / 2 },
+      { x: cx - w / 2 - slant + sw, y: cy - h / 2 },
+      { x: cx - w / 2 + slant + sw, y: cy + h / 2 },
+      { x: cx - w / 2 + slant,      y: cy + h / 2 },
+    ], true);
+    sheen.x = -(w + sw);   // start off-screen left
+
+    this.time.addEvent({
+      delay: 2200,
+      loop: true,
+      startAt: startDelay % 2200,
+      callback: () => {
+        if (!sheen?.active) return;
+        this.tweens.add({
+          targets: sheen,
+          x: { from: -(w + sw), to: w + sw },
+          duration: 500,
+          ease: 'Quad.Out',
+        });
+      },
+    });
   }
 
   private _updateDexDot(x: number, bw: number, btnY: number, bh: number, hasNew: boolean) {
@@ -1000,7 +1055,7 @@ export class Hub extends Phaser.Scene {
     const x = W * 3 / 8;
     const unclaimedCount = (Game.state!.quests ?? []).filter(q => q.completed && !q.claimed).length;
     setButtonLabel(this._questBtn, unclaimedCount > 0 ? t('nav.questsDone') : t('nav.quests'));
-    setButtonColor(this._questBtn, unclaimedCount > 0 ? 0x4A7A10 : 0x7A6010);
+    setButtonColor(this._questBtn, unclaimedCount > 0 ? 0x22BB44 : 0xFF4433);
     this._updateQuestDot(x, bw, btnY, bh, unclaimedCount > 0);
   }
 
@@ -1047,9 +1102,62 @@ export class Hub extends Phaser.Scene {
     monsters.forEach(mon => { if (idx < slots.length) { this._drawTerrarium(slots[idx].x, slots[idx].y, mon); idx++; } });
 
     const usage = monsters.length + eggs.length;
+    // Draw empty frames for owned-but-empty tanks
+    for (let e = usage; e < capacity && idx < slots.length; e++) {
+      this._drawEmptyTankCard(slots[idx].x, slots[idx].y);
+      idx++;
+    }
     if (capacity < MAX_TANKS * TANK_CAPACITY && idx < slots.length) {
       this._drawBuyTankCard(slots[idx].x, slots[idx].y);
     }
+  }
+
+  private _drawEmptyTankCard(cx: number, cy: number) {
+    const CW = 234, CH = 200;
+    const vpPad = 7, nameH = 40;
+    const vpX = cx - CW/2 + vpPad, vpY = cy - CH/2 + vpPad;
+    const vpW = CW - vpPad*2, vpH = CH - nameH - vpPad*2;
+    const vpCY = vpY + vpH/2;
+
+    const frame = this.add.graphics().setDepth(20);
+    this._drawWoodFrame(frame, cx - CW/2, cy - CH/2, CW, CH);
+    this._displayGroup.add(frame);
+
+    const interior = this.add.graphics().setDepth(21);
+    interior.fillStyle(0x1A0E06, 0.70); interior.fillRect(vpX, vpY, vpW, vpH);
+    interior.lineStyle(2, 0x3A2010, 0.50); interior.strokeRect(vpX, vpY, vpW, vpH);
+    this._displayGroup.add(interior);
+
+    const hingeG = this.add.graphics().setDepth(26);
+    this._drawHinge(hingeG, cx - CW/2 + 6, cy - CH/2 + 22);
+    this._drawHinge(hingeG, cx - CW/2 + 6, cy + CH/2 - 22);
+    this._drawHinge(hingeG, cx + CW/2 - 6, cy - CH/2 + 22);
+    this._drawHinge(hingeG, cx + CW/2 - 6, cy + CH/2 - 22);
+    this._displayGroup.add(hingeG);
+
+    const plateY = cy - CH/2 + vpPad + vpH + 2;
+    const plateH = nameH - 4;
+    const [tankPlateColor, tankNameColor] = HAB_PLATE[this._currentHabitat] ?? [0x4A2808, '#FFD8A8'];
+    const plateG = this.add.graphics().setDepth(22);
+    plateG.fillStyle(tankPlateColor, 0.7); plateG.fillRoundedRect(vpX, plateY, vpW, plateH, 4);
+    plateG.lineStyle(1.5, 0x000000, 0.40); plateG.strokeRoundedRect(vpX, plateY, vpW, plateH, 4);
+    this._displayGroup.add(plateG);
+
+    this._displayGroup.add(this.add.text(cx, vpCY - 8, '🥚', {
+      fontFamily: FONT, fontSize: '36px',
+    }).setOrigin(0.5).setDepth(22).setAlpha(0.5));
+    this._displayGroup.add(this.add.text(cx, vpCY + 22, t('hub.goShop'), {
+      fontFamily: FONT, fontSize: '13px', color: '#CCAA88',
+    }).setOrigin(0.5).setDepth(22));
+    this._displayGroup.add(this.add.text(cx, plateY + plateH/2, t('hub.empty').split('!')[0], {
+      fontFamily: FONT, fontSize: '13px', color: tankNameColor,
+    }).setOrigin(0.5).setDepth(23));
+
+    const zone = this.add.zone(cx, cy, CW, CH).setInteractive().setDepth(25);
+    zone.on('pointerdown', () => {
+      Ads.maybeInterstitial(() => { this.scene.start('Merchant'); });
+    });
+    this._displayGroup.add(zone);
   }
 
   private _drawBuyTankCard(cx: number, cy: number) {
@@ -1121,7 +1229,7 @@ export class Hub extends Phaser.Scene {
   private _getSlotPositions(W: number) {
     const H = this.scale.height;
     const col1 = W / 4, col2 = W * 3 / 4;
-    const startY = 232;
+    const startY = 242;
     // Keep row-3 card bottom above the nav bar (center H-54, height 52 → top H-80)
     const maxCY3 = H - 80 - 98 - 8;
     const spacing = Math.min(210, Math.floor((maxCY3 - startY) / 2));

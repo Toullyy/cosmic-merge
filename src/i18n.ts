@@ -11,11 +11,11 @@ const D: Record<Lang, Record<string, string>> = {
     'tab.grass':      '🌿 Grass',
     'tab.aquatic':    '🌊 Aqua',
     // Hub — bottom nav
-    'nav.shop':       'Shop',
+    'nav.shop':       '🛒 Shop',
     'nav.quests':     '📜 Quests',
     'nav.questsDone': '📜 Quests ✓',
-    'nav.dex':        'Dex {n}/25',
-    'nav.breed':      'Breed',
+    'nav.dex':        '📖 Dex {n}/25',
+    'nav.breed':      '💕 Breed',
     // Hub — ad button
     'hub.adReady':    '📺 +{n}💰',
     'hub.adCoolM':    '📺 {m}m',
@@ -177,11 +177,11 @@ const D: Record<Lang, Record<string, string>> = {
     'tab.grass':      '🌿 หญ้า',
     'tab.aquatic':    '🌊 น้ำ',
     // Hub — bottom nav
-    'nav.shop':       'ร้านค้า',
+    'nav.shop':       '🛒 ร้านค้า',
     'nav.quests':     '📜 เควส',
     'nav.questsDone': '📜 เควส ✓',
-    'nav.dex':        'เดกซ์ {n}/25',
-    'nav.breed':      'ผสมพันธุ์',
+    'nav.dex':        '📖 สมุดสะสม {n}',
+    'nav.breed':      '💕 ผสมพันธุ์',
     // Hub — ad button
     'hub.adReady':    '📺 +{n}💰',
     'hub.adCoolM':    '📺 {m}น.',

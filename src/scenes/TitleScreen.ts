@@ -485,37 +485,63 @@ export class TitleScreen extends Phaser.Scene {
 
   // ── Start button ──────────────────────────────────────────────────────────
   private _drawButton(W: number, H: number) {
-    const btnG = this.add.graphics().setDepth(8);
+    const BW = 290, BH = 58;
+    const r  = BH / 2;
+    const CY = BTN_Y + 22;
 
-    // Outer glow
-    btnG.fillStyle(0xFF8800, 0.13); btnG.fillRoundedRect(W/2 - 168, BTN_Y - 16, 336, 84, 42);
-    // Shadow
-    btnG.fillStyle(0x661800, 1);    btnG.fillRoundedRect(W/2 - 152, BTN_Y + 7, 304, 56, 28);
-    // Base
-    btnG.fillStyle(0xCC5500, 1);    btnG.fillRoundedRect(W/2 - 152, BTN_Y, 304, 56, 28);
-    // Face
-    btnG.fillStyle(0xFF7700, 1);    btnG.fillRoundedRect(W/2 - 152, BTN_Y - 5, 304, 54, 27);
-    // Top shine
-    btnG.fillStyle(0xFFCC44, 0.48); btnG.fillRoundedRect(W/2 - 148, BTN_Y - 3, 296, 23, { tl: 25, tr: 25, bl: 0, br: 0 });
+    const g = this.add.graphics().setDepth(8);
+
+    // Drop shadow
+    g.fillStyle(0x0D4A22, 1);
+    g.fillRoundedRect(W/2 - BW/2 + 4, CY - BH/2 + 8, BW, BH, r);
+
+    // 3-D depth layer
+    g.fillStyle(0x1A7A38, 1);
+    g.fillRoundedRect(W/2 - BW/2, CY - BH/2 + 4, BW, BH, r);
+
+    // Main face
+    g.fillStyle(0x2AA84A, 1);
+    g.fillRoundedRect(W/2 - BW/2, CY - BH/2, BW, BH, r);
+
+    // Bottom inner shadow
+    g.fillStyle(0x000000, 0.18);
+    g.fillRoundedRect(W/2 - BW/2 + 4, CY + BH/2 - 12, BW - 8, 12,
+      { tl: 0, tr: 0, bl: r - 4, br: r - 4 });
+
+    // Top gloss
+    g.fillStyle(0xffffff, 0.32);
+    g.fillRoundedRect(W/2 - BW/2 + 5, CY - BH/2 + 3, BW - 10, BH * 0.42,
+      { tl: r - 4, tr: r - 4, bl: 0, br: 0 });
+
+    // Top shine stripe
+    g.fillStyle(0xffffff, 0.60);
+    g.fillRoundedRect(W/2 - BW/2 + 14, CY - BH/2 + 4, BW - 28, 4, 2);
+
     // Border
-    btnG.lineStyle(2.5, 0xFFEE44, 0.90); btnG.strokeRoundedRect(W/2 - 152, BTN_Y - 5, 304, 54, 27);
+    g.lineStyle(2.5, 0xffffff, 0.80);
+    g.strokeRoundedRect(W/2 - BW/2, CY - BH/2, BW, BH, r);
 
-    this.add.text(W/2, BTN_Y + 22, '▶  เริ่มเล่น !', {
+    // Label
+    this.add.text(W/2, CY + 1, '▶  เริ่มเล่น !', {
       fontFamily: FONT, fontSize: '28px', fontStyle: 'bold', color: '#FFFFFF',
-      stroke: '#882200', strokeThickness: 5,
-      shadow: { offsetX: 0, offsetY: 3, color: '#CC4400', blur: 0, stroke: false, fill: true },
+      stroke: '#0A3A18', strokeThickness: 4,
     }).setOrigin(0.5).setDepth(9);
 
-    // Animated glow ring
-    const glowRing = this.add.graphics().setDepth(7);
-    glowRing.lineStyle(3.5, 0xFFEE88, 1);
-    glowRing.strokeRoundedRect(W/2 - 154, BTN_Y - 7, 308, 58, 29);
-    this.tweens.add({ targets: glowRing, alpha: { from: 0.15, to: 0.80 }, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+    // Subtle breathing glow ring
+    const ring = this.add.graphics().setDepth(7);
+    ring.lineStyle(3, 0xAAFFCC, 1);
+    ring.strokeRoundedRect(W/2 - BW/2 - 3, CY - BH/2 - 3, BW + 6, BH + 6, r + 3);
+    this.tweens.add({
+      targets: ring,
+      alpha: { from: 0.10, to: 0.55 },
+      duration: 1100, yoyo: true, repeat: -1, ease: 'Sine.InOut',
+    });
 
-    this.add.text(W/2, BTN_Y + 54, 'แตะที่ไหนก็ได้เพื่อเริ่ม', {
+    // Hint text
+    this.add.text(W/2, CY + BH/2 + 20, 'แตะที่ไหนก็ได้เพื่อเริ่ม', {
       fontFamily: FONT, fontSize: '13px', color: '#FFEEAA',
       stroke: '#332200', strokeThickness: 3,
-    }).setOrigin(0.5).setDepth(9).setAlpha(0.82);
+    }).setOrigin(0.5).setDepth(9).setAlpha(0.75);
   }
 
   // ── Ambient: lantern glow pulse + warm dust motes ─────────────────────────

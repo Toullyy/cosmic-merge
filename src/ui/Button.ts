@@ -3,18 +3,24 @@ import { FONT, sfx } from '../utils';
 
 function _drawBg(g: Phaser.GameObjects.Graphics, w: number, h: number, fill: number) {
   g.clear();
-  const r = 14;
-  g.fillStyle(0x000000, 0.30);
-  g.fillRoundedRect(-w/2 + 3, -h/2 + 4, w, h, r);
+  const r = Math.min(Math.floor(h / 2), 28);   // pill shape for typical button heights
+  // drop shadow
+  g.fillStyle(0x000000, 0.38);
+  g.fillRoundedRect(-w/2 + 4, -h/2 + 6, w, h, r);
+  // main fill
   g.fillStyle(fill, 1);
   g.fillRoundedRect(-w/2, -h/2, w, h, r);
-  g.fillStyle(0x000000, 0.18);
-  g.fillRoundedRect(-w/2 + 2, h/2 - 6, w - 4, 5, { tl: 0, tr: 0, bl: r - 2, br: r - 2 });
-  g.fillStyle(0xffffff, 0.28);
-  g.fillRoundedRect(-w/2 + 3, -h/2 + 2, w - 6, h * 0.46, { tl: r - 2, tr: r - 2, bl: 0, br: 0 });
-  g.fillStyle(0xffffff, 0.50);
-  g.fillRoundedRect(-w/2 + 6, -h/2 + 3, w - 12, 3, 1);
-  g.lineStyle(3, 0xffffff, 0.85);
+  // bottom inner shadow (3-D depth)
+  g.fillStyle(0x000000, 0.26);
+  g.fillRoundedRect(-w/2 + 3, h/2 - 11, w - 6, 11, { tl: 0, tr: 0, bl: r - 3, br: r - 3 });
+  // top gloss
+  g.fillStyle(0xffffff, 0.44);
+  g.fillRoundedRect(-w/2 + 4, -h/2 + 2, w - 8, h * 0.44, { tl: r - 3, tr: r - 3, bl: 0, br: 0 });
+  // top shine stripe
+  g.fillStyle(0xffffff, 0.72);
+  g.fillRoundedRect(-w/2 + 10, -h/2 + 4, w - 20, 4, 2);
+  // white border
+  g.lineStyle(3, 0xffffff, 0.92);
   g.strokeRoundedRect(-w/2, -h/2, w, h, r);
 }
 
