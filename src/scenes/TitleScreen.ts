@@ -370,7 +370,8 @@ export class TitleScreen extends Phaser.Scene {
             delay: (i % 13) * 80,
           });
         });
-      });
+      })
+      .catch(() => { /* SVG load failed — strip stays empty */ });
   }
 
   private _goToGame() {

@@ -119,11 +119,11 @@ export class HabitatRoom extends Phaser.Scene {
       g.beginPath(); g.moveTo(0, wy); g.lineTo(18, wy); g.strokePath();
       g.beginPath(); g.moveTo(W - 18, wy); g.lineTo(W, wy); g.strokePath();
     }
-    // Dark shadow behind stats area for readability
+    // Dark shadow behind stats area for readability — starts at panelY (696) so no colour seam
     g.fillGradientStyle(0x1A0E06, 0x1A0E06, 0x2A1808, 0x2A1808, 1);
-    g.fillRect(0, 700, W, H - 700);
+    g.fillRect(0, 696, W, H - 696);
     // Shelf edge highlight
-    g.fillStyle(0xAA7A3A, 0.55); g.fillRect(0, 700, W, 6);
+    g.fillStyle(0xAA7A3A, 0.55); g.fillRect(0, 696, W, 6);
     // Vertical plank dividers on shelf
     g.lineStyle(1, 0x0A0604, 0.25);
     for (let wx = 68; wx < W; wx += 68) {
@@ -421,7 +421,7 @@ export class HabitatRoom extends Phaser.Scene {
         fg.lineStyle(1.5, darken(cc, 30), 0.60); fg.strokeEllipse(cx, cy, cr*2, cr*2.5);
       });
       for (let si=0;si<5;si++) {
-        const sx2=30+si*14, swH=90+Math.random()*60;
+        const sx2=30+si*14, swH=90+si*12;
         fg.lineStyle(5-si%2, 0x1A8A28, 0.75);
         fg.beginPath(); fg.moveTo(sx2, floorY); fg.lineTo(sx2+12, floorY-swH*0.4); fg.lineTo(sx2-6, floorY-swH*0.7); fg.lineTo(sx2+8, floorY-swH); fg.strokePath();
         fg.fillStyle(0x2AAA30, 0.65); fg.fillEllipse(sx2+8, floorY-swH, 18, 8);
@@ -443,13 +443,13 @@ export class HabitatRoom extends Phaser.Scene {
       });
       // Right seaweed
       for (let si=0;si<4;si++) {
-        const sx2=W-30-si*14, swH=80+Math.random()*50;
+        const sx2=W-30-si*14, swH=80+si*14;
         fg.lineStyle(4-si%2, 0x1A8A28, 0.70);
         fg.beginPath(); fg.moveTo(sx2, floorY); fg.lineTo(sx2-10, floorY-swH*0.4); fg.lineTo(sx2+8, floorY-swH*0.7); fg.lineTo(sx2-6, floorY-swH); fg.strokePath();
       }
       // Bubbles
-      [[80,380],[130,320],[390,360],[450,290],[270,260]].forEach(([bx,by]) => {
-        fg.lineStyle(1.5, 0xAAEEFF, 0.55); fg.strokeCircle(bx, by, 8 + Math.random()*6);
+      [[80,380,10],[130,320,8],[390,360,13],[450,290,9],[270,260,11]].forEach(([bx,by,br]) => {
+        fg.lineStyle(1.5, 0xAAEEFF, 0.55); fg.strokeCircle(bx, by, br);
         fg.fillStyle(0xFFFFFF, 0.15); fg.fillCircle(bx - 3, by - 3, 4);
       });
     }
@@ -748,7 +748,7 @@ export class HabitatRoom extends Phaser.Scene {
     // Frosted glass backing panel behind all bars + xp row
     const habCol = this._sp.habitat === 'dirt' ? 0xFF8800 : this._sp.habitat === 'grass' ? 0x44AA22 : 0x22AAEE;
     const panelY = statsY - 20;
-    const panelH = 36 * 3 + 30;
+    const panelH = 36 * 3 + 38;
     const panel = this.add.graphics().setDepth(9);
     panel.fillStyle(0x000000, 0.42);
     panel.fillRoundedRect(8, panelY, W - 16, panelH, 14);
