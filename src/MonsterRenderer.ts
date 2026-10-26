@@ -280,9 +280,13 @@ function drawGoldenGlow(g: Phaser.GameObjects.Graphics, cx: number, cy: number, 
 
 // Flood-fill from 12 border seeds to erase AI-generated backgrounds.
 // Stops at pixels whose colour distance from the sampled background exceeds TOL.
+// No-op when the sprite already has a transparent border (pre-processed by remove.bg).
 function removePNGBackground(ctx: CanvasRenderingContext2D, size: number): void {
   const imgData = ctx.getImageData(0, 0, size, size);
   const px = imgData.data;
+  // Skip if all 4 corners are already transparent (remove.bg pre-processed)
+  const corners = [0, (size - 1), size * (size - 1), size * size - 1];
+  if (corners.every(i => px[i * 4 + 3] === 0)) return;
   const m = size >> 1;
   const seeds: [number, number][] = [
     [0,0],[size-1,0],[0,size-1],[size-1,size-1],
