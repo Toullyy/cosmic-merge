@@ -278,7 +278,7 @@ function drawGoldenGlow(g: Phaser.GameObjects.Graphics, cx: number, cy: number, 
   });
 }
 
-// ── SVG-primary loader (PNG kept as dead fallback) ────────────────────────────
+// ── PNG sprite loader (with SVG fallback) ─────────────────────────────────────
 
 export function preloadMonsterTexture(scene: Phaser.Scene, monster: Monster): Promise<string> {
   const key = 'mon_' + monster.speciesId + '_' + monster.variantIndex;
@@ -286,47 +286,122 @@ export function preloadMonsterTexture(scene: Phaser.Scene, monster: Monster): Pr
 
   const sp   = SPECIES[monster.speciesId];
   const mods = getVariantModifiers(monster.variantIndex);
-  const bc   = shiftHue(sp.baseColor, mods.hueShift);
-  const sc   = darken(bc, 50);
-  const lc   = lighten(bc, 48);
-  const ec   = shiftHue(bc, 150);
 
-  const svgStr = buildMonsterSVG(sp.bodyShape, bc, sc, lc, ec, sp.habitat, mods.isGolden, mods.patternType);
-
-  // Rare species shimmer overlay drawn on top of the SVG image (canvas post-process)
-  const applyRareShimmer = (img: HTMLImageElement): string => {
+  const buildFromSource = (src: CanvasImageSource) => {
     const SIZE = 512;
     const canvas = document.createElement('canvas');
     canvas.width = canvas.height = SIZE;
     const ctx = canvas.getContext('2d')!;
-    ctx.drawImage(img, 0, 0, SIZE, SIZE);
-    const grd = ctx.createRadialGradient(SIZE*0.40, SIZE*0.34, 0, SIZE*0.50, SIZE*0.50, SIZE*0.48);
-    grd.addColorStop(0,   'rgba(180,80,255,0.28)');
-    grd.addColorStop(0.5, 'rgba(140,40,220,0.12)');
-    grd.addColorStop(1,   'rgba(80,0,160,0.20)');
+    if (mods.hueShift !== 0) ctx.filter = `hue-rotate(${mods.hueShift}deg)`;
+    ctx.drawImage(src as HTMLImageElement, 0, 0, SIZE, SIZE);
+    ctx.filter = 'none';
+
+    // Species color tint — differentiates species sharing the same body+habitat PNG
+    const bc = shiftHue(sp.baseColor, mods.hueShift);
+    const tR = (bc >> 16) & 0xff, tG = (bc >> 8) & 0xff, tB = bc & 0xff;
     ctx.globalCompositeOperation = 'source-atop';
-    ctx.fillStyle = grd;
+    ctx.globalAlpha = 0.28;
+    ctx.fillStyle = `rgb(${tR},${tG},${tB})`;
     ctx.fillRect(0, 0, SIZE, SIZE);
     ctx.globalCompositeOperation = 'source-over';
-    for (const [rx, ry] of [[0.14,0.14],[0.84,0.12],[0.11,0.83],[0.87,0.82],[0.50,0.08]] as [number,number][]) {
-      ctx.fillStyle = 'rgba(210,140,255,0.80)';
-      ctx.beginPath(); ctx.arc(rx*SIZE, ry*SIZE, 6.5, 0, Math.PI*2); ctx.fill();
-      ctx.fillStyle = 'rgba(255,255,255,0.90)';
-      ctx.beginPath(); ctx.arc(rx*SIZE, ry*SIZE, 3.2, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Spot pattern (patternType >= 1)
+    if (mods.patternType >= 1) {
+      const sc2 = darken(bc, 58);
+      const sR = (sc2 >> 16) & 0xff, sG = (sc2 >> 8) & 0xff, sB = sc2 & 0xff;
+      ctx.globalCompositeOperation = 'source-atop';
+      ctx.fillStyle = `rgb(${sR},${sG},${sB})`;
+      const spots: [number, number, number][] = [
+        [0.37, 0.62, 0.052], [0.56, 0.71, 0.044],
+        [0.44, 0.79, 0.038], [0.63, 0.60, 0.043],
+        [0.50, 0.84, 0.037], [0.67, 0.70, 0.040],
+        [0.41, 0.54, 0.031], [0.60, 0.83, 0.034],
+      ];
+      for (const [rx, ry, rr] of spots) {
+        ctx.globalAlpha = 0.48;
+        ctx.beginPath();
+        ctx.arc(rx * SIZE, ry * SIZE, rr * SIZE, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = 1;
+    }
+
+    // Rare species shimmer (id >= 15)
+    if (sp.id >= 15) {
+      ctx.globalCompositeOperation = 'source-atop';
+      const grd2 = ctx.createRadialGradient(SIZE * 0.40, SIZE * 0.34, 0, SIZE * 0.50, SIZE * 0.50, SIZE * 0.48);
+      grd2.addColorStop(0,   'rgba(180,80,255,0.30)');
+      grd2.addColorStop(0.5, 'rgba(140,40,220,0.14)');
+      grd2.addColorStop(1,   'rgba(80,0,160,0.24)');
+      ctx.fillStyle = grd2;
+      ctx.fillRect(0, 0, SIZE, SIZE);
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = 1;
+      // Sparkle stars at corners (outside body, always visible)
+      for (const [rx, ry] of [[0.14, 0.14], [0.84, 0.12], [0.11, 0.83], [0.87, 0.82], [0.50, 0.08]] as [number,number][]) {
+        ctx.fillStyle = 'rgba(210,140,255,0.82)';
+        ctx.beginPath(); ctx.arc(rx * SIZE, ry * SIZE, 6.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.90)';
+        ctx.beginPath(); ctx.arc(rx * SIZE, ry * SIZE, 3.2, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+
+    if (mods.isGolden) {
+      // Clip gradient to circle so corners stay transparent during scale animations
+      const grd = ctx.createRadialGradient(SIZE/2, SIZE/2, SIZE*0.22, SIZE/2, SIZE/2, SIZE*0.46);
+      grd.addColorStop(0,   'rgba(255,215,0,0)');
+      grd.addColorStop(0.65, 'rgba(255,215,0,0)');
+      grd.addColorStop(1,   'rgba(255,215,0,0.55)');
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(SIZE/2, SIZE/2, SIZE * 0.47, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.fillStyle = grd;
+      ctx.fillRect(0, 0, SIZE, SIZE);
+      ctx.restore();
+      // Soft circular ring
+      ctx.strokeStyle = 'rgba(255,215,0,0.88)';
+      ctx.lineWidth = 7;
+      ctx.beginPath();
+      ctx.arc(SIZE/2, SIZE/2, SIZE/2 - 12, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,245,130,0.46)';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(SIZE/2, SIZE/2, SIZE/2 - 6, 0, Math.PI * 2);
+      ctx.stroke();
+      // Sparkle dots around ring
+      const R = SIZE/2 - 12;
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2 - Math.PI / 8;
+        const sx = SIZE/2 + Math.cos(a) * R, sy = SIZE/2 + Math.sin(a) * R;
+        ctx.fillStyle = 'rgba(255,215,0,0.45)'; ctx.beginPath(); ctx.arc(sx, sy, 5.5, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.beginPath(); ctx.arc(sx, sy, 2.8, 0, Math.PI*2); ctx.fill();
+      }
     }
     scene.textures.addCanvas(key, canvas);
-    return key;
   };
 
-  return new Promise<string>(resolve => {
-    const img = new window.Image(256, 256);
-    img.onload = () => {
-      if (sp.id >= 15) { resolve(applyRareShimmer(img)); return; }
-      scene.textures.addImage(key, img);
-      resolve(key);
-    };
-    img.onerror = () => { resolve(makeMonsterTextureFallback(scene, monster)); };
+  const fallbackToSVG = () => new Promise<string>(resolve => {
+    const bc     = shiftHue(sp.baseColor, mods.hueShift);
+    const sc     = darken(bc, 50);
+    const lc     = lighten(bc, 48);
+    const ec     = shiftHue(bc, 150);
+    const svgStr = buildMonsterSVG(sp.bodyShape, bc, sc, lc, ec, sp.habitat, mods.isGolden, mods.patternType);
+    const img    = new window.Image(256, 256);
+    img.onload   = () => { scene.textures.addImage(key, img); resolve(key); };
+    img.onerror  = () => { resolve(makeMonsterTextureFallback(scene, monster)); };
     img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
+  });
+
+  return new Promise<string>(resolve => {
+    const img = new window.Image();
+    img.crossOrigin = 'anonymous';
+    img.onload  = () => { buildFromSource(img); resolve(key); };
+    img.onerror = () => { fallbackToSVG().then(resolve); };
+    img.src = `${import.meta.env.BASE_URL}sprites/${sp.bodyShape}_${sp.habitat}.png`;
   });
 }
 
