@@ -301,9 +301,14 @@ export class Hub extends Phaser.Scene {
     }).setOrigin(0.5, 0.5).setDepth(11).setInteractive({ useHandCursor: true });
     sndTxt.on('pointerdown', () => { sfx.toggle(); sndTxt.setText(sfx.muted ? '🔇' : '🔊'); });
 
+    const helpBg = this.add.graphics().setDepth(11);
+    helpBg.fillStyle(0x7733DD, 1);
+    helpBg.fillCircle(W - 22, 34, 16);
+    helpBg.lineStyle(2, 0xCC99FF, 1);
+    helpBg.strokeCircle(W - 22, 34, 16);
     this.add.text(W - 22, 34, '?', {
-      fontFamily: FONT, fontSize: '22px', color: '#9060e0', fontStyle: 'bold',
-    }).setOrigin(1, 0.5).setDepth(11).setInteractive({ useHandCursor: true })
+      fontFamily: FONT, fontSize: '20px', color: '#FFFFFF', fontStyle: 'bold',
+    }).setOrigin(0.5, 0.5).setDepth(11).setInteractive({ useHandCursor: true, hitArea: new Phaser.Geom.Circle(0, 0, 18), hitAreaCallback: Phaser.Geom.Circle.Contains })
       .on('pointerdown', () => { this.scene.launch('HowToPlay'); });
   }
 
@@ -688,7 +693,7 @@ export class Hub extends Phaser.Scene {
   }
 
   private _buildVisitorBanner(W: number, H: number) {
-    this._visitorBanner = this.add.container(0, H - 90).setDepth(14);
+    this._visitorBanner = this.add.container(0, H - 128).setDepth(14);
     this._updateVisitorBanner();
   }
 
@@ -1689,7 +1694,9 @@ export class Hub extends Phaser.Scene {
   }
 
   onEggHatched(eggId: string, monster: Monster) {
+    if (!Game.state!.eggs.some(e => e.id === eggId)) return;
     Game.state!.eggs = Game.state!.eggs.filter(e => e.id !== eggId);
+    if (Game.state!.monsters.some(m => m.id === monster.id)) return;
     Game.state!.monsters.push(monster);
     Game.state!.stats.hatched++;
     this._markDiscovered(monster.speciesId);

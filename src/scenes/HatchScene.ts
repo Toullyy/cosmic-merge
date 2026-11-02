@@ -393,7 +393,10 @@ export class HatchScene extends Phaser.Scene {
     document.body.appendChild(inp);
     inp.focus();
 
+    let _confirmed = false;
     const confirm = () => {
+      if (_confirmed) return;
+      _confirmed = true;
       const v = inp.value.trim();
       if (v && v !== sp.name) mon.nickname = v;
       try { document.body.removeChild(inp); } catch { /* ignore */ }

@@ -312,7 +312,10 @@ export class BreedingLab extends Phaser.Scene {
     }
   }
 
+  private _brewing = false;
+
   private _doBreed() {
+    if (this._brewing) return;
     if (!this._selectedA || !this._selectedB) return;
     const a = this._selectedA, b = this._selectedB;
     if (a.id === b.id) { showToast(this, t('toast.cannotSelf'), '#ff9999'); return; }
@@ -324,34 +327,93 @@ export class BreedingLab extends Phaser.Scene {
       return;
     }
 
-    let childSpeciesId: number;
-    if (a.speciesId === b.speciesId) {
-      childSpeciesId = a.speciesId;
-    } else {
-      childSpeciesId = 15 + (a.speciesId + b.speciesId) % 10;
-    }
-
-    const blendVi = Math.floor((a.variantIndex + b.variantIndex) / 2);
-    const childVi = Math.max(0, Math.min(99, blendVi + Math.floor(Math.random() * 21) - 10));
-
-    const baseHours = Math.max(spA.hatchHours, spB.hatchHours) * 1.5;
-    const childSp = SPECIES[childSpeciesId];
-    const finalHours = Math.max(baseHours, childSp.hatchHours * 0.5);
-
-    Game.state!.coins -= breedCost;
-    const egg = newEgg(childSpeciesId, childVi, 'breeding', [a.id, b.id]);
-    egg.hatchEndAt = Date.now() + finalHours * 3600000;
-    Game.state!.eggs.push(egg);
-    store.setJSON('mps_state', Game.state);
-    sfx.buy();
-    showFloat(this, this.scale.width / 2, this.scale.height / 2 + 60, '-' + breedCost + ' 💰', '#FF8888');
-    showToast(this, t('toast.breedStarted', { h: Math.ceil(finalHours) }), '#aaffaa');
-
-    this._selectedA = null; this._selectedB = null;
-    this._updateSlots();
-    this._buildMonsterList(this.scale.width, this.scale.height);
+    this._brewing = true;
     this._breedBtn.setAlpha(0.38);
     this.tweens.killTweensOf(this._breedBtn);
-    setButtonLabel(this._breedBtn, t('btn.breed'));
+    setButtonLabel(this._breedBtn, '✨ กำลังผสม...');
+
+    // Deduct cost upfront; refund half on failure
+    Game.state!.coins -= breedCost;
+    store.setJSON('mps_state', Game.state);
+    showFloat(this, this.scale.width / 2, this.scale.height / 2 + 60, '-' + breedCost + ' 💰', '#FF8888');
+
+    // Spinning arcane circle overlay
+    const W = this.scale.width, H = this.scale.height;
+    const overlay = this.add.graphics().setDepth(20);
+    overlay.fillStyle(0x000000, 0.45);
+    overlay.fillRect(0, 0, W, H);
+
+    const cx = W / 2, cy = 200;
+    const circle = this.add.graphics().setDepth(21);
+    let angle = 0;
+    const spinTimer = this.time.addEvent({
+      delay: 30, loop: true,
+      callback: () => {
+        angle += 8;
+        circle.clear();
+        circle.lineStyle(4, 0xAA66FF, 1);
+        circle.strokeCircle(cx, cy, 80);
+        circle.lineStyle(3, 0xFF99FF, 0.7);
+        circle.strokeCircle(cx, cy, 55);
+        // spinning arc
+        const rad = Phaser.Math.DegToRad(angle);
+        const x1 = cx + Math.cos(rad) * 80, y1 = cy + Math.sin(rad) * 80;
+        const x2 = cx + Math.cos(rad + 2.5) * 80, y2 = cy + Math.sin(rad + 2.5) * 80;
+        circle.lineStyle(6, 0xFFCCFF, 1);
+        circle.lineBetween(cx, cy, x1, y1);
+        circle.lineBetween(cx, cy, x2, y2);
+      },
+    });
+
+    const statusTxt = this.add.text(cx, cy + 110, '...', {
+      fontFamily: FONT, fontSize: '18px', color: '#CC99FF', fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(21);
+    this.tweens.add({ targets: statusTxt, alpha: { from: 0.4, to: 1 }, duration: 600, yoyo: true, repeat: -1 });
+
+    this.time.delayedCall(2200, () => {
+      spinTimer.destroy();
+      circle.destroy();
+      overlay.destroy();
+      statusTxt.destroy();
+      this._brewing = false;
+      this._breedBtn.setAlpha(0.38);
+      setButtonLabel(this._breedBtn, t('btn.breed'));
+
+      const SUCCESS_RATE = 0.75;
+      const success = Math.random() < SUCCESS_RATE;
+
+      if (success) {
+        let childSpeciesId: number;
+        if (a.speciesId === b.speciesId) {
+          childSpeciesId = a.speciesId;
+        } else {
+          childSpeciesId = 15 + (a.speciesId + b.speciesId) % 10;
+        }
+        const blendVi = Math.floor((a.variantIndex + b.variantIndex) / 2);
+        const childVi = Math.max(0, Math.min(99, blendVi + Math.floor(Math.random() * 21) - 10));
+        const baseHours = Math.max(spA.hatchHours, spB.hatchHours) * 1.5;
+        const childSp = SPECIES[childSpeciesId];
+        const finalHours = Math.max(baseHours, childSp.hatchHours * 0.5);
+
+        const egg = newEgg(childSpeciesId, childVi, 'breeding', [a.id, b.id]);
+        egg.hatchEndAt = Date.now() + finalHours * 3600000;
+        Game.state!.eggs.push(egg);
+        store.setJSON('mps_state', Game.state);
+        sfx.buy();
+        showToast(this, '✨ ' + t('toast.breedStarted', { h: Math.ceil(finalHours) }), '#aaffaa');
+      } else {
+        // Refund 50% of cost on failure
+        const refund = Math.round(breedCost * 0.5);
+        Game.state!.coins += refund;
+        store.setJSON('mps_state', Game.state);
+        sfx.buy();
+        showFloat(this, cx, cy + 60, '+' + refund + ' 💰', '#AADDFF');
+        showToast(this, '💔 ผสมพันธุ์ไม่สำเร็จ (คืน ' + refund + ' 💰)', '#ff9999');
+      }
+
+      this._selectedA = null; this._selectedB = null;
+      this._updateSlots();
+      this._buildMonsterList(W, H);
+    });
   }
 }
