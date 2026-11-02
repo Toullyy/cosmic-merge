@@ -85,6 +85,13 @@ export class Boot extends Phaser.Scene {
       if (Game.state.lastLoginDate === undefined) Game.state.lastLoginDate = '';
       if (!Game.state.dailyAdClaimedDate) Game.state.dailyAdClaimedDate = '';
       if (!Game.state.discoveredColors)   Game.state.discoveredColors   = {};
+      // deduplicate monsters by id (fix for users who got duplicates from double-tap bug)
+      const seenIds = new Set<string>();
+      Game.state.monsters = Game.state.monsters.filter(m => {
+        if (seenIds.has(m.id)) return false;
+        seenIds.add(m.id);
+        return true;
+      });
       reconcileOfflineTime(Game.state);
       // retroactive achievement check (silent — no popups, just awards diamonds for past play)
       getNewAchievements(Game.state);
