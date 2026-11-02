@@ -666,6 +666,7 @@ export class HabitatRoom extends Phaser.Scene {
         const deltaHours = 20 / 3600;
         const ate = Math.min(this._monster.bowl.remaining, BOWL_EAT_RATE * deltaHours);
         this._monster.bowl.remaining -= ate;
+        this._monster.hunger = Math.min(100, this._monster.hunger + ate);
         if (this._monster.bowl.remaining < 0.01) this._monster.bowl = null;
         store.setJSON('mps_state', Game.state);
         this._drawBowl();
@@ -1249,13 +1250,12 @@ export class HabitatRoom extends Phaser.Scene {
             this._monster.bowl.remaining += actualHungerAdded;
             this._monster.bowl.maxAmount = this._monster.bowl.remaining;
             this._monster.bowl.color = bowlColor;
-            this._monster.hunger = Math.min(100, this._monster.hunger + actualHungerAdded);
             if (actualHungerAdded < food.hungerGain) showToast(this, t('toast.bowlTopped'), '#ffcc88');
           } else {
             actualHungerAdded = food.hungerGain;
             this._monster.bowl = { foodId: food.id, remaining: food.hungerGain, maxAmount: food.hungerGain, color: bowlColor };
-            this._monster.hunger = Math.min(100, this._monster.hunger + food.hungerGain);
           }
+          // Hunger rises gradually as the monster eats — not instantly when food is placed
           this._monster.happiness = Math.min(100, this._monster.happiness + food.happinessGain);
           this._monster.lastCaredAt = Date.now();
           const feedXpBonus = TRAITS.find(t => t.id === this._monster.trait)?.xpMod ?? 0;
