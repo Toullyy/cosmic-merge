@@ -3,8 +3,10 @@ import { FONT } from '../utils';
 import { t } from '../i18n';
 import { TRAITS } from '../data';
 import { makeButton } from '../ui/Button';
+import { cloudStatus, linkGoogleAccount } from '../cloudSync';
 
 const TRAIT_PAGE = 4;
+const ACCOUNT_PAGE = 5;
 
 function getPages() {
   return [
@@ -28,10 +30,14 @@ function getPages() {
       title: t('howto.page4.title'),
       lines: [], // rendered specially as trait grid
     },
+    {
+      title: '☁️ บัญชี & ซิงค์ข้อมูล',
+      lines: [], // rendered specially
+    },
   ];
 }
 
-const PAGE_ICONS = ['🐣', '🍽', '🧬', '💰', '⚡'];
+const PAGE_ICONS = ['🐣', '🍽', '🧬', '💰', '⚡', '☁️'];
 const TRAIT_COLORS: Record<string, number> = {
   greedy: 0xFF8844, lazy: 0x8888CC, lucky: 0x44CC44,
   fierce: 0xFF4422, playful: 0x44CCFF, pristine: 0xFFEE44,
@@ -187,6 +193,10 @@ export class HowToPlay extends Phaser.Scene {
       this._renderTraitPage(cx, titleY, panelW, panelY);
       return;
     }
+    if (this._page === ACCOUNT_PAGE) {
+      this._renderAccountPage(cx, titleY);
+      return;
+    }
 
     p.lines.forEach((line, i) => {
       this._contentGroup.add(this.add.text(cx, titleY + 52 + i * 54, line, {
@@ -228,5 +238,55 @@ export class HowToPlay extends Phaser.Scene {
     this._contentGroup.add(this.add.text(cx, panelY + this._panelH - 10, '', {
       fontFamily: FONT, fontSize: '11px', color: '#555577',
     }).setOrigin(0.5).setDepth(3));
+  }
+
+  private _renderAccountPage(cx: number, titleY: number) {
+    const syncLabel = cloudStatus.enabled ? '✅ เปิดใช้งาน' : '⚠️ ออฟไลน์';
+    const acctLabel = cloudStatus.isAnonymous
+      ? '👤 นิรนาม (อุปกรณ์นี้)'
+      : '🔵 บัญชี Google';
+
+    this._contentGroup.add(this.add.text(cx, titleY + 52, 'สถานะซิงค์: ' + syncLabel, {
+      fontFamily: FONT, fontSize: '16px', color: '#aaffcc',
+    }).setOrigin(0.5).setDepth(3));
+
+    this._contentGroup.add(this.add.text(cx, titleY + 96, 'บัญชีปัจจุบัน: ' + acctLabel, {
+      fontFamily: FONT, fontSize: '15px', color: '#ccccee',
+    }).setOrigin(0.5).setDepth(3));
+
+    this._contentGroup.add(this.add.text(cx, titleY + 150,
+      'เชื่อมต่อ Google เพื่อซิงค์เซฟ\nข้ามอุปกรณ์และป้องกันข้อมูลสูญหาย', {
+      fontFamily: FONT, fontSize: '14px', color: '#aaaacc',
+      align: 'center', wordWrap: { width: 380 },
+    }).setOrigin(0.5).setDepth(3));
+
+    if (cloudStatus.isAnonymous) {
+      const linkStatusTxt = this.add.text(cx, titleY + 300, '', {
+        fontFamily: FONT, fontSize: '14px', color: '#88ffcc',
+      }).setOrigin(0.5).setDepth(3);
+      this._contentGroup.add(linkStatusTxt);
+
+      const btn = makeButton(this, cx, titleY + 240, 280, 52,
+        '🔵 เชื่อมต่อ Google', 0x1a4488, async () => {
+          linkStatusTxt.setText('กำลังเชื่อมต่อ...');
+          const ok = await linkGoogleAccount();
+          if (ok) {
+            linkStatusTxt.setText('✅ เชื่อมต่อสำเร็จ!');
+            // Refresh the page content after a short delay
+            this.time.delayedCall(1200, () => {
+              const panelY = this._panelY;
+              this._contentGroup.clear(true, true);
+              this._renderPage(this._W, panelY, this._panelW, this._panelH);
+            });
+          } else {
+            linkStatusTxt.setText('❌ ไม่สำเร็จ ลองใหม่อีกครั้ง');
+          }
+        }, 16).setDepth(4);
+      this._contentGroup.add(btn);
+    } else {
+      this._contentGroup.add(this.add.text(cx, titleY + 240, '✅ ซิงค์ข้ามอุปกรณ์เปิดใช้งานแล้ว', {
+        fontFamily: FONT, fontSize: '15px', color: '#88ffcc', fontStyle: 'bold',
+      }).setOrigin(0.5).setDepth(3));
+    }
   }
 }

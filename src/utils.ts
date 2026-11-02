@@ -1,6 +1,7 @@
 import type { GameState, Quest } from './types';
 import { ACHIEVEMENTS } from './data';
 import type { Achievement } from './data';
+import { scheduleSaveToCloud } from './cloudSync';
 
 export const FONT = '"Noto Sans Thai", "Sarabun", system-ui, sans-serif';
 
@@ -16,12 +17,20 @@ export const store = {
   },
   setJSON(k: string, v: unknown): void {
     try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* ignore */ }
+    if (k === 'mps_state') scheduleSaveToCloud(v as GameState);
   },
 };
 
-export const Game: { state: GameState | null; phaser: import('phaser').Game | null } = {
+export const Game: {
+  state: GameState | null;
+  phaser: import('phaser').Game | null;
+  uid: string | null;
+  isAnonymous: boolean;
+} = {
   state: null,
   phaser: null,
+  uid: null,
+  isAnonymous: true,
 };
 
 export function recordQuestProgress(type: Quest['type']): void {

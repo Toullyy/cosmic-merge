@@ -3,12 +3,15 @@ import { Game, store, getNewAchievements } from '../utils';
 import { DECAY, BOWL_EAT_RATE, newState, generateMerchantStock, MERCHANT_REFRESH_MS, TANK_CAPACITY, randomBuyer, VISITOR_INTERVAL_MS, checkAndUpdateVisitor, generateDailyQuests, getDecayMult, TRAITS } from '../data';
 import { preloadMonsterTexture } from '../MonsterRenderer';
 import type { GameState } from '../types';
+import { initCloudAuth, loadFromCloud, scheduleSaveToCloud } from '../cloudSync';
+import { auth } from '../firebase';
 
 export class Boot extends Phaser.Scene {
   constructor() { super({ key: 'Boot' }); }
 
   create() {
     const saved = store.getJSON<GameState>('mps_state', null);
+    const localTickAt = saved?.lastTickAt ?? 0;
     if (saved && saved.version === 1) {
       Game.state = saved;
       if (!Game.state.stats.discovered) {
@@ -104,6 +107,23 @@ export class Boot extends Phaser.Scene {
         this.scene.start('TitleScreen');
       });
     }
+
+    // Background cloud sync — non-blocking, does not affect startup
+    initCloudAuth().then(async () => {
+      Game.uid = auth.currentUser?.uid ?? null;
+      Game.isAnonymous = auth.currentUser?.isAnonymous ?? true;
+      const cloudState = await loadFromCloud();
+      if (cloudState?.version === 1 && cloudState.lastTickAt > localTickAt) {
+        // Cloud has a newer save (e.g. from another device)
+        Game.state = cloudState;
+        reconcileOfflineTime(Game.state);
+        store.setJSON('mps_state', Game.state);
+        const hub = Game.phaser?.scene.getScene('Hub') as any;
+        if (hub?.scene?.isActive()) hub.refreshAll();
+      } else if (Game.state) {
+        scheduleSaveToCloud(Game.state);
+      }
+    }).catch(() => { /* cloud unavailable — continue offline */ });
   }
 }
 
