@@ -568,14 +568,20 @@ export class TitleScreen extends Phaser.Scene {
     };
     drawBg(0x0D2E66, 0.85);
 
-    // After auth resolves, update label to reflect real state
-    this.time.delayedCall(800, () => {
-      if (!cloudStatus.isAnonymous) {
-        lbl.setText('✅ Google ซิงค์แล้ว');
-        lbl.setColor('#88FFCC');
-        drawBg(0x0D4422, 0.70);
+    // Poll until auth resolves (getRedirectResult is async, finishes after scene loads)
+    const setLinked = () => {
+      lbl.setText('✅ Google ซิงค์แล้ว');
+      lbl.setColor('#88FFCC');
+      drawBg(0x0D4422, 0.70);
+    };
+    let pollCount = 0;
+    const pollAuth = () => {
+      if (!cloudStatus.isAnonymous) { setLinked(); return; }
+      if (++pollCount < 20 && this.scene.isActive('TitleScreen')) {
+        this.time.delayedCall(300, pollAuth);
       }
-    });
+    };
+    this.time.delayedCall(300, pollAuth);
 
     // Tap zone — depth 21 intercepts before the full-screen depth-20 tap
     const zone = this.add.zone(W / 2, BY, BW, BH).setDepth(22).setInteractive();
