@@ -18,14 +18,14 @@ export const cloudStatus = {
 
 let _saveTimer: ReturnType<typeof setTimeout> | null = null;
 
-// Debounce: saves at most once per 4 seconds
+// Debounce: saves at most once per 30 seconds to stay within Firestore free-tier quota
 export function scheduleSaveToCloud(state: GameState): void {
   if (!cloudStatus.enabled) return;
   if (_saveTimer) clearTimeout(_saveTimer);
   _saveTimer = setTimeout(() => {
     _saveTimer = null;
     _doSaveToCloud(state);
-  }, 4000);
+  }, 30000);
 }
 
 async function _doSaveToCloud(state: GameState): Promise<void> {
@@ -55,8 +55,13 @@ export async function loadFromCloud(): Promise<GameState | null> {
 }
 
 export async function initCloudAuth(): Promise<void> {
+  // Restore cached session immediately — always available from SDK persistence even if redirect fails
+  if (auth.currentUser) {
+    cloudStatus.uid = auth.currentUser.uid;
+    cloudStatus.isAnonymous = auth.currentUser.isAnonymous;
+    cloudStatus.enabled = true;
+  }
   try {
-    // Handle return from Google redirect first
     const redirectResult = await getRedirectResult(auth);
     if (redirectResult) {
       cloudStatus.uid = redirectResult.user.uid;
@@ -64,20 +69,16 @@ export async function initCloudAuth(): Promise<void> {
       cloudStatus.enabled = true;
       return;
     }
-    // Reuse persisted session if available
-    if (auth.currentUser) {
-      cloudStatus.uid = auth.currentUser.uid;
-      cloudStatus.isAnonymous = auth.currentUser.isAnonymous;
+    if (!auth.currentUser) {
+      // First time: sign in anonymously
+      const cred = await signInAnonymously(auth);
+      cloudStatus.uid = cred.user.uid;
+      cloudStatus.isAnonymous = cred.user.isAnonymous;
       cloudStatus.enabled = true;
-      return;
     }
-    // First time: sign in anonymously
-    const cred = await signInAnonymously(auth);
-    cloudStatus.uid = cred.user.uid;
-    cloudStatus.isAnonymous = cred.user.isAnonymous;
-    cloudStatus.enabled = true;
   } catch (e) {
     console.warn('Cloud auth unavailable:', e);
+    // cloudStatus.enabled already set above if a cached session existed
   }
 }
 

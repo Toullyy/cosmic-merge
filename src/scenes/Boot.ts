@@ -109,17 +109,22 @@ export class Boot extends Phaser.Scene {
     }
 
     // Background cloud sync — non-blocking, does not affect startup
+    const bootTime = Date.now();
     initCloudAuth().then(async () => {
       Game.uid = auth.currentUser?.uid ?? null;
       Game.isAnonymous = auth.currentUser?.isAnonymous ?? true;
       const cloudState = await loadFromCloud();
-      if (cloudState?.version === 1 && cloudState.lastTickAt > localTickAt) {
+      // Only restore if cloud is newer than the local save we loaded at boot,
+      // and we haven't been in-session long enough to accumulate meaningful mutations.
+      if (
+        cloudState?.version === 1 &&
+        cloudState.lastTickAt > localTickAt &&
+        Date.now() - bootTime < 30000
+      ) {
         // Cloud has a newer save (e.g. from another device)
         Game.state = cloudState;
         reconcileOfflineTime(Game.state);
         store.setJSON('mps_state', Game.state);
-        const hub = Game.phaser?.scene.getScene('Hub') as any;
-        if (hub?.scene?.isActive()) hub.refreshAll();
       } else if (Game.state) {
         scheduleSaveToCloud(Game.state);
       }

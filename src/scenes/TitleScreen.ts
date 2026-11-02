@@ -4,6 +4,8 @@ import { SPECIES } from '../data';
 import { preloadMonsterTexture } from '../MonsterRenderer';
 import type { Monster } from '../types';
 import { cloudStatus, linkGoogleAccount } from '../cloudSync';
+import { auth } from '../firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 
 const BTN_Y = 370;
 
@@ -574,14 +576,16 @@ export class TitleScreen extends Phaser.Scene {
       lbl.setColor('#88FFCC');
       drawBg(0x0D4422, 0.70);
     };
-    let pollCount = 0;
-    const pollAuth = () => {
-      if (!cloudStatus.isAnonymous) { setLinked(); return; }
-      if (++pollCount < 20 && this.scene.isActive('TitleScreen')) {
-        this.time.delayedCall(300, pollAuth);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user && !user.isAnonymous) {
+        cloudStatus.uid = user.uid;
+        cloudStatus.isAnonymous = false;
+        cloudStatus.enabled = true;
+        setLinked();
+        unsubscribe();
       }
-    };
-    this.time.delayedCall(300, pollAuth);
+    });
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => unsubscribe());
 
     // Tap zone — depth 21 intercepts before the full-screen depth-20 tap
     const zone = this.add.zone(W / 2, BY, BW, BH).setDepth(22).setInteractive();

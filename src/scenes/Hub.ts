@@ -17,6 +17,7 @@ const HAB_PLATE: Record<string, [number, string]> = {
 
 export class Hub extends Phaser.Scene {
   private _currentHabitat: HabitatType = 'dirt';
+  private _unlockPopupActive = false;
   private _eggTimer: Phaser.Time.TimerEvent | null = null;
   private _displayGroup!: Phaser.GameObjects.Group;
   private _tabBtns: Record<string, { bg: Phaser.GameObjects.Graphics; txt: Phaser.GameObjects.Text }> = {};
@@ -614,12 +615,14 @@ export class Hub extends Phaser.Scene {
   }
 
   private _tryUnlockHabitat(type: HabitatType) {
+    if (this._unlockPopupActive) return;
     const cost = HABITATS[type].unlockCost;
     const hName = t('habitat.' + type);
     if (Game.state!.coins < cost) {
       showToast(this, t('toast.needCoinsUnlock', { cost, name: hName }), '#ff9999');
       return;
     }
+    this._unlockPopupActive = true;
     this._showUnlockConfirm(type, hName, cost);
   }
 
@@ -658,7 +661,13 @@ export class Hub extends Phaser.Scene {
 
     popup.add([dim, panel, title, body, coins]);
 
-    const close = () => popup.destroy();
+    let closed = false;
+    const close = () => {
+      if (closed) return;
+      closed = true;
+      this._unlockPopupActive = false;
+      popup.destroy();
+    };
 
     const confirmBtn = makeButton(this, -75, 80, 130, 44, t('btn.confirm'), 0x226611, () => {
       Game.state!.coins -= cost;
@@ -671,10 +680,8 @@ export class Hub extends Phaser.Scene {
       showToast(this, t('toast.unlocked', { name: hName }), '#aaffaa');
       close();
     }, 15);
-    confirmBtn.setDepth(51);
 
     const cancelBtn = makeButton(this, 75, 80, 130, 44, t('btn.cancel'), 0x441122, close, 15);
-    cancelBtn.setDepth(51);
 
     popup.add([confirmBtn, cancelBtn]);
     dim.on('pointerdown', close);

@@ -1,7 +1,7 @@
 ﻿import Phaser from 'phaser';
 import { Game, FONT, store, sfx, recordQuestProgress } from '../utils';
 import { t } from '../i18n';
-import { SPECIES, HABITATS, FOOD_TYPES, TOY_TYPES, CLEAN_TOOLS, XP_TABLE, getLevelName, randomBuyer, randomListingDuration, TRAITS, BOWL_EAT_RATE } from '../data';
+import { SPECIES, HABITATS, FOOD_TYPES, TOY_TYPES, CLEAN_TOOLS, XP_TABLE, getLevelName, randomBuyer, randomListingDuration, TRAITS, BOWL_EAT_RATE, DECAY, getDecayMult } from '../data';
 import { makeMonsterTexture, getVariantModifiers, lighten, darken } from '../MonsterRenderer';
 import { makeButton, setButtonLabel, setButtonColor } from '../ui/Button';
 import { showToast, showFloat } from '../ui/Toast';
@@ -666,7 +666,10 @@ export class HabitatRoom extends Phaser.Scene {
         const deltaHours = 20 / 3600;
         const ate = Math.min(this._monster.bowl.remaining, BOWL_EAT_RATE * deltaHours);
         this._monster.bowl.remaining -= ate;
-        this._monster.hunger = Math.min(100, this._monster.hunger + ate);
+        const decayMult = getDecayMult(Game.state!, this._monster.habitatType);
+        const trait = TRAITS.find(tr => tr.id === this._monster.trait);
+        const nuMod = (trait?.decayMod?.hunger ?? 1) * decayMult;
+        this._monster.hunger = Math.max(0, Math.min(100, this._monster.hunger + ate + DECAY.hunger * deltaHours * nuMod));
         if (this._monster.bowl.remaining < 0.01) this._monster.bowl = null;
         store.setJSON('mps_state', Game.state);
         this._drawBowl();
