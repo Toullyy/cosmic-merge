@@ -22,6 +22,7 @@ export class BreedingLab extends Phaser.Scene {
   private _slotB!: Slot;
   private _listGroup!: Phaser.GameObjects.Group;
   private _breedBtn!: Phaser.GameObjects.Container;
+  private _listPage: number = 0;
 
   constructor() { super({ key: 'BreedingLab' }); }
 
@@ -174,6 +175,9 @@ export class BreedingLab extends Phaser.Scene {
     this._listGroup.clear(true, true);
     const eligible = Game.state!.monsters.filter(m => m.level >= 4);
     const scrollY = 312;
+    const PAGE_SIZE = 6;
+    const totalPages = Math.max(1, Math.ceil(eligible.length / PAGE_SIZE));
+    if (this._listPage >= totalPages) this._listPage = totalPages - 1;
 
     if (eligible.length === 0) {
       this._listGroup.add(this.add.text(W/2, scrollY + 40,
@@ -184,8 +188,9 @@ export class BreedingLab extends Phaser.Scene {
     }
 
     const habColors: Record<string, number> = { dirt: 0xFFAA44, grass: 0x55DD44, aquatic: 0x44CCFF };
+    const pageItems = eligible.slice(this._listPage * PAGE_SIZE, (this._listPage + 1) * PAGE_SIZE);
 
-    eligible.forEach((mon, idx) => {
+    pageItems.forEach((mon, idx) => {
       const col = idx % 3;
       const row = Math.floor(idx / 3);
       const cx = W/2 - 140 + col * 140;
@@ -199,19 +204,14 @@ export class BreedingLab extends Phaser.Scene {
       const selAlpha = isA || isB ? 1.0 : 0.35;
 
       const cardBg = this.add.graphics();
-      // Card shadow
       cardBg.fillStyle(0x000000, 0.30); cardBg.fillRoundedRect(cx - 56, cy - 56, 116, 126, 14);
-      // Card fill
       cardBg.fillStyle(isA || isB ? 0x200A50 : 0x160840, 1);
       cardBg.fillRoundedRect(cx - 58, cy - 58, 116, 126, 14);
-      // Habitat color top accent
       cardBg.fillStyle(selCol, 0.12);
       cardBg.fillRoundedRect(cx - 58, cy - 58, 116, 28, { tl: 14, tr: 14, bl: 0, br: 0 });
-      // Border
       cardBg.lineStyle(2, selCol, selAlpha);
       cardBg.strokeRoundedRect(cx - 58, cy - 58, 116, 126, 14);
       if (isA || isB) {
-        // Selection glow
         cardBg.lineStyle(4, selCol, 0.20);
         cardBg.strokeRoundedRect(cx - 62, cy - 62, 124, 134, 16);
       }
@@ -240,6 +240,28 @@ export class BreedingLab extends Phaser.Scene {
       zone.on('pointerdown', () => { this._selectMonster(mon); });
       this._listGroup.add(zone);
     });
+
+    // Pagination controls
+    if (totalPages > 1) {
+      const paginY = scrollY + 2 * 148 + 24;
+      const prevBtn = makeButton(this, W/2 - 80, paginY, 110, 38, '◀ Prev',
+        this._listPage > 0 ? 0x5030A0 : 0x1A0838, () => {
+          if (this._listPage > 0) { this._listPage--; this._buildMonsterList(this.scale.width, this.scale.height); }
+        }, 13);
+      prevBtn.setAlpha(this._listPage > 0 ? 1 : 0.35);
+      this._listGroup.add(prevBtn);
+
+      this._listGroup.add(this.add.text(W/2, paginY, (this._listPage + 1) + ' / ' + totalPages, {
+        fontFamily: FONT, fontSize: '14px', color: '#AABBDD',
+      }).setOrigin(0.5));
+
+      const nextBtn = makeButton(this, W/2 + 80, paginY, 110, 38, 'Next ▶',
+        this._listPage < totalPages - 1 ? 0x5030A0 : 0x1A0838, () => {
+          if (this._listPage < totalPages - 1) { this._listPage++; this._buildMonsterList(this.scale.width, this.scale.height); }
+        }, 13);
+      nextBtn.setAlpha(this._listPage < totalPages - 1 ? 1 : 0.35);
+      this._listGroup.add(nextBtn);
+    }
   }
 
   private _selectMonster(mon: Monster) {

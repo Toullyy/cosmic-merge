@@ -4,7 +4,7 @@ import { t } from '../i18n';
 import { SPECIES } from '../data';
 import { makeMonsterTexture, preloadMonsterTexture } from '../MonsterRenderer';
 import { makeButton } from '../ui/Button';
-import type { HabitatType, Monster } from '../types';
+import type { HabitatType, Monster, Species } from '../types';
 
 type FilterType = 'all' | HabitatType;
 
@@ -184,6 +184,7 @@ export class PokedexScene extends Phaser.Scene {
 
   private _buildGrid(W: number) {
     const discovered = new Set<number>(Game.state!.stats.discovered ?? []);
+    const discoveredColorsMap = Game.state!.discoveredColors ?? {};
     const filtered = this._filter === 'all' ? SPECIES : SPECIES.filter(s => s.habitat === this._filter);
 
     const COLS = 5;
@@ -240,6 +241,13 @@ export class PokedexScene extends Phaser.Scene {
           align: 'center', wordWrap: { width: cellW - 8 },
         }).setOrigin(0.5).setDepth(4);
 
+        const colorCount = (discoveredColorsMap[String(sp.id)] ?? []).length;
+        if (colorCount > 0) {
+          this.add.text(cx, cy + 51, '🎨 ' + colorCount + '/12', {
+            fontFamily: FONT, fontSize: '8px', color: '#99AACC',
+          }).setOrigin(0.5).setDepth(4);
+        }
+
         // Rare star badge
         if (sp.id >= 15) {
           const sb = this.add.graphics().setDepth(5);
@@ -259,6 +267,12 @@ export class PokedexScene extends Phaser.Scene {
             fontFamily: FONT, fontSize: '7px', fontStyle: 'bold', color: '#ffffff',
           }).setOrigin(0.5).setDepth(6);
         }
+
+        // Tap to view species detail
+        const tapZ = this.add.zone(cx, cy, cellW - 8, cellH - 8)
+          .setInteractive({ useHandCursor: true }).setDepth(6);
+        const _cc = (discoveredColorsMap[String(sp.id)] ?? []).length;
+        tapZ.on('pointerdown', () => this._showDetailPopup(sp, _cc));
       } else {
         // Undiscovered: dark silhouette of the actual monster + "???" label
         const texKey = 'mon_' + sp.id + '_0';
@@ -286,7 +300,68 @@ export class PokedexScene extends Phaser.Scene {
         this.add.text(cx, cy + 38, '???', {
           fontFamily: FONT, fontSize: '9px', color: '#2A1560',
         }).setOrigin(0.5).setDepth(4);
+        if (sp.id >= 15) {
+          this.add.text(cx, cy + 50, '🧬', {
+            fontFamily: FONT, fontSize: '10px', color: '#4433CC',
+          }).setOrigin(0.5).setDepth(4);
+        }
       }
     });
+  }
+
+  private _showDetailPopup(sp: Species, colorCount: number) {
+    const W = this.scale.width, H = this.scale.height;
+    const popup = this.add.container(0, 0).setDepth(60);
+
+    const overlay = this.add.graphics();
+    overlay.fillStyle(0x000000, 0.60);
+    overlay.fillRect(0, 0, W, H);
+    overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, W, H), Phaser.Geom.Rectangle.Contains);
+    overlay.on('pointerdown', () => popup.destroy());
+    popup.add(overlay);
+
+    const panW = 290, panH = 224;
+    const px = (W - panW) / 2, py = H / 2 - panH / 2;
+    const habCol = HABITAT_COLORS[sp.habitat] ?? 0x7840C0;
+    const habDark = HABITAT_DARK[sp.habitat] ?? 0x1C0A40;
+
+    const panel = this.add.graphics();
+    panel.fillStyle(habDark, 1);
+    panel.fillRoundedRect(px, py, panW, panH, 14);
+    panel.lineStyle(2, habCol, 0.85);
+    panel.strokeRoundedRect(px, py, panW, panH, 14);
+    panel.fillStyle(habCol, 0.12);
+    panel.fillRoundedRect(px, py, panW, 32, { tl: 14, tr: 14, bl: 0, br: 0 });
+    popup.add(panel);
+
+    const texKey = 'mon_' + sp.id + '_0';
+    if (this.textures.exists(texKey)) {
+      popup.add(this.add.image(px + 52, py + 122, texKey).setDisplaySize(82, 82));
+    }
+
+    popup.add(this.add.text(W / 2, py + 16, sp.name, {
+      fontFamily: FONT, fontSize: '18px', fontStyle: 'bold',
+      color: '#' + habCol.toString(16).padStart(6, '0'),
+    }).setOrigin(0.5));
+
+    const habIcons: Record<string, string> = { dirt: '⛰ Dirt', grass: '🌿 Grass', aquatic: '🌊 Aquatic' };
+    const isRare = sp.id >= 15;
+    const maxPrice = Math.round(sp.price * 3.0 * 0.8 * 1.5);
+
+    const lines: [string, string][] = [
+      [habIcons[sp.habitat] ?? sp.habitat, '#CCDDFF'],
+      ['⏱ Hatch: ' + sp.hatchHours + 'h', '#DDDDEE'],
+      ['💰 ' + sp.price + ' – ' + maxPrice, '#FFD700'],
+      ['🎨 Colors: ' + colorCount + ' / 12', '#AADDFF'],
+    ];
+    if (isRare) lines.push(['🧬 Rare · Breeding only', '#CC99FF']);
+
+    lines.forEach(([txt, col], i) => {
+      popup.add(this.add.text(px + 110, py + 52 + i * 26, txt, {
+        fontFamily: FONT, fontSize: '13px', color: col,
+      }).setOrigin(0, 0.5));
+    });
+
+    popup.add(makeButton(this, W / 2, py + panH - 20, 110, 34, t('btn.close'), 0x1A0838, () => popup.destroy(), 13));
   }
 }

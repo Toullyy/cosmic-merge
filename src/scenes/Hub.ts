@@ -1,5 +1,5 @@
 ﻿import Phaser from 'phaser';
-import { Game, FONT, store, sfx, getNewAchievements } from '../utils';
+import { Game, FONT, store, sfx, getNewAchievements, recordQuestProgress } from '../utils';
 import { SPECIES, HABITATS, TANK_COST, TANK_CAPACITY, MAX_TANKS, getLevelName, AD_COINS_REWARD, AD_COOLDOWN_MS, checkAndUpdateVisitor, VISITOR_DURATION_MS, TRAITS, ACHIEVEMENTS, DAILY_REWARDS } from '../data';
 import { t, currentLang, setLang } from '../i18n';
 import type { Achievement } from '../data';
@@ -815,7 +815,7 @@ export class Hub extends Phaser.Scene {
       fontFamily: FONT, fontSize: '14px', color: '#AA88CC',
     }).setOrigin(0.5));
 
-    const rewardLine = `🪙 ${reward.coins}` + (reward.diamonds > 0 ? `    💎 ${reward.diamonds}` : '');
+    const rewardLine = `💰 ${reward.coins}` + (reward.diamonds > 0 ? `    💎 ${reward.diamonds}` : '');
     popup.add(this.add.text(cx, rewardY + 34, rewardLine, {
       fontFamily: FONT, fontSize: '32px', fontStyle: 'bold', color: '#FFD700',
     }).setOrigin(0.5));
@@ -928,6 +928,7 @@ export class Hub extends Phaser.Scene {
         state.stats.sold++;
         state.stats.totalEarned += offerPrice;
         state.stats.visitorSales = (state.stats.visitorSales ?? 0) + 1;
+        recordQuestProgress('sell');
         state.visitorSpeciesId = undefined;
         state.visitorExpiresAt = undefined;
         store.setJSON('mps_state', state);
