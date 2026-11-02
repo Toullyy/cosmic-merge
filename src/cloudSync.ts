@@ -1,8 +1,9 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import {
   signInAnonymously,
-  signInWithPopup,
-  linkWithPopup,
+  signInWithRedirect,
+  linkWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider,
 } from 'firebase/auth';
 import { auth, db } from './firebase';
@@ -55,6 +56,22 @@ export async function loadFromCloud(): Promise<GameState | null> {
 
 export async function initCloudAuth(): Promise<void> {
   try {
+    // Handle return from Google redirect first
+    const redirectResult = await getRedirectResult(auth);
+    if (redirectResult) {
+      cloudStatus.uid = redirectResult.user.uid;
+      cloudStatus.isAnonymous = false;
+      cloudStatus.enabled = true;
+      return;
+    }
+    // Reuse persisted session if available
+    if (auth.currentUser) {
+      cloudStatus.uid = auth.currentUser.uid;
+      cloudStatus.isAnonymous = auth.currentUser.isAnonymous;
+      cloudStatus.enabled = true;
+      return;
+    }
+    // First time: sign in anonymously
     const cred = await signInAnonymously(auth);
     cloudStatus.uid = cred.user.uid;
     cloudStatus.isAnonymous = cred.user.isAnonymous;
@@ -64,31 +81,14 @@ export async function initCloudAuth(): Promise<void> {
   }
 }
 
-export async function linkGoogleAccount(): Promise<boolean> {
+// Redirects to Google — page will navigate away, no return value
+export async function linkGoogleAccount(): Promise<void> {
   const user = auth.currentUser;
-  if (!user) return false;
+  if (!user) return;
   const provider = new GoogleAuthProvider();
-  try {
-    if (user.isAnonymous) {
-      await linkWithPopup(user, provider);
-    } else {
-      await signInWithPopup(auth, provider);
-    }
-    cloudStatus.uid = auth.currentUser!.uid;
-    cloudStatus.isAnonymous = false;
-    return true;
-  } catch (e: any) {
-    // If anonymous account can't be linked (credential in use), sign in directly
-    if (e?.code === 'auth/credential-already-in-use') {
-      try {
-        await signInWithPopup(auth, provider);
-        cloudStatus.uid = auth.currentUser!.uid;
-        cloudStatus.isAnonymous = false;
-        return true;
-      } catch {
-        return false;
-      }
-    }
-    return false;
+  if (user.isAnonymous) {
+    await linkWithRedirect(user, provider);
+  } else {
+    await signInWithRedirect(auth, provider);
   }
 }

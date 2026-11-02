@@ -267,20 +267,12 @@ export class HowToPlay extends Phaser.Scene {
       this._contentGroup.add(linkStatusTxt);
 
       const btn = makeButton(this, cx, titleY + 240, 280, 52,
-        '🔵 เชื่อมต่อ Google', 0x1a4488, async () => {
-          linkStatusTxt.setText('กำลังเชื่อมต่อ...');
-          const ok = await linkGoogleAccount();
-          if (ok) {
-            linkStatusTxt.setText('✅ เชื่อมต่อสำเร็จ!');
-            // Refresh the page content after a short delay
-            this.time.delayedCall(1200, () => {
-              const panelY = this._panelY;
-              this._contentGroup.clear(true, true);
-              this._renderPage(this._W, panelY, this._panelW, this._panelH);
-            });
-          } else {
+        '🔵 เชื่อมต่อ Google', 0x1a4488, () => {
+          linkStatusTxt.setText('↗ กำลังไป Google...');
+          // linkGoogleAccount redirects the page away — no result to await
+          linkGoogleAccount().catch(() => {
             linkStatusTxt.setText('❌ ไม่สำเร็จ ลองใหม่อีกครั้ง');
-          }
+          });
         }, 16).setDepth(4);
       this._contentGroup.add(btn);
     } else {

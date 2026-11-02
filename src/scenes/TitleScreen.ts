@@ -579,21 +579,17 @@ export class TitleScreen extends Phaser.Scene {
 
     // Tap zone — depth 21 intercepts before the full-screen depth-20 tap
     const zone = this.add.zone(W / 2, BY, BW, BH).setDepth(22).setInteractive();
-    zone.on('pointerdown', async () => {
+    zone.on('pointerdown', () => {
       if (!cloudStatus.isAnonymous) return;
-      lbl.setText('⏳ กำลังเชื่อมต่อ...');
+      lbl.setText('↗ กำลังไป Google...');
       lbl.setColor('#FFFFFF');
       drawBg(0x1144AA, 0.90);
-      const ok = await linkGoogleAccount();
-      if (ok) {
-        lbl.setText('✅ Google ซิงค์แล้ว');
-        lbl.setColor('#88FFCC');
-        drawBg(0x0D4422, 0.70);
-      } else {
+      // linkGoogleAccount redirects the page — no await needed
+      linkGoogleAccount().catch(() => {
         lbl.setText('❌ ไม่สำเร็จ ลองอีกครั้ง');
         lbl.setColor('#FF9999');
         drawBg(0x0D2E66, 0.85);
-      }
+      });
     });
   }
 
