@@ -3,8 +3,8 @@ import { Game, FONT, store, sfx } from '../utils';
 import { t } from '../i18n';
 import { SPECIES, HABITATS, newEgg } from '../data';
 import { makeMonsterTexture, lighten } from '../MonsterRenderer';
-import { makeButton } from '../ui/Button';
-import { showToast } from '../ui/Toast';
+import { makeButton, setButtonLabel } from '../ui/Button';
+import { showToast, showFloat } from '../ui/Toast';
 import { Ads } from '../ads';
 import type { Monster } from '../types';
 
@@ -281,9 +281,13 @@ export class BreedingLab extends Phaser.Scene {
     const ready = !!(this._selectedA && this._selectedB);
     this._breedBtn.setAlpha(ready ? 1 : 0.38);
     if (ready) {
+      const spA = SPECIES[this._selectedA!.speciesId], spB = SPECIES[this._selectedB!.speciesId];
+      const cost = Math.round(Math.max(spA.price, spB.price) * 0.3);
+      setButtonLabel(this._breedBtn, t('btn.breed') + '\n💰 ' + cost);
       this.tweens.killTweensOf(this._breedBtn);
       this.tweens.add({ targets: this._breedBtn, scaleX: 1.05, scaleY: 1.05, duration: 600, ease: 'Sine.InOut', yoyo: true, repeat: -1 });
     } else {
+      setButtonLabel(this._breedBtn, t('btn.breed'));
       this.tweens.killTweensOf(this._breedBtn);
     }
   }
@@ -313,6 +317,13 @@ export class BreedingLab extends Phaser.Scene {
     const a = this._selectedA, b = this._selectedB;
     if (a.id === b.id) { showToast(this, t('toast.cannotSelf'), '#ff9999'); return; }
 
+    const spA = SPECIES[a.speciesId], spB = SPECIES[b.speciesId];
+    const breedCost = Math.round(Math.max(spA.price, spB.price) * 0.3);
+    if (Game.state!.coins < breedCost) {
+      showToast(this, t('toast.notEnoughCoins'), '#ff9999');
+      return;
+    }
+
     let childSpeciesId: number;
     if (a.speciesId === b.speciesId) {
       childSpeciesId = a.speciesId;
@@ -323,16 +334,17 @@ export class BreedingLab extends Phaser.Scene {
     const blendVi = Math.floor((a.variantIndex + b.variantIndex) / 2);
     const childVi = Math.max(0, Math.min(99, blendVi + Math.floor(Math.random() * 21) - 10));
 
-    const spA = SPECIES[a.speciesId], spB = SPECIES[b.speciesId];
     const baseHours = Math.max(spA.hatchHours, spB.hatchHours) * 1.5;
     const childSp = SPECIES[childSpeciesId];
     const finalHours = Math.max(baseHours, childSp.hatchHours * 0.5);
 
+    Game.state!.coins -= breedCost;
     const egg = newEgg(childSpeciesId, childVi, 'breeding', [a.id, b.id]);
     egg.hatchEndAt = Date.now() + finalHours * 3600000;
     Game.state!.eggs.push(egg);
     store.setJSON('mps_state', Game.state);
     sfx.buy();
+    showFloat(this, this.scale.width / 2, this.scale.height / 2 + 60, '-' + breedCost + ' 💰', '#FF8888');
     showToast(this, t('toast.breedStarted', { h: Math.ceil(finalHours) }), '#aaffaa');
 
     this._selectedA = null; this._selectedB = null;
@@ -340,5 +352,6 @@ export class BreedingLab extends Phaser.Scene {
     this._buildMonsterList(this.scale.width, this.scale.height);
     this._breedBtn.setAlpha(0.38);
     this.tweens.killTweensOf(this._breedBtn);
+    setButtonLabel(this._breedBtn, t('btn.breed'));
   }
 }
