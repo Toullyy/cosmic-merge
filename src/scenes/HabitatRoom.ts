@@ -1,7 +1,7 @@
 ﻿import Phaser from 'phaser';
 import { Game, FONT, store, sfx, recordQuestProgress } from '../utils';
 import { t } from '../i18n';
-import { SPECIES, HABITATS, FOOD_TYPES, TOY_TYPES, CLEAN_TOOLS, XP_TABLE, getLevelName, randomBuyer, randomListingDuration, TRAITS, BOWL_EAT_RATE, DECAY, getDecayMult } from '../data';
+import { SPECIES, HABITATS, FOOD_TYPES, TOY_TYPES, CLEAN_TOOLS, XP_TABLE, getLevelName, randomBuyer, randomListingDuration, TRAITS, BOWL_EAT_RATE, DECAY, getDecayMult, DECORATIONS } from '../data';
 import { makeMonsterTexture, getVariantModifiers, lighten, darken } from '../MonsterRenderer';
 import { makeButton, setButtonLabel, setButtonColor } from '../ui/Button';
 import { showToast, showFloat } from '../ui/Toast';
@@ -58,6 +58,7 @@ export class HabitatRoom extends Phaser.Scene {
   private _xpBar: Phaser.GameObjects.Graphics | null = null;
   private _xpLevelTxt: Phaser.GameObjects.Text | null = null;
   private _statsY: number = 0;
+  private _decorG: Phaser.GameObjects.Graphics | null = null;
 
   constructor() { super({ key: 'HabitatRoom' }); }
 
@@ -75,6 +76,7 @@ export class HabitatRoom extends Phaser.Scene {
     this._sellPrice = this._calcSell(this._sp);
 
     this._drawBackground(W, H, this._sp.habitat);
+    this._drawDecorLayer(W, H);
     this._drawVignette(W, H);
     this._drawForeground(W, H, this._sp.habitat);
     this._buildMonsterArea(W, H, this._sp);
@@ -177,7 +179,16 @@ export class HabitatRoom extends Phaser.Scene {
       g.fillStyle(0xAAFFFF, 0.12); g.fillRect(20, 88, 500, 4);
     }
 
-    this._drawDecorations(g, W, H, habitat);
+  }
+
+  private _drawDecorLayer(W: number, H: number) {
+    if (this._decorG) { this._decorG.destroy(); this._decorG = null; }
+    this._decorG = this.add.graphics().setDepth(0);
+    this._drawDecorations(this._decorG, W, H, this._sp.habitat as HabitatType);
+  }
+
+  private _refreshDecorations() {
+    this._drawDecorLayer(this._W, this._H);
   }
 
   private _drawPerspectiveFloor(
@@ -1103,6 +1114,10 @@ export class HabitatRoom extends Phaser.Scene {
         bg.lineStyle(2, lighten(colors[i], 40), 0.70); bg.strokeEllipse(0, -8, 78, 74);
       });
     });
+
+    // Small decoration button at bottom-right corner
+    const decorBtn = makeButton(this, W - 46, btnY - 72, 82, 38, t('tab.decor'), 0x4A2080, () => this._showDecorPanel(), 13);
+    decorBtn.setDepth(10);
   }
 
   // ── HUD ───────────────────────────────────────────────────────────────────
@@ -1476,6 +1491,105 @@ export class HabitatRoom extends Phaser.Scene {
   private _clearPicker() {
     this._pickerItems.forEach(o => { try { (o as any).destroy(); } catch { /* ignore */ } });
     this._pickerItems = [];
+  }
+
+  // ── DECORATION PANEL ──────────────────────────────────────────────────────
+
+  private _showDecorPanel() {
+    if (this._pickerItems.length > 0) { this._clearPicker(); return; }
+    const W = this._W, H = this._H;
+    const state = Game.state!;
+    const habitat = this._sp.habitat as HabitatType;
+    const owned = state.habitats[habitat].decorations;
+    const items = DECORATIONS.filter(d => d.habitat === habitat);
+    const habColor = habitat === 'dirt' ? '#FFB866' : habitat === 'grass' ? '#66EE88' : '#66CCFF';
+    const glowHex  = habitat === 'dirt' ? 0xD4884A  : habitat === 'grass' ? 0x44CC55  : 0x22AAEE;
+
+    const panelH = 358;
+    const panelY = H - panelH - 100;
+
+    const panel = this.add.graphics().setDepth(28);
+    panel.fillStyle(0x0a0416, 0.97);
+    panel.fillRoundedRect(0, panelY, W, panelH, { tl: 18, tr: 18, bl: 0, br: 0 });
+    panel.lineStyle(1.5, 0x5040b0, 0.9);
+    panel.strokeRoundedRect(0, panelY, W, panelH, { tl: 18, tr: 18, bl: 0, br: 0 });
+    this._pickerItems.push(panel);
+
+    this._pickerItems.push(
+      this.add.text(W / 2, panelY + 26, t('tab.decor'), {
+        fontFamily: FONT, fontSize: '16px', fontStyle: 'bold', color: '#EEDDFF',
+      }).setOrigin(0.5).setDepth(29)
+    );
+
+    const pct = Math.round((1 - getDecayMult(state, habitat)) * 100);
+    this._pickerItems.push(
+      this.add.text(W / 2, panelY + 50, pct > 0 ? `-${pct}% stat decay` : 'ยังไม่มีของตกแต่ง', {
+        fontFamily: FONT, fontSize: '13px', color: pct > 0 ? habColor : '#8877AA',
+      }).setOrigin(0.5).setDepth(29)
+    );
+
+    const closeBtn = makeButton(this, W - 36, panelY + 18, 52, 32, '✕', 0x2A1A5A, () => this._clearPicker(), 13);
+    closeBtn.setDepth(30);
+    this._pickerItems.push(closeBtn);
+
+    items.forEach((dec, idx) => {
+      const rowY = panelY + 68 + idx * 92;
+      const isOwned = owned.includes(dec.id);
+      const tierColors = ['#FFB866', '#88EEBB', '#BB88FF'];
+
+      const rowBg = this.add.graphics().setDepth(28);
+      rowBg.fillStyle(isOwned ? 0x182818 : 0x150A2A, 1);
+      rowBg.fillRoundedRect(14, rowY, W - 28, 82, 11);
+      if (isOwned) {
+        rowBg.lineStyle(1.5, glowHex, 0.5);
+        rowBg.strokeRoundedRect(14, rowY, W - 28, 82, 11);
+      }
+      this._pickerItems.push(rowBg);
+
+      this._pickerItems.push(
+        this.add.text(46, rowY + 41, '★'.repeat(dec.tier), {
+          fontFamily: FONT, fontSize: '14px', color: tierColors[dec.tier - 1] ?? '#FFFFFF',
+        }).setOrigin(0.5).setDepth(29)
+      );
+
+      this._pickerItems.push(
+        this.add.text(72, rowY + 26, dec.name, {
+          fontFamily: FONT, fontSize: '16px', fontStyle: 'bold', color: isOwned ? '#FFFFFF' : '#CCBBEE',
+        }).setOrigin(0, 0.5).setDepth(29)
+      );
+
+      this._pickerItems.push(
+        this.add.text(72, rowY + 54, dec.desc, {
+          fontFamily: FONT, fontSize: '13px', color: '#9988BB',
+        }).setOrigin(0, 0.5).setDepth(29)
+      );
+
+      if (isOwned) {
+        this._pickerItems.push(
+          this.add.text(W - 22, rowY + 41, t('decor.installed'), {
+            fontFamily: FONT, fontSize: '13px', fontStyle: 'bold', color: '#66EE88',
+          }).setOrigin(1, 0.5).setDepth(29)
+        );
+      } else {
+        const canAfford = state.coins >= dec.cost;
+        const buyBtn = makeButton(this, W - 74, rowY + 41, 128, 38,
+          t('btn.buyDecor', { cost: dec.cost }), canAfford ? 0x2A3A6A : 0x1A1A2A, () => {
+            if (state.coins < dec.cost) { showToast(this, t('toast.notEnoughCoins'), '#ff9999'); return; }
+            state.coins -= dec.cost;
+            owned.push(dec.id);
+            store.setJSON('mps_state', state);
+            sfx.buy();
+            showFloat(this, W / 2, panelY + 10, t('toast.decorInstalled', { name: dec.name }), habColor);
+            this._clearPicker();
+            this._refreshDecorations();
+            this._updateCoinDisplay();
+            this._showDecorPanel();
+          }, 13);
+        buyBtn.setDepth(30);
+        if (!canAfford) buyBtn.setAlpha(0.5);
+        this._pickerItems.push(buyBtn);
+      }
+    });
   }
 
   // ── ANIMATIONS ────────────────────────────────────────────────────────────
