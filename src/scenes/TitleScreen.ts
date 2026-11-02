@@ -3,6 +3,7 @@ import { FONT } from '../utils';
 import { SPECIES } from '../data';
 import { preloadMonsterTexture } from '../MonsterRenderer';
 import type { Monster } from '../types';
+import { cloudStatus, linkGoogleAccount } from '../cloudSync';
 
 const BTN_Y = 370;
 
@@ -19,6 +20,7 @@ export class TitleScreen extends Phaser.Scene {
     this._drawDecorations(W, H);
     this._drawTitleBoard(W, H);
     this._drawButton(W, H);
+    this._drawAccountButton(W);
     this._startAmbient(W, H);
 
     // Full-screen tap
@@ -542,6 +544,57 @@ export class TitleScreen extends Phaser.Scene {
       fontFamily: FONT, fontSize: '13px', color: '#FFEEAA',
       stroke: '#332200', strokeThickness: 3,
     }).setOrigin(0.5).setDepth(9).setAlpha(0.75);
+  }
+
+  // ── Google account button ─────────────────────────────────────────────────
+  private _drawAccountButton(W: number) {
+    const BY = 490;
+    const BW = 230, BH = 38;
+
+    const bg = this.add.graphics().setDepth(21);
+    const lbl = this.add.text(W / 2, BY, '🔵 เชื่อมต่อ Google', {
+      fontFamily: FONT, fontSize: '14px', color: '#AACCFF',
+      stroke: '#001133', strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(22);
+
+    const drawBg = (color: number, alpha: number) => {
+      bg.clear();
+      bg.fillStyle(0x000000, 0.40);
+      bg.fillRoundedRect(W / 2 - BW / 2 + 3, BY - BH / 2 + 4, BW, BH, 19);
+      bg.fillStyle(color, alpha);
+      bg.fillRoundedRect(W / 2 - BW / 2, BY - BH / 2, BW, BH, 19);
+      bg.lineStyle(1.5, 0x4488FF, 0.70);
+      bg.strokeRoundedRect(W / 2 - BW / 2, BY - BH / 2, BW, BH, 19);
+    };
+    drawBg(0x0D2E66, 0.85);
+
+    // After auth resolves, update label to reflect real state
+    this.time.delayedCall(800, () => {
+      if (!cloudStatus.isAnonymous) {
+        lbl.setText('✅ Google ซิงค์แล้ว');
+        lbl.setColor('#88FFCC');
+        drawBg(0x0D4422, 0.70);
+      }
+    });
+
+    // Tap zone — depth 21 intercepts before the full-screen depth-20 tap
+    const zone = this.add.zone(W / 2, BY, BW, BH).setDepth(22).setInteractive();
+    zone.on('pointerdown', async () => {
+      if (!cloudStatus.isAnonymous) return;
+      lbl.setText('⏳ กำลังเชื่อมต่อ...');
+      lbl.setColor('#FFFFFF');
+      drawBg(0x1144AA, 0.90);
+      const ok = await linkGoogleAccount();
+      if (ok) {
+        lbl.setText('✅ Google ซิงค์แล้ว');
+        lbl.setColor('#88FFCC');
+        drawBg(0x0D4422, 0.70);
+      } else {
+        lbl.setText('❌ ไม่สำเร็จ ลองอีกครั้ง');
+        lbl.setColor('#FF9999');
+        drawBg(0x0D2E66, 0.85);
+      }
+    });
   }
 
   // ── Ambient: lantern glow pulse + warm dust motes ─────────────────────────
