@@ -16,6 +16,7 @@ const D: Record<Lang, Record<string, string>> = {
     'nav.questsDone': '📜 Quests ✓',
     'nav.dex':        '📖 Dex {n}/25',
     'nav.breed':      '💕 Breed',
+    'nav.visit':      '🌍 Visit',
     // Hub — ad button
     'hub.adReady':    '📺 +{n}💰',
     'hub.adCoolM':    '📺 {m}m',
@@ -160,6 +161,16 @@ const D: Record<Lang, Record<string, string>> = {
     'howto.page3.l2': 'Collect all 25 species in the Dex.',
     'howto.page3.l3': 'Buy more tanks (100 G each) to house more monsters.',
     'howto.page4.title': '✨ Monster Traits',
+    // VisitScene
+    'visit.title':      '🌍 Browse Shops',
+    'visit.loading':    'Loading...',
+    'visit.empty':      'No other shops yet!\nPlay more to discover other players.',
+    'visit.noMonsters': 'No monsters in this shop.',
+    'visit.monsters':   '{n} monsters',
+    'visit.sold':       'Sold: {n}',
+    'visit.viewShop':   '👀 View',
+    'visit.backList':   '← Shops',
+    'visit.shopOf':     '{name}\'s Shop',
     // MonsterGallery / Pokedex
     'gallery.title':   'Monster Gallery',
     'gallery.loading': '⏳ Loading sprites…',
@@ -184,6 +195,7 @@ const D: Record<Lang, Record<string, string>> = {
     'nav.questsDone': '📜 เควส ✓',
     'nav.dex':        '📖 สะสม {n}/25',
     'nav.breed':      '💕 ผสมพันธุ์',
+    'nav.visit':      '🌍 เยี่ยม',
     // Hub — ad button
     'hub.adReady':    '📺 +{n}💰',
     'hub.adCoolM':    '📺 {m}น.',
@@ -328,6 +340,16 @@ const D: Record<Lang, Record<string, string>> = {
     'howto.page3.l2': 'สะสมครบทั้ง 25 สายพันธุ์ใน Dex',
     'howto.page3.l3': 'ซื้อตู้เพิ่ม (100 G ต่อตู้) เพื่อเลี้ยงมอนสเตอร์ได้มากขึ้น',
     'howto.page4.title': '✨ ลักษณะนิสัยมอนสเตอร์',
+    // VisitScene
+    'visit.title':      '🌍 ร้านผู้เล่นอื่น',
+    'visit.loading':    'กำลังโหลด...',
+    'visit.empty':      'ยังไม่มีร้านอื่นให้ดู!\nเล่นต่อเพื่อค้นพบผู้เล่นอื่น',
+    'visit.noMonsters': 'ร้านนี้ยังไม่มีมอนสเตอร์',
+    'visit.monsters':   '{n} ตัว',
+    'visit.sold':       'ขายแล้ว: {n}',
+    'visit.viewShop':   '👀 เข้าชม',
+    'visit.backList':   '← ร้านค้า',
+    'visit.shopOf':     'ร้านของ {name}',
     // MonsterGallery / Pokedex
     'gallery.title':   'แกลเลอรี่มอนสเตอร์',
     'gallery.loading': '⏳ กำลังโหลด…',

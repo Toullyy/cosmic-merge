@@ -1,4 +1,5 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { publishShop } from './shopSync';
 import {
   signInAnonymously,
   signInWithRedirect,
@@ -37,6 +38,7 @@ async function _doSaveToCloud(state: GameState): Promise<void> {
       savedAt: state.lastTickAt,
     });
     cloudStatus.synced = true;
+    publishShop(state);
   } catch {
     // Silently fail — localStorage remains source of truth
   }

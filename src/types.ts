@@ -114,6 +114,25 @@ export interface GameState {
   discoveredColors?: Record<string, number[]>;
 }
 
+export interface PublicMonster {
+  id: string;
+  speciesId: number;
+  variantIndex: number;
+  level: number;
+  nickname: string | null;
+  trait: string | null;
+  happiness: number;
+  habitatType: HabitatType;
+}
+
+export interface PublicShop {
+  uid: string;
+  name: string;
+  updatedAt: number;
+  monsters: PublicMonster[];
+  stats: { sold: number; hatched: number; totalEarned: number };
+}
+
 export interface VariantModifiers {
   hueShift: number;
   patternType: number;

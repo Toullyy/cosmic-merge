@@ -541,8 +541,8 @@ export class Hub extends Phaser.Scene {
   }
 
   private _buildBottomNav(W: number, H: number) {
-    const btnY = H - 54, bw = 118, bh = 52;
-    const xs = [W/8, W*3/8, W*5/8, W*7/8];
+    const btnY = H - 54, bw = 100, bh = 52;
+    const xs = [W/10, W*3/10, W/2, W*7/10, W*9/10];
 
     // Unified dark nav bar
     const navBg = this.add.graphics().setDepth(9);
@@ -584,6 +584,10 @@ export class Hub extends Phaser.Scene {
         Ads.maybeInterstitial(() => { this.scene.start('BreedingLab'); });
       }
     }, 14).setDepth(10);
+
+    makeButton(this, xs[4], btnY, bw, bh, t('nav.visit'), NAV_COLOR, () => {
+      this.scene.start('VisitScene');
+    }, 13).setDepth(10);
   }
 
   private _addBtnShimmer(cx: number, cy: number, w: number, h: number, startDelay: number) {
