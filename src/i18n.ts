@@ -57,6 +57,8 @@ const D: Record<Lang, Record<string, string>> = {
     'btn.back':          '← Back',
     'btn.close':         'Close',
     'btn.cancel':        'Cancel',
+    'btn.confirm':       'Confirm',
+    'confirm.unlock':    'Unlock this habitat for {cost} coins?',
     // HabitatRoom
     'btn.sell':       'Sell  {price}💰',
     'hint.golden':    '✨ Golden +50%  ·  max: {max}💰',
@@ -223,6 +225,8 @@ const D: Record<Lang, Record<string, string>> = {
     'btn.back':          '← กลับ',
     'btn.close':         'ปิด',
     'btn.cancel':        'ยกเลิก',
+    'btn.confirm':       'ยืนยัน',
+    'confirm.unlock':    'ปลดล็อก habitat นี้ใช้ {cost} เหรียญ?',
     // HabitatRoom
     'btn.sell':       'ขาย  {price}💰',
     'hint.golden':    '✨ ทอง +50%  ·  สูงสุด: {max}💰',

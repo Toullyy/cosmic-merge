@@ -620,14 +620,64 @@ export class Hub extends Phaser.Scene {
       showToast(this, t('toast.needCoinsUnlock', { cost, name: hName }), '#ff9999');
       return;
     }
-    Game.state!.coins -= cost;
-    Game.state!.habitats[type].unlocked = true;
-    if (!Game.state!.tanks) Game.state!.tanks = { dirt: 4, grass: 0, aquatic: 0 };
-    Game.state!.tanks[type] = 4;
-    store.setJSON('mps_state', Game.state);
-    this._updateCoinDisplay();
-    this._updateTabs();
-    showToast(this, t('toast.unlocked', { name: hName }), '#aaffaa');
+    this._showUnlockConfirm(type, hName, cost);
+  }
+
+  private _showUnlockConfirm(type: HabitatType, hName: string, cost: number) {
+    const W = this.scale.width, H = this.scale.height;
+    const popup = this.add.container(W / 2, H / 2).setDepth(50);
+
+    const dim = this.add.graphics();
+    dim.fillStyle(0x000000, 0.55);
+    dim.fillRect(-W / 2, -H / 2, W, H);
+    dim.setInteractive(new Phaser.Geom.Rectangle(-W / 2, -H / 2, W, H), Phaser.Geom.Rectangle.Contains);
+
+    const panel = this.add.graphics();
+    panel.fillStyle(0x1a0a3a, 1);
+    panel.fillRoundedRect(-160, -110, 320, 220, 18);
+    panel.lineStyle(2, 0x8866CC, 1);
+    panel.strokeRoundedRect(-160, -110, 320, 220, 18);
+    panel.fillStyle(0x6644AA, 0.12);
+    panel.fillRoundedRect(-158, -108, 316, 52, { tl: 16, tr: 16, bl: 0, br: 0 });
+
+    const habColors: Record<string, string> = { dirt: '#FFCC88', grass: '#AAFFAA', aquatic: '#AAEEFF' };
+    const title = this.add.text(0, -82, '🔓 ' + hName, {
+      fontFamily: FONT, fontSize: '20px', fontStyle: 'bold',
+      color: habColors[type] ?? '#FFFFFF',
+    }).setOrigin(0.5);
+
+    const body = this.add.text(0, -20, t('confirm.unlock', { cost }), {
+      fontFamily: FONT, fontSize: '15px', color: '#CCCCEE',
+      align: 'center', wordWrap: { width: 280 },
+    }).setOrigin(0.5);
+
+    const coins = this.add.text(0, 30, '💰 ' + cost, {
+      fontFamily: FONT, fontSize: '22px', fontStyle: 'bold', color: '#FFD700',
+      stroke: '#000000', strokeThickness: 3,
+    }).setOrigin(0.5);
+
+    popup.add([dim, panel, title, body, coins]);
+
+    const close = () => popup.destroy();
+
+    const confirmBtn = makeButton(this, -75, 80, 130, 44, t('btn.confirm'), 0x226611, () => {
+      Game.state!.coins -= cost;
+      Game.state!.habitats[type].unlocked = true;
+      if (!Game.state!.tanks) Game.state!.tanks = { dirt: 4, grass: 0, aquatic: 0 };
+      Game.state!.tanks[type] = 4;
+      store.setJSON('mps_state', Game.state);
+      this._updateCoinDisplay();
+      this._updateTabs();
+      showToast(this, t('toast.unlocked', { name: hName }), '#aaffaa');
+      close();
+    }, 15);
+    confirmBtn.setDepth(51);
+
+    const cancelBtn = makeButton(this, 75, 80, 130, 44, t('btn.cancel'), 0x441122, close, 15);
+    cancelBtn.setDepth(51);
+
+    popup.add([confirmBtn, cancelBtn]);
+    dim.on('pointerdown', close);
   }
 
   private _buildVisitorBanner(W: number, H: number) {
