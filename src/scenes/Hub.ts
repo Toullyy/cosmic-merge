@@ -15,6 +15,12 @@ const HAB_PLATE: Record<string, [number, string]> = {
   aquatic: [0x145070, '#AAFFFF'],
 };
 
+const HAB_GLOW: Record<string, number> = {
+  dirt:    0xD4884A,
+  grass:   0x44CC55,
+  aquatic: 0x22AAEE,
+};
+
 export class Hub extends Phaser.Scene {
   private _currentHabitat: HabitatType = 'dirt';
   private _unlockPopupActive = false;
@@ -458,6 +464,20 @@ export class Hub extends Phaser.Scene {
     g.lineStyle(1.2, woodLight, 0.42); g.strokeRoundedRect(x + 2, y + 2, w - 4, h - 4, 6);
   }
 
+  private _drawGlassCard(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number, glowColor: number) {
+    const r = 14;
+    g.fillStyle(0x000000, 0.42);
+    g.fillRoundedRect(x + 4, y + 6, w, h, r);
+    g.fillStyle(glowColor, 0.10);
+    g.fillRoundedRect(x - 2, y - 2, w + 4, h + 4, r + 2);
+    g.fillStyle(0x14102A, 1);
+    g.fillRoundedRect(x, y, w, h, r);
+    g.lineStyle(2, glowColor, 0.80);
+    g.strokeRoundedRect(x, y, w, h, r);
+    g.fillStyle(0xffffff, 0.05);
+    g.fillRoundedRect(x + 3, y + 2, w - 6, h * 0.30, { tl: r - 2, tr: r - 2, bl: 0, br: 0 });
+  }
+
   private _drawHinge(g: Phaser.GameObjects.Graphics, x: number, y: number) {
     g.fillStyle(0x5A5A6A, 1); g.fillRoundedRect(x - 5, y - 9, 10, 18, 2);
     g.fillStyle(0x7A7A8A, 0.55); g.fillRoundedRect(x - 4, y - 8, 8, 8, 1);
@@ -524,18 +544,22 @@ export class Hub extends Phaser.Scene {
     const btnY = H - 54, bw = 118, bh = 52;
     const xs = [W/8, W*3/8, W*5/8, W*7/8];
 
-    // Soft translucent backing pill (no dark strip)
+    // Unified dark nav bar
     const navBg = this.add.graphics().setDepth(9);
-    navBg.fillStyle(0x000000, 0.18);
-    navBg.fillRoundedRect(6, H - 114, W - 12, 108, { tl: 24, tr: 24, bl: 0, br: 0 });
+    navBg.fillStyle(0x0E0B1C, 1);
+    navBg.fillRect(0, H - 108, W, 108);
+    navBg.lineStyle(1, 0x2A2050, 1);
+    navBg.beginPath(); navBg.moveTo(0, H - 108); navBg.lineTo(W, H - 108); navBg.strokePath();
 
-    makeButton(this, xs[0], btnY, bw, bh, t('nav.shop'), 0x22CC44, () => {
+    const NAV_COLOR = 0x1A1040;
+
+    makeButton(this, xs[0], btnY, bw, bh, t('nav.shop'), NAV_COLOR, () => {
       Ads.maybeInterstitial(() => { this.scene.start('Merchant'); });
     }, 15).setDepth(10);
 
     const unclaimedCount = (Game.state!.quests ?? []).filter(q => q.completed && !q.claimed).length;
     const questLabel = unclaimedCount > 0 ? t('nav.questsDone') : t('nav.quests');
-    this._questBtn = makeButton(this, xs[1], btnY, bw, bh, questLabel, 0xFF4433, () => {
+    this._questBtn = makeButton(this, xs[1], btnY, bw, bh, questLabel, unclaimedCount > 0 ? 0x22AA44 : NAV_COLOR, () => {
       this._showQuestsPanel();
     }, 14).setDepth(10);
     this._questDot = this.add.graphics().setDepth(12);
@@ -543,7 +567,7 @@ export class Hub extends Phaser.Scene {
 
     const disc = Game.state!.stats.discovered.length;
     const hasNew = (Game.state!.newDiscoveries?.length ?? 0) > 0;
-    this._dexBtn = makeButton(this, xs[2], btnY, bw, bh, t('nav.dex', { n: disc }), 0xFF77BB, () => {
+    this._dexBtn = makeButton(this, xs[2], btnY, bw, bh, t('nav.dex', { n: disc }), NAV_COLOR, () => {
       this.scene.start('PokedexScene');
     }, 13).setDepth(10);
     this._dexDot = this.add.graphics().setDepth(12);
@@ -552,7 +576,7 @@ export class Hub extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(13);
     this._updateDexDot(xs[2], bw, btnY, bh, hasNew);
 
-    makeButton(this, xs[3], btnY, bw, bh, t('nav.breed'), 0xFFAA00, () => {
+    makeButton(this, xs[3], btnY, bw, bh, t('nav.breed'), NAV_COLOR, () => {
       const eligible = Game.state!.monsters.filter(m => m.level >= 4);
       if (eligible.length < 2) {
         showToast(this, t('toast.need2monsters'), '#ff9999');
@@ -560,8 +584,6 @@ export class Hub extends Phaser.Scene {
         Ads.maybeInterstitial(() => { this.scene.start('BreedingLab'); });
       }
     }, 14).setDepth(10);
-
-    xs.forEach((cx, i) => this._addBtnShimmer(cx, btnY, bw, bh, i * 480));
   }
 
   private _addBtnShimmer(cx: number, cy: number, w: number, h: number, startDelay: number) {
@@ -1190,7 +1212,7 @@ export class Hub extends Phaser.Scene {
     const x = W * 3 / 8;
     const unclaimedCount = (Game.state!.quests ?? []).filter(q => q.completed && !q.claimed).length;
     setButtonLabel(this._questBtn, unclaimedCount > 0 ? t('nav.questsDone') : t('nav.quests'));
-    setButtonColor(this._questBtn, unclaimedCount > 0 ? 0x22BB44 : 0xFF4433);
+    setButtonColor(this._questBtn, unclaimedCount > 0 ? 0x22AA44 : 0x1A1040);
     this._updateQuestDot(x, bw, btnY, bh, unclaimedCount > 0);
   }
 
@@ -1254,38 +1276,34 @@ export class Hub extends Phaser.Scene {
     const vpW = CW - vpPad*2, vpH = CH - nameH - vpPad*2;
     const vpCY = vpY + vpH/2;
 
+    const glowCol = HAB_GLOW[this._currentHabitat] ?? 0x8844CC;
     const frame = this.add.graphics().setDepth(20);
-    this._drawWoodFrame(frame, cx - CW/2, cy - CH/2, CW, CH);
+    this._drawGlassCard(frame, cx - CW/2, cy - CH/2, CW, CH, glowCol);
     this._displayGroup.add(frame);
 
     const interior = this.add.graphics().setDepth(21);
-    interior.fillStyle(0x1A0E06, 0.70); interior.fillRect(vpX, vpY, vpW, vpH);
-    interior.lineStyle(2, 0x3A2010, 0.50); interior.strokeRect(vpX, vpY, vpW, vpH);
+    interior.fillStyle(0x0A0818, 0.70); interior.fillRect(vpX, vpY, vpW, vpH);
+    interior.lineStyle(1, glowCol, 0.20); interior.strokeRect(vpX, vpY, vpW, vpH);
     this._displayGroup.add(interior);
 
-    const hingeG = this.add.graphics().setDepth(26);
-    this._drawHinge(hingeG, cx - CW/2 + 6, cy - CH/2 + 22);
-    this._drawHinge(hingeG, cx - CW/2 + 6, cy + CH/2 - 22);
-    this._drawHinge(hingeG, cx + CW/2 - 6, cy - CH/2 + 22);
-    this._drawHinge(hingeG, cx + CW/2 - 6, cy + CH/2 - 22);
-    this._displayGroup.add(hingeG);
-
-    const plateY = cy - CH/2 + vpPad + vpH + 2;
-    const plateH = nameH - 4;
-    const [tankPlateColor, tankNameColor] = HAB_PLATE[this._currentHabitat] ?? [0x4A2808, '#FFD8A8'];
-    const plateG = this.add.graphics().setDepth(22);
-    plateG.fillStyle(tankPlateColor, 0.7); plateG.fillRoundedRect(vpX, plateY, vpW, plateH, 4);
-    plateG.lineStyle(1.5, 0x000000, 0.40); plateG.strokeRoundedRect(vpX, plateY, vpW, plateH, 4);
-    this._displayGroup.add(plateG);
+    const namePlateG = this.add.graphics().setDepth(22);
+    namePlateG.fillStyle(0x000000, 0.55);
+    namePlateG.fillRoundedRect(cx - CW/2, cy + CH/2 - nameH, CW, nameH, { tl: 0, tr: 0, bl: 14, br: 14 });
+    namePlateG.lineStyle(1, glowCol, 0.20);
+    namePlateG.beginPath();
+    namePlateG.moveTo(cx - CW/2 + 14, cy + CH/2 - nameH);
+    namePlateG.lineTo(cx + CW/2 - 14, cy + CH/2 - nameH);
+    namePlateG.strokePath();
+    this._displayGroup.add(namePlateG);
 
     this._displayGroup.add(this.add.text(cx, vpCY - 8, '🥚', {
       fontFamily: FONT, fontSize: '36px',
-    }).setOrigin(0.5).setDepth(22).setAlpha(0.5));
+    }).setOrigin(0.5).setDepth(22).setAlpha(0.4));
     this._displayGroup.add(this.add.text(cx, vpCY + 22, t('hub.goShop'), {
-      fontFamily: FONT, fontSize: '13px', color: '#CCAA88',
+      fontFamily: FONT, fontSize: '13px', color: '#9080BB',
     }).setOrigin(0.5).setDepth(22));
-    this._displayGroup.add(this.add.text(cx, plateY + plateH/2, t('hub.empty').split('!')[0], {
-      fontFamily: FONT, fontSize: '13px', color: tankNameColor,
+    this._displayGroup.add(this.add.text(cx, cy + CH/2 - nameH / 2, t('hub.empty').split('!')[0], {
+      fontFamily: FONT, fontSize: '13px', color: '#AAAACC',
     }).setOrigin(0.5).setDepth(23));
 
     const zone = this.add.zone(cx, cy, CW, CH).setInteractive().setDepth(25);
@@ -1301,42 +1319,34 @@ export class Hub extends Phaser.Scene {
     const vpX = cx - CW/2 + vpPad, vpY = cy - CH/2 + vpPad;
     const vpW = CW - vpPad*2, vpH = CH - nameH - vpPad*2;
 
+    const glowCol = HAB_GLOW[this._currentHabitat] ?? 0x8844CC;
     const frame = this.add.graphics().setDepth(20);
-    this._drawWoodFrame(frame, cx - CW/2, cy - CH/2, CW, CH);
+    this._drawGlassCard(frame, cx - CW/2, cy - CH/2, CW, CH, glowCol);
     this._displayGroup.add(frame);
 
     const interior = this.add.graphics().setDepth(21);
-    interior.fillStyle(0x1A0E06, 0.88); interior.fillRect(vpX, vpY, vpW, vpH);
-    interior.lineStyle(2, 0x3A2010, 0.65); interior.strokeRect(vpX, vpY, vpW, vpH);
+    interior.fillStyle(0x0A0818, 0.80); interior.fillRect(vpX, vpY, vpW, vpH);
+    interior.lineStyle(1, glowCol, 0.20); interior.strokeRect(vpX, vpY, vpW, vpH);
     this._displayGroup.add(interior);
 
-    const hingeG = this.add.graphics().setDepth(26);
-    this._drawHinge(hingeG, cx - CW/2 + 6, cy - CH/2 + 22);
-    this._drawHinge(hingeG, cx - CW/2 + 6, cy + CH/2 - 22);
-    this._drawHinge(hingeG, cx + CW/2 - 6, cy - CH/2 + 22);
-    this._drawHinge(hingeG, cx + CW/2 - 6, cy + CH/2 - 22);
-    this._displayGroup.add(hingeG);
-
-    const plateY = cy - CH/2 + vpPad + vpH + 2;
-    const plateH = nameH - 4;
-    const [tankPlateColor, tankNameColor] = HAB_PLATE[this._currentHabitat] ?? [0x4A2808, '#FFD8A8'];
-    const plateG = this.add.graphics().setDepth(22);
-    plateG.fillStyle(tankPlateColor, 1); plateG.fillRoundedRect(vpX, plateY, vpW, plateH, 4);
-    plateG.lineStyle(1.5, 0x000000, 0.50); plateG.strokeRoundedRect(vpX, plateY, vpW, plateH, 4);
-    plateG.lineStyle(1, 0xffffff, 0.10); plateG.strokeRoundedRect(vpX + 1, plateY + 1, vpW - 2, plateH - 2, 3);
-    this._displayGroup.add(plateG);
-    const screwG = this.add.graphics().setDepth(23);
-    this._drawScrew(screwG, vpX + 10, plateY + plateH/2); this._drawScrew(screwG, vpX + vpW - 10, plateY + plateH/2);
-    this._displayGroup.add(screwG);
-    this._displayGroup.add(this.add.text(cx, plateY + plateH/2, t('hub.buyTank'), {
-      fontFamily: FONT, fontSize: '16px', fontStyle: 'bold', color: tankNameColor,
+    const namePlateG = this.add.graphics().setDepth(22);
+    namePlateG.fillStyle(glowCol, 0.18);
+    namePlateG.fillRoundedRect(cx - CW/2, cy + CH/2 - nameH, CW, nameH, { tl: 0, tr: 0, bl: 14, br: 14 });
+    namePlateG.lineStyle(1, glowCol, 0.35);
+    namePlateG.beginPath();
+    namePlateG.moveTo(cx - CW/2 + 14, cy + CH/2 - nameH);
+    namePlateG.lineTo(cx + CW/2 - 14, cy + CH/2 - nameH);
+    namePlateG.strokePath();
+    this._displayGroup.add(namePlateG);
+    this._displayGroup.add(this.add.text(cx, cy + CH/2 - nameH / 2, t('hub.buyTank'), {
+      fontFamily: FONT, fontSize: '15px', fontStyle: 'bold', color: '#FFFFFF',
       stroke: '#000000', strokeThickness: 1,
     }).setOrigin(0.5).setDepth(23));
 
     const vpCY = vpY + vpH/2;
     this._displayGroup.add(this.add.text(cx, vpCY - 18, '+', {
-      fontFamily: FONT, fontSize: '52px', color: '#CCAA60', fontStyle: 'bold',
-    }).setOrigin(0.5).setDepth(22));
+      fontFamily: FONT, fontSize: '52px', color: '#FFFFFF', fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(22).setAlpha(0.35));
     this._displayGroup.add(this.add.text(cx, vpCY + 28, TANK_COST + ' 💰', {
       fontFamily: FONT, fontSize: '18px', color: '#FFD700',
       stroke: '#000000', strokeThickness: 2,
@@ -1383,8 +1393,9 @@ export class Hub extends Phaser.Scene {
     const vpX = cx - CW/2 + vpPad, vpY = cy - CH/2 + vpPad;
     const vpW = CW - vpPad*2, vpH = CH - nameH - vpPad*2;
 
+    const glowCol = HAB_GLOW[sp.habitat] ?? 0x8844CC;
     const frame = this.add.graphics().setDepth(20);
-    this._drawWoodFrame(frame, cx - CW/2, cy - CH/2, CW, CH);
+    this._drawGlassCard(frame, cx - CW/2, cy - CH/2, CW, CH, glowCol);
     this._displayGroup.add(frame);
 
     const innerBg = this.add.graphics().setDepth(21);
@@ -1392,34 +1403,23 @@ export class Hub extends Phaser.Scene {
     this._displayGroup.add(innerBg);
 
     const viewBorder = this.add.graphics().setDepth(22);
-    viewBorder.lineStyle(2, 0x3A2010, 0.65); viewBorder.strokeRect(vpX, vpY, vpW, vpH);
-    viewBorder.lineStyle(1, 0xA87050, 0.28); viewBorder.strokeRect(vpX + 1, vpY + 1, vpW - 2, vpH - 2);
+    viewBorder.lineStyle(1.5, glowCol, 0.30); viewBorder.strokeRect(vpX, vpY, vpW, vpH);
     this._displayGroup.add(viewBorder);
 
-    const hingeG = this.add.graphics().setDepth(26);
-    this._drawHinge(hingeG, cx - CW/2 + 6, cy - CH/2 + 22);
-    this._drawHinge(hingeG, cx - CW/2 + 6, cy + CH/2 - 22);
-    this._drawHinge(hingeG, cx + CW/2 - 6, cy - CH/2 + 22);
-    this._drawHinge(hingeG, cx + CW/2 - 6, cy + CH/2 - 22);
-    this._displayGroup.add(hingeG);
+    // Frosted nameplate at card bottom
+    const namePlateG = this.add.graphics().setDepth(22);
+    namePlateG.fillStyle(0x000000, 0.58);
+    namePlateG.fillRoundedRect(cx - CW/2, cy + CH/2 - nameH, CW, nameH, { tl: 0, tr: 0, bl: 14, br: 14 });
+    namePlateG.lineStyle(1, glowCol, 0.22);
+    namePlateG.beginPath();
+    namePlateG.moveTo(cx - CW/2 + 14, cy + CH/2 - nameH);
+    namePlateG.lineTo(cx + CW/2 - 14, cy + CH/2 - nameH);
+    namePlateG.strokePath();
+    this._displayGroup.add(namePlateG);
 
-    const plateY = cy - CH/2 + vpPad + vpH + 2;
-    const plateH = nameH - 4;
-    const [plateColor, nameColor] = HAB_PLATE[sp.habitat] ?? [0x4A2808, '#FFD8A8'];
-    const plateG = this.add.graphics().setDepth(22);
-    plateG.fillStyle(plateColor, 1); plateG.fillRoundedRect(vpX, plateY, vpW, plateH, 4);
-    plateG.lineStyle(1.5, 0x000000, 0.50); plateG.strokeRoundedRect(vpX, plateY, vpW, plateH, 4);
-    plateG.lineStyle(1, 0xffffff, 0.10); plateG.strokeRoundedRect(vpX + 1, plateY + 1, vpW - 2, plateH - 2, 3);
-    this._displayGroup.add(plateG);
-
-    const screwG = this.add.graphics().setDepth(23);
-    const plateCY = plateY + plateH/2;
-    this._drawScrew(screwG, vpX + 10, plateCY); this._drawScrew(screwG, vpX + vpW - 10, plateCY);
-    this._displayGroup.add(screwG);
-
-    const displayName = (mon.nickname ?? sp.name).toUpperCase();
-    this._displayGroup.add(this.add.text(cx, plateCY, displayName, {
-      fontFamily: FONT, fontSize: '16px', fontStyle: 'bold', color: nameColor,
+    const displayName = mon.nickname ?? sp.name;
+    this._displayGroup.add(this.add.text(cx, cy + CH/2 - nameH / 2, displayName, {
+      fontFamily: FONT, fontSize: '15px', fontStyle: 'bold', color: '#FFFFFF',
       stroke: '#000000', strokeThickness: 1,
     }).setOrigin(0.5).setDepth(23));
 

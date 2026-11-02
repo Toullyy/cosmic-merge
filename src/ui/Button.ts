@@ -11,16 +11,16 @@ function _drawBg(g: Phaser.GameObjects.Graphics, w: number, h: number, fill: num
   g.fillStyle(fill, 1);
   g.fillRoundedRect(-w/2, -h/2, w, h, r);
   // bottom inner shadow (3-D depth)
-  g.fillStyle(0x000000, 0.26);
-  g.fillRoundedRect(-w/2 + 3, h/2 - 11, w - 6, 11, { tl: 0, tr: 0, bl: r - 3, br: r - 3 });
+  g.fillStyle(0x000000, 0.20);
+  g.fillRoundedRect(-w/2 + 3, h/2 - 10, w - 6, 10, { tl: 0, tr: 0, bl: r - 3, br: r - 3 });
   // top gloss
-  g.fillStyle(0xffffff, 0.44);
-  g.fillRoundedRect(-w/2 + 4, -h/2 + 2, w - 8, h * 0.44, { tl: r - 3, tr: r - 3, bl: 0, br: 0 });
+  g.fillStyle(0xffffff, 0.16);
+  g.fillRoundedRect(-w/2 + 4, -h/2 + 2, w - 8, h * 0.40, { tl: r - 3, tr: r - 3, bl: 0, br: 0 });
   // top shine stripe
-  g.fillStyle(0xffffff, 0.72);
-  g.fillRoundedRect(-w/2 + 10, -h/2 + 4, w - 20, 4, 2);
-  // white border
-  g.lineStyle(3, 0xffffff, 0.92);
+  g.fillStyle(0xffffff, 0.22);
+  g.fillRoundedRect(-w/2 + 10, -h/2 + 4, w - 20, 3, 2);
+  // border
+  g.lineStyle(2, 0xffffff, 0.38);
   g.strokeRoundedRect(-w/2, -h/2, w, h, r);
 }
 
