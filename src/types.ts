@@ -110,6 +110,8 @@ export interface GameState {
   loginStreak?: number;
   lastLoginDate?: string;
   longestStreak?: number;
+  dailyAdClaimedDate?: string;
+  discoveredColors?: Record<string, number[]>;
 }
 
 export interface VariantModifiers {

@@ -80,6 +80,8 @@ export class Boot extends Phaser.Scene {
       if (Game.state.loginStreak   === undefined) Game.state.loginStreak   = 0;
       if (Game.state.longestStreak === undefined) Game.state.longestStreak = 0;
       if (Game.state.lastLoginDate === undefined) Game.state.lastLoginDate = '';
+      if (!Game.state.dailyAdClaimedDate) Game.state.dailyAdClaimedDate = '';
+      if (!Game.state.discoveredColors)   Game.state.discoveredColors   = {};
       reconcileOfflineTime(Game.state);
       // retroactive achievement check (silent — no popups, just awards diamonds for past play)
       getNewAchievements(Game.state);

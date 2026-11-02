@@ -261,6 +261,11 @@ export class HatchScene extends Phaser.Scene {
     const goldenList = Game.state!.stats.goldenDiscovered ?? [];
     const isNewGolden = monMods.isGolden && !goldenList.includes(mon.speciesId);
 
+    const hueBand = mon.variantIndex % 12;
+    const discoveredColorsMap = Game.state!.discoveredColors ?? {};
+    const seenBands = discoveredColorsMap[String(mon.speciesId)] ?? [];
+    const isNewColor = !seenBands.includes(hueBand);
+
     let diamondReward = 0;
     if (isNewSpecies) {
       if (Game.state!.newDiscoveries && !Game.state!.newDiscoveries.includes(String(mon.speciesId))) {
@@ -274,6 +279,15 @@ export class HatchScene extends Phaser.Scene {
         Game.state!.newDiscoveries.push(String(mon.speciesId));
       }
       diamondReward = DIAMOND_NEW_COLOR;
+    } else if (isNewColor) {
+      diamondReward = DIAMOND_NEW_COLOR;
+    }
+
+    // Always track the hue band for this species
+    if (isNewColor) {
+      seenBands.push(hueBand);
+      discoveredColorsMap[String(mon.speciesId)] = seenBands;
+      Game.state!.discoveredColors = discoveredColorsMap;
     }
 
     if (diamondReward > 0) {
@@ -324,7 +338,8 @@ export class HatchScene extends Phaser.Scene {
         const habIcons: Record<string, string> = { dirt: '⛰', grass: '🌿', aquatic: '🌊' };
         const badgeStr = (habIcons[sp.habitat] ?? '') + '  ⏱' + sp.hatchHours + 'h'
           + (monMods.isGolden ? '  ✨ Golden!' : '')
-          + (isNewSpecies ? '  🆕 New!' : '');
+          + (isNewSpecies ? '  🆕 New!' : '')
+          + (!isNewSpecies && isNewColor && !isNewGolden ? '  🎨 New color!' : '');
         const badgeT = this.add.text(W / 2, cardY + 44, badgeStr, {
           fontFamily: FONT, fontSize: '14px', color: '#CCBBFF',
         }).setOrigin(0.5).setDepth(9).setAlpha(0);

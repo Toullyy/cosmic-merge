@@ -180,7 +180,7 @@ const D: Record<Lang, Record<string, string>> = {
     'nav.shop':       '🛒 ร้านค้า',
     'nav.quests':     '📜 เควส',
     'nav.questsDone': '📜 เควส ✓',
-    'nav.dex':        '📖 สมุดสะสม {n}',
+    'nav.dex':        '📖 สะสม {n}/25',
     'nav.breed':      '💕 ผสมพันธุ์',
     // Hub — ad button
     'hub.adReady':    '📺 +{n}💰',

@@ -32,6 +32,7 @@ export class Hub extends Phaser.Scene {
   private _questDot!: Phaser.GameObjects.Graphics;
   private _visitorBanner: Phaser.GameObjects.Container | null = null;
   private _visitorTimer: Phaser.Time.TimerEvent | null = null;
+  private _dailyAdBadge: Phaser.GameObjects.Container | null = null;
 
   constructor() { super({ key: 'Hub' }); }
 
@@ -57,7 +58,10 @@ export class Hub extends Phaser.Scene {
     const boot = document.getElementById('boot');
     if (boot) boot.style.display = 'none';
 
-    this.time.delayedCall(400, () => this._checkDailyLogin());
+    this.time.delayedCall(400, () => {
+      this._checkDailyLogin();
+      this._restoreDailyAdBadgeIfNeeded();
+    });
   }
 
   private _buildBackground(W: number, H: number) {
@@ -259,24 +263,15 @@ export class Hub extends Phaser.Scene {
     hud.fillStyle(0xffffff, 0.30);
     hud.fillRoundedRect(183, 9, 118, 22, { tl: 15, tr: 15, bl: 0, br: 0 });
 
-    this.add.text(26, 34, '💰', {
-      fontFamily: FONT, fontSize: '26px', color: '#FFD700',
+    this._coinTxt = this.add.text(92, 34, '💰 ' + String(Game.state!.coins), {
+      fontFamily: FONT, fontSize: '22px', color: '#ffffff', fontStyle: 'bold',
       stroke: '#000000', strokeThickness: 3,
-    }).setOrigin(0, 0.5).setDepth(11);
+    }).setOrigin(0.5, 0.5).setDepth(11);
 
-    this._coinTxt = this.add.text(62, 34, String(Game.state!.coins), {
-      fontFamily: FONT, fontSize: '24px', color: '#ffffff', fontStyle: 'bold',
+    this._diamondTxt = this.add.text(242, 34, '💎 ' + String(Game.state!.diamonds ?? 0), {
+      fontFamily: FONT, fontSize: '22px', color: '#88EEFF', fontStyle: 'bold',
       stroke: '#000000', strokeThickness: 3,
-    }).setOrigin(0, 0.5).setDepth(11);
-
-    this.add.text(192, 34, '💎', {
-      fontFamily: FONT, fontSize: '22px',
-    }).setOrigin(0, 0.5).setDepth(11);
-
-    this._diamondTxt = this.add.text(218, 34, String(Game.state!.diamonds ?? 0), {
-      fontFamily: FONT, fontSize: '24px', color: '#88EEFF', fontStyle: 'bold',
-      stroke: '#000000', strokeThickness: 3,
-    }).setOrigin(0, 0.5).setDepth(11);
+    }).setOrigin(0.5, 0.5).setDepth(11);
 
     // Free-coins ad button (sits between diamond box and sound icon)
     this._adBtn = makeButton(this, 370, 34, 108, 40, this._adBtnLabel(), 0x1EA040, () => {
@@ -703,10 +698,52 @@ export class Hub extends Phaser.Scene {
     state.coins += reward.coins;
     state.diamonds = (state.diamonds ?? 0) + reward.diamonds;
     store.setJSON('mps_state', state);
-    if (this._coinTxt) this._coinTxt.setText('🪙 ' + state.coins);
-    if (this._diamondTxt) this._diamondTxt.setText(String(state.diamonds));
+    if (this._coinTxt) this._coinTxt.setText('💰 ' + state.coins);
+    if (this._diamondTxt) this._diamondTxt.setText('💎 ' + (state.diamonds ?? 0));
 
     this._showDailyLoginPopup(reward, state.loginStreak!);
+  }
+
+  private _restoreDailyAdBadgeIfNeeded() {
+    const state = Game.state!;
+    const today = new Date().toISOString().slice(0, 10);
+    if (state.lastLoginDate === today && state.dailyAdClaimedDate !== today) {
+      const dayIdx = ((state.loginStreak! - 1) % DAILY_REWARDS.length);
+      this._showDailyAdBadge(DAILY_REWARDS[dayIdx]);
+    }
+  }
+
+  private _showDailyAdBadge(reward: typeof DAILY_REWARDS[0]) {
+    const today = new Date().toISOString().slice(0, 10);
+    if (Game.state!.dailyAdClaimedDate === today) return;
+    if (this._dailyAdBadge) { this._dailyAdBadge.destroy(); this._dailyAdBadge = null; }
+    const W = this.scale.width;
+    const badge = this.add.container(W - 70, 72).setDepth(12);
+    const bg = this.add.graphics();
+    bg.fillStyle(0x117733, 1);
+    bg.fillRoundedRect(-58, -16, 116, 32, 16);
+    bg.lineStyle(2, 0x44EE88, 1);
+    bg.strokeRoundedRect(-58, -16, 116, 32, 16);
+    const lbl = this.add.text(0, 0, '📺 x2 รับรางวัล', {
+      fontFamily: FONT, fontSize: '13px', fontStyle: 'bold', color: '#AAFFCC',
+    }).setOrigin(0.5);
+    badge.add([bg, lbl]);
+    badge.setInteractive(new Phaser.Geom.Rectangle(-58, -16, 116, 32), Phaser.Geom.Rectangle.Contains);
+    badge.on('pointerdown', () => {
+      Ads.showRewarded((res: { rewarded: boolean }) => {
+        if (res.rewarded) {
+          Game.state!.coins    += reward.coins;
+          Game.state!.diamonds  = (Game.state!.diamonds ?? 0) + reward.diamonds;
+          Game.state!.dailyAdClaimedDate = today;
+          store.setJSON('mps_state', Game.state);
+          this._updateCoinDisplay();
+          showToast(this, `🎁 x2! +${reward.coins}💰` + (reward.diamonds > 0 ? ` +${reward.diamonds}💎` : ''), '#AAFFCC');
+          badge.destroy(); this._dailyAdBadge = null;
+        }
+      });
+    });
+    this.tweens.add({ targets: bg, alpha: { from: 0.7, to: 1 }, duration: 900, yoyo: true, repeat: -1 });
+    this._dailyAdBadge = badge;
   }
 
   private _showDailyLoginPopup(reward: typeof DAILY_REWARDS[0], streak: number) {
@@ -791,23 +828,58 @@ export class Hub extends Phaser.Scene {
     }
 
     // Claim button
-    const btnY = py + panelH - 62;
+    const btnY = py + panelH - 110;
     const btnG = this.add.graphics();
     btnG.fillStyle(0x4411BB, 1);
-    btnG.fillRoundedRect(cx - 120, btnY, 240, 50, 25);
+    btnG.fillRoundedRect(cx - 120, btnY, 240, 46, 23);
     btnG.lineStyle(2, 0xAA66FF, 1);
-    btnG.strokeRoundedRect(cx - 120, btnY, 240, 50, 25);
+    btnG.strokeRoundedRect(cx - 120, btnY, 240, 46, 23);
     popup.add(btnG);
-    const btnTxt = this.add.text(cx, btnY + 25, '✓  รับรางวัล', {
+    const btnTxt = this.add.text(cx, btnY + 23, '✓  รับรางวัล', {
       fontFamily: FONT, fontSize: '20px', fontStyle: 'bold', color: '#FFFFFF',
     }).setOrigin(0.5);
     popup.add(btnTxt);
 
-    const btnZone = this.add.zone(cx, btnY + 25, 240, 50).setInteractive();
-    btnZone.on('pointerover',  () => { btnG.clear(); btnG.fillStyle(0x6622EE, 1); btnG.fillRoundedRect(cx - 120, btnY, 240, 50, 25); btnG.lineStyle(2, 0xCC88FF, 1); btnG.strokeRoundedRect(cx - 120, btnY, 240, 50, 25); });
-    btnZone.on('pointerout',   () => { btnG.clear(); btnG.fillStyle(0x4411BB, 1); btnG.fillRoundedRect(cx - 120, btnY, 240, 50, 25); btnG.lineStyle(2, 0xAA66FF, 1); btnG.strokeRoundedRect(cx - 120, btnY, 240, 50, 25); });
-    btnZone.on('pointerdown',  () => { popup.destroy(); });
+    const btnZone = this.add.zone(cx, btnY + 23, 240, 46).setInteractive();
+    btnZone.on('pointerover',  () => { btnG.clear(); btnG.fillStyle(0x6622EE, 1); btnG.fillRoundedRect(cx - 120, btnY, 240, 46, 23); btnG.lineStyle(2, 0xCC88FF, 1); btnG.strokeRoundedRect(cx - 120, btnY, 240, 46, 23); });
+    btnZone.on('pointerout',   () => { btnG.clear(); btnG.fillStyle(0x4411BB, 1); btnG.fillRoundedRect(cx - 120, btnY, 240, 46, 23); btnG.lineStyle(2, 0xAA66FF, 1); btnG.strokeRoundedRect(cx - 120, btnY, 240, 46, 23); });
+    btnZone.on('pointerdown',  () => { popup.destroy(); this._showDailyAdBadge(reward); });
     popup.add(btnZone);
+
+    // x2 ad button
+    const adBtnY = py + panelH - 56;
+    const today = new Date().toISOString().slice(0, 10);
+    const alreadyClaimed = Game.state!.dailyAdClaimedDate === today;
+    const adBtnG = this.add.graphics();
+    const adBtnColor = alreadyClaimed ? 0x332244 : 0x117733;
+    adBtnG.fillStyle(adBtnColor, 1);
+    adBtnG.fillRoundedRect(cx - 120, adBtnY, 240, 40, 20);
+    adBtnG.lineStyle(1.5, alreadyClaimed ? 0x554466 : 0x44EE88, 1);
+    adBtnG.strokeRoundedRect(cx - 120, adBtnY, 240, 40, 20);
+    popup.add(adBtnG);
+    popup.add(this.add.text(cx, adBtnY + 20,
+      alreadyClaimed ? '✓ รับ x2 แล้ว' : '📺 ดูโฆษณา รับ x2 🎁',
+      { fontFamily: FONT, fontSize: '16px', fontStyle: 'bold',
+        color: alreadyClaimed ? '#776688' : '#AAFFCC' }
+    ).setOrigin(0.5));
+    if (!alreadyClaimed) {
+      const adZone = this.add.zone(cx, adBtnY + 20, 240, 40).setInteractive();
+      adZone.on('pointerdown', () => {
+        Ads.showRewarded((res: { rewarded: boolean }) => {
+          if (res.rewarded) {
+            Game.state!.coins    += reward.coins;
+            Game.state!.diamonds  = (Game.state!.diamonds ?? 0) + reward.diamonds;
+            Game.state!.dailyAdClaimedDate = new Date().toISOString().slice(0, 10);
+            store.setJSON('mps_state', Game.state);
+            this._updateCoinDisplay();
+            showToast(this, `🎁 x2! +${reward.coins}💰` + (reward.diamonds > 0 ? ` +${reward.diamonds}💎` : ''), '#AAFFCC');
+            popup.destroy();
+            if (this._dailyAdBadge) { this._dailyAdBadge.destroy(); this._dailyAdBadge = null; }
+          }
+        });
+      });
+      popup.add(adZone);
+    }
 
     // Entrance tween
     popup.setAlpha(0);
@@ -1098,8 +1170,8 @@ export class Hub extends Phaser.Scene {
 
     const slots = this._getSlotPositions(W);
     let idx = 0;
-    eggs.forEach(egg => { if (idx < slots.length) { this._drawEggTerrarium(slots[idx].x, slots[idx].y, egg); idx++; } });
     monsters.forEach(mon => { if (idx < slots.length) { this._drawTerrarium(slots[idx].x, slots[idx].y, mon); idx++; } });
+    eggs.forEach(egg => { if (idx < slots.length) { this._drawEggTerrarium(slots[idx].x, slots[idx].y, egg); idx++; } });
 
     const usage = monsters.length + eggs.length;
     // Draw empty frames for owned-but-empty tanks
@@ -1374,7 +1446,8 @@ export class Hub extends Phaser.Scene {
     const mods = getVariantModifiers(egg.variantIndex);
     const now = Date.now();
     const isReady = now >= egg.hatchEndAt;
-    const eggColor = shiftHue(sp.baseColor, mods.hueShift);
+    const habBase: Record<string, number> = { dirt: 0xFF9900, grass: 0x66EE33, aquatic: 0x22CCFF };
+    const eggColor = shiftHue(habBase[sp.habitat] ?? sp.baseColor, mods.hueShift);
     const vpPad = 7, nameH = 40;
     const vpX = cx - CW/2 + vpPad, vpY = cy - CH/2 + vpPad;
     const vpW = CW - vpPad*2, vpH = CH - nameH - vpPad*2;
@@ -1544,8 +1617,8 @@ export class Hub extends Phaser.Scene {
   }
 
   private _updateCoinDisplay() {
-    if (this._coinTxt) this._coinTxt.setText(String(Game.state!.coins));
-    if (this._diamondTxt) this._diamondTxt.setText(String(Game.state!.diamonds ?? 0));
+    if (this._coinTxt) this._coinTxt.setText('💰 ' + Game.state!.coins);
+    if (this._diamondTxt) this._diamondTxt.setText('💎 ' + (Game.state!.diamonds ?? 0));
   }
 
   updateCoins() { this._updateCoinDisplay(); }
