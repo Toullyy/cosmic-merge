@@ -1,4 +1,4 @@
-import { collection, getDocs, doc, setDoc, query, orderBy, limit } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, query, orderBy, limit, where } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import type { GameState, PublicShop, PublicMonster } from './types';
 
@@ -49,8 +49,10 @@ export async function publishShop(state: GameState): Promise<void> {
 export async function fetchShops(limitCount: number = 20): Promise<PublicShop[]> {
   const user = auth.currentUser;
   try {
+    const fresh48h = Date.now() - 48 * 60 * 60 * 1000;
     const q = query(
       collection(db, 'shops'),
+      where('updatedAt', '>', fresh48h),
       orderBy('updatedAt', 'desc'),
       limit(limitCount),
     );

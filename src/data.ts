@@ -1,4 +1,5 @@
 import type { Species, FoodType, ToyType, CleanTool, HabitatType, HabitatConfig, Monster, Egg, GameState, Quest, Decoration } from './types';
+import { t } from './i18n';
 
 export interface Trait {
   id: string;
@@ -184,11 +185,11 @@ export function checkAndUpdateVisitor(state: GameState): void {
 // ── DAILY QUESTS ─────────────────────────────────────────────────────────────
 interface QuestDef { type: Quest['type']; targets: number[]; coins: number[]; makeLbl: (n: number) => string; }
 const QUEST_DEFS: QuestDef[] = [
-  { type: 'feed',  targets: [3, 5, 8], coins: [20, 35, 55], makeLbl: n => 'Feed ' + n + ' monsters'     },
-  { type: 'play',  targets: [2, 4, 6], coins: [25, 40, 65], makeLbl: n => 'Play with ' + n + ' monsters' },
-  { type: 'clean', targets: [2, 4, 6], coins: [20, 35, 55], makeLbl: n => 'Clean ' + n + ' monsters'     },
-  { type: 'sell',  targets: [1, 2, 3], coins: [30, 55, 90], makeLbl: n => 'Sell ' + n + ' monsters'      },
-  { type: 'hatch', targets: [1, 2],    coins: [40, 80],      makeLbl: n => 'Hatch ' + n + ' egg' + (n > 1 ? 's' : '') },
+  { type: 'feed',  targets: [3, 5, 8], coins: [20, 35, 55], makeLbl: n => t('quest.feed',  { n: String(n) }) },
+  { type: 'play',  targets: [2, 4, 6], coins: [25, 40, 65], makeLbl: n => t('quest.play',  { n: String(n) }) },
+  { type: 'clean', targets: [2, 4, 6], coins: [20, 35, 55], makeLbl: n => t('quest.clean', { n: String(n) }) },
+  { type: 'sell',  targets: [1, 2, 3], coins: [30, 55, 90], makeLbl: n => t('quest.sell',  { n: String(n) }) },
+  { type: 'hatch', targets: [1, 2],    coins: [40, 80],      makeLbl: n => t('quest.hatch', { n: String(n), s: '' }) },
 ];
 
 export function generateDailyQuests(): Quest[] {

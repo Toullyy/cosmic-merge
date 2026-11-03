@@ -223,12 +223,13 @@ export class Merchant extends Phaser.Scene {
   }
 
   private _buildFilterTabs(W: number) {
-    const filters = ['dirt', 'grass', 'aquatic', 'decor', 'toys'];
+    const filters = ['dirt', 'grass', 'aquatic', 'decor', 'toys', 'gems'];
     const labels: Record<string, string> = {
       dirt: t('tab.dirt'), grass: t('tab.grass'),
       aquatic: t('tab.aquatic'), decor: t('tab.decor'), toys: t('tab.toys'),
+      gems: t('tab.gems'),
     };
-    const tabW = (W - 20) / 5;
+    const tabW = (W - 20) / 6;
     filters.forEach((f, i) => {
       const x = 10 + tabW * i;
       const g = this.add.graphics().setDepth(4);
@@ -252,10 +253,10 @@ export class Merchant extends Phaser.Scene {
 
   private _updateFilterTabs() {
     const W = this.scale.width;
-    const filters = ['dirt', 'grass', 'aquatic', 'decor', 'toys'];
+    const filters = ['dirt', 'grass', 'aquatic', 'decor', 'toys', 'gems'];
     const tabW = (W - 20) / filters.length;
-    const activeCol: Record<string, number> = { dirt: 0x7A3808, grass: 0x286020, aquatic: 0x0E5A90, decor: 0x702808, toys: 0x4A1878 };
-    const glowCol: Record<string, number>   = { dirt: 0xFFAA44, grass: 0x66DD33, aquatic: 0x44CCFF, decor: 0xFFAA22, toys: 0xCC88FF };
+    const activeCol: Record<string, number> = { dirt: 0x7A3808, grass: 0x286020, aquatic: 0x0E5A90, decor: 0x702808, toys: 0x4A1878, gems: 0x1A4070 };
+    const glowCol: Record<string, number>   = { dirt: 0xFFAA44, grass: 0x66DD33, aquatic: 0x44CCFF, decor: 0xFFAA22, toys: 0xCC88FF, gems: 0x88CCFF };
 
     this._filterGroup.getChildren().forEach(child => {
       const key = (child as any)._filterKey;
@@ -295,7 +296,7 @@ export class Merchant extends Phaser.Scene {
   private _buildGrid(W: number, H: number) {
     this._closeToyPicker();
     this._gridGroup.clear(true, true);
-    this._refreshTxt.setVisible(this._filter !== 'toys');
+    this._refreshTxt.setVisible(this._filter !== 'toys' && this._filter !== 'gems');
 
     if (this._filter === 'toys') {
       this._buildToyGrid(W, H);
@@ -305,13 +306,17 @@ export class Merchant extends Phaser.Scene {
       this._buildDecorGrid(W, H);
       return;
     }
+    if (this._filter === 'gems') {
+      this._buildGemsGrid(W, H);
+      return;
+    }
 
     const stockIds = Game.state!.merchantStock ?? [];
     const filtered = stockIds.map(id => SPECIES[id]).filter(sp => sp && sp.habitat === this._filter);
 
     if (filtered.length === 0) {
       this._gridGroup.add(this.add.text(W / 2, 440, t('merchant.noStock', { habitat: this._filter }), {
-        fontFamily: FONT, fontSize: '16px', color: '#7766AA', align: 'center',
+        fontFamily: FONT, fontSize: '16px', color: '#9988CC', align: 'center',
       }).setOrigin(0.5));
       return;
     }
@@ -471,7 +476,7 @@ export class Merchant extends Phaser.Scene {
     const visible = DECORATIONS.filter(d => Game.state!.habitats[d.habitat].unlocked);
     if (visible.length === 0) {
       this._gridGroup.add(this.add.text(W / 2, 440, t('merchant.noDecor'), {
-        fontFamily: FONT, fontSize: '16px', color: '#7766AA', align: 'center',
+        fontFamily: FONT, fontSize: '16px', color: '#9988CC', align: 'center',
       }).setOrigin(0.5));
       return;
     }
@@ -530,6 +535,113 @@ export class Merchant extends Phaser.Scene {
         this._gridGroup.add(btn);
       }
     });
+  }
+
+  // ── DIAMOND SHOP ──────────────────────────────────────────────────────────
+
+  private _buildGemsGrid(W: number, H: number) {
+    const startY = 172;
+    const cardW = W - 32, cardH = 120;
+    const gap = 12;
+
+    this._gridGroup.add(this.add.text(W / 2, startY - 16, t('gems.title'), {
+      fontFamily: FONT, fontSize: '16px', color: '#88CCFF', fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(4));
+
+    const items = [
+      { btnKey: 'gems.btn.hatch', descKey: 'gems.desc.hatch', cost: 5, icon: '⚡', action: () => this._gemHatch() },
+      { btnKey: 'gems.btn.boost', descKey: 'gems.desc.boost', cost: 3, icon: '💊', action: () => this._gemBoost() },
+      { btnKey: 'gems.btn.reroll', descKey: 'gems.desc.reroll', cost: 2, icon: '🔄', action: () => this._gemReroll() },
+      { btnKey: 'gems.btn.lucky', descKey: 'gems.desc.lucky', cost: 8, icon: '🌟', action: () => this._gemLuckyEgg() },
+    ];
+
+    items.forEach((item, i) => {
+      const cy = startY + 16 + i * (cardH + gap) + cardH / 2;
+      const cx = W / 2;
+
+      const card = this.add.graphics().setDepth(3);
+      card.fillStyle(0x000000, 0.3);
+      card.fillRoundedRect(cx - cardW / 2 + 3, cy - cardH / 2 + 3, cardW, cardH, 14);
+      card.fillGradientStyle(0x0A1830, 0x0A1830, 0x142850, 0x142850, 1);
+      card.fillRoundedRect(cx - cardW / 2, cy - cardH / 2, cardW, cardH, 14);
+      card.lineStyle(1.5, 0x3366AA, 0.70);
+      card.strokeRoundedRect(cx - cardW / 2, cy - cardH / 2, cardW, cardH, 14);
+      this._gridGroup.add(card);
+
+      this._gridGroup.add(this.add.text(cx - cardW / 2 + 20, cy - 22, item.icon, {
+        fontFamily: FONT, fontSize: '28px',
+      }).setOrigin(0, 0.5).setDepth(4));
+
+      this._gridGroup.add(this.add.text(cx - cardW / 2 + 62, cy - 22, t(item.descKey), {
+        fontFamily: FONT, fontSize: '14px', color: '#CCDDFF',
+      }).setOrigin(0, 0.5).setDepth(4));
+
+      const btn = makeButton(this, cx + cardW / 2 - 88, cy + 18, 152, 40, t(item.btnKey), 0x1A3A6A, () => {
+        const state = Game.state!;
+        if ((state.diamonds ?? 0) < item.cost) {
+          showToast(this, t('gems.noDiamonds'), '#ff9999');
+          return;
+        }
+        item.action();
+      }, 13).setDepth(4);
+      this._gridGroup.add(btn);
+    });
+  }
+
+  private _gemHatch() {
+    const state = Game.state!;
+    const egg = state.eggs[0];
+    if (!egg) { showToast(this, t('gems.noEggs'), '#ffaaaa'); return; }
+    const cap = (state.tanks?.[egg.habitatType] ?? 1) * 1;
+    const monCount = state.monsters.filter(m => m.habitatType === egg.habitatType).length;
+    if (monCount >= cap) { showToast(this, t('toast.habitatFull'), '#ff9999'); return; }
+    state.diamonds = (state.diamonds ?? 0) - 5;
+    store.setJSON('mps_state', state);
+    this.scene.start('Hub');
+    const hub = this.scene.get('Hub') as any;
+    this.time.delayedCall(100, () => {
+      this.scene.launch('HatchScene', { eggId: egg.id });
+    });
+  }
+
+  private _gemBoost() {
+    const state = Game.state!;
+    if (state.monsters.length === 0) { showToast(this, t('gems.noMonsters'), '#ffaaaa'); return; }
+    state.diamonds = (state.diamonds ?? 0) - 3;
+    state.monsters.forEach(m => {
+      m.happiness = 100; m.hunger = 100; m.cleanliness = 100;
+    });
+    store.setJSON('mps_state', state);
+    showToast(this, t('toast.boosted', { name: '✨' }), '#aaffaa');
+    this._buildGrid(this.scale.width, this.scale.height);
+  }
+
+  private _gemReroll() {
+    const state = Game.state!;
+    state.diamonds = (state.diamonds ?? 0) - 2;
+    state.merchantStock = generateMerchantStock();
+    state.merchantRefreshAt = Date.now() + MERCHANT_REFRESH_MS;
+    store.setJSON('mps_state', state);
+    showToast(this, t('toast.rerolled'), '#aaffaa');
+    this._filter = 'dirt';
+    this._buildGrid(this.scale.width, this.scale.height);
+    this._updateFilterTabs();
+  }
+
+  private _gemLuckyEgg() {
+    const state = Game.state!;
+    const luckyVariants = [0, 7, 14, 21, 28, 35, 42, 49, 56, 63, 70, 77, 84, 91, 98];
+    const vi = luckyVariants[Math.floor(Math.random() * luckyVariants.length)];
+    const allHabitats: Array<'dirt' | 'grass' | 'aquatic'> = ['dirt', 'grass', 'aquatic'];
+    const unlocked = allHabitats.filter(h => state.habitats[h].unlocked);
+    const habitat = unlocked[Math.floor(Math.random() * unlocked.length)] ?? 'dirt';
+    const poolForHabitat = CATALOG.filter(sp => sp.habitat === habitat);
+    const sp = poolForHabitat[Math.floor(Math.random() * poolForHabitat.length)];
+    state.diamonds = (state.diamonds ?? 0) - 8;
+    state.eggs.push(newEgg(sp.id, vi, 'lucky'));
+    store.setJSON('mps_state', state);
+    showToast(this, t('toast.luckyEgg', { h: String(sp.hatchHours) }), '#FFD700');
+    sfx.buy();
   }
 
   // ── HANDLERS (logic unchanged) ─────────────────────────────────────────────

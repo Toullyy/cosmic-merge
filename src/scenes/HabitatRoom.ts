@@ -1,5 +1,5 @@
 ﻿import Phaser from 'phaser';
-import { Game, FONT, store, sfx, recordQuestProgress } from '../utils';
+import { Game, FONT, store, sfx, recordQuestProgress, reconcileOfflineTime } from '../utils';
 import { t } from '../i18n';
 import { SPECIES, HABITATS, FOOD_TYPES, TOY_TYPES, CLEAN_TOOLS, XP_TABLE, getLevelName, randomBuyer, randomListingDuration, TRAITS, BOWL_EAT_RATE, DECAY, getDecayMult, DECORATIONS } from '../data';
 import { makeMonsterTexture, getVariantModifiers, lighten, darken } from '../MonsterRenderer';
@@ -53,6 +53,7 @@ export class HabitatRoom extends Phaser.Scene {
   private _bowlLabelTxt: Phaser.GameObjects.Text | null = null;
   private _bowlSteamTimer: Phaser.Time.TimerEvent | null = null;
   private _eatTimer: Phaser.Time.TimerEvent | null = null;
+  private _decayTimer: Phaser.Time.TimerEvent | null = null;
   private _bowlX: number = 0;
   private _bowlY: number = 0;
   private _xpBar: Phaser.GameObjects.Graphics | null = null;
@@ -84,6 +85,7 @@ export class HabitatRoom extends Phaser.Scene {
     this._buildStats(W, H);
     this._buildActions(W, H);
     this._buildHUD(W, H, this._sp);
+    this._startDecayTimer();
     this._startAmbient(W, H, this._sp.habitat);
     this._drawTerrariumFrame(W, H);
 
@@ -312,8 +314,9 @@ export class HabitatRoom extends Phaser.Scene {
 
   private _drawVignette(W: number, H: number) {
     const v = this.add.graphics().setDepth(1);
-    v.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0.20, 0.20, 0, 0);
-    v.fillRect(0, 0, W, H * 0.22);
+    // Single smooth gradient from 68% at top (HUD area) to transparent at ~230px
+    v.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0.68, 0.68, 0, 0);
+    v.fillRect(0, 0, W, H * 0.24);
     v.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0.12, 0, 0, 0.12);
     v.fillRect(0, 0, W * 0.18, H * 0.72);
     v.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0, 0.12, 0.12, 0);
@@ -1134,7 +1137,8 @@ export class HabitatRoom extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(20);
 
     const speciesHint = this.add.text(W / 2, 40, sp.name + ' ✏️', {
-      fontFamily: FONT, fontSize: '13px', color: '#BBAAFF',
+      fontFamily: FONT, fontSize: '13px', color: '#DDCCFF',
+      stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5).setDepth(20).setInteractive({ useHandCursor: true });
     speciesHint.on('pointerdown', () => this._renameMonster());
 
@@ -1142,6 +1146,7 @@ export class HabitatRoom extends Phaser.Scene {
     this.add.text(W / 2, 57, getLevelName(this._monster.level) + '  ·  ' +
       sp.habitat.charAt(0).toUpperCase() + sp.habitat.slice(1) + traitLabel, {
       fontFamily: FONT, fontSize: '13px', color: '#CCDDFF',
+      stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5).setDepth(20);
 
     this._sellBtn = makeButton(this, W - 72, 34, 116, 44,
@@ -1157,6 +1162,7 @@ export class HabitatRoom extends Phaser.Scene {
       : t('hint.normal', { max: maxPrice });
     this.add.text(W - 72, 76, hintLabel, {
       fontFamily: FONT, fontSize: '13px', color: isGoldenMon ? '#FFD700' : '#DDCCFF',
+      stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5).setDepth(20);
 
     this._coinTxt = this.add.text(56, 70, '💰 ' + Game.state!.coins, {
@@ -1169,6 +1175,7 @@ export class HabitatRoom extends Phaser.Scene {
         try { document.body.removeChild(this._renameInput); } catch { /* ignore */ }
         this._renameInput = null;
       }
+      if (this._decayTimer)     { this._decayTimer.destroy();     this._decayTimer     = null; }
       if (this._hungerTimer)    { this._hungerTimer.destroy();    this._hungerTimer    = null; }
       if (this._sadTimer)       { this._sadTimer.destroy();       this._sadTimer       = null; }
       if (this._moodTimer)      { this._moodTimer.destroy();      this._moodTimer      = null; }
@@ -2060,6 +2067,22 @@ export class HabitatRoom extends Phaser.Scene {
         onComplete: (_tw: any, tg: any) => { try { tg[0].destroy(); } catch { /* ignore */ } },
       });
     }
+  }
+
+  // ── DECAY TIMER ───────────────────────────────────────────────────────────
+
+  private _startDecayTimer() {
+    if (this._decayTimer) return;
+    this._decayTimer = this.time.addEvent({
+      delay: 60000,
+      loop: true,
+      callback: () => {
+        if (!this.scene.isActive('HabitatRoom') || !Game.state) return;
+        reconcileOfflineTime(Game.state);
+        this._monster = Game.state.monsters.find(m => m.id === this._monsterId) ?? this._monster;
+        this._refreshStats();
+      },
+    });
   }
 
   // ── AMBIENT ───────────────────────────────────────────────────────────────

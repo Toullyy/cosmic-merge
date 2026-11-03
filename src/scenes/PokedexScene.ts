@@ -294,15 +294,15 @@ export class PokedexScene extends Phaser.Scene {
         } else {
           this.add.text(cx, cy - 10, '?', {
             fontFamily: FONT, fontSize: '32px', fontStyle: 'bold',
-            color: '#2A1480',
+            color: '#7766BB',
           }).setOrigin(0.5).setDepth(4);
         }
         this.add.text(cx, cy + 38, '???', {
-          fontFamily: FONT, fontSize: '9px', color: '#2A1560',
+          fontFamily: FONT, fontSize: '9px', color: '#6655AA',
         }).setOrigin(0.5).setDepth(4);
         if (sp.id >= 15) {
           this.add.text(cx, cy + 50, '🧬', {
-            fontFamily: FONT, fontSize: '10px', color: '#4433CC',
+            fontFamily: FONT, fontSize: '10px', color: '#8877EE',
           }).setOrigin(0.5).setDepth(4);
         }
       }

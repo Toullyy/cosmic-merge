@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
-import { Game, store, getNewAchievements } from '../utils';
-import { DECAY, BOWL_EAT_RATE, newState, generateMerchantStock, MERCHANT_REFRESH_MS, TANK_CAPACITY, randomBuyer, VISITOR_INTERVAL_MS, checkAndUpdateVisitor, generateDailyQuests, getDecayMult, TRAITS } from '../data';
-import { preloadMonsterTexture } from '../MonsterRenderer';
+import { Game, store, getNewAchievements, reconcileOfflineTime } from '../utils';
 import type { GameState } from '../types';
+import { newState, generateMerchantStock, MERCHANT_REFRESH_MS, TANK_CAPACITY, randomBuyer, VISITOR_INTERVAL_MS, checkAndUpdateVisitor, generateDailyQuests, TRAITS } from '../data';
+import { preloadMonsterTexture } from '../MonsterRenderer';
 import { initCloudAuth, loadFromCloud, scheduleSaveToCloud } from '../cloudSync';
 import { auth } from '../firebase';
 
@@ -139,32 +139,6 @@ export class Boot extends Phaser.Scene {
   }
 }
 
-function reconcileOfflineTime(state: GameState) {
-  const now = Date.now();
-  const elapsed = Math.min(now - (state.lastTickAt ?? now), 7 * 24 * 3600000);
-  const hours = elapsed / 3600000;
-  if (hours < 0.001) return;
-  state.monsters.forEach(mon => {
-    const decayMult = getDecayMult(state, mon.habitatType);
-    const trait = TRAITS.find(t => t.id === mon.trait);
-    const hMod  = (trait?.decayMod?.happiness    ?? 1) * decayMult;
-    const nuMod = (trait?.decayMod?.hunger        ?? 1) * decayMult;
-    const cMod  = (trait?.decayMod?.cleanliness   ?? 1) * decayMult;
-    mon.happiness   = Math.max(0, mon.happiness   + DECAY.happiness   * hours * hMod);
-    mon.cleanliness = Math.max(0, mon.cleanliness + DECAY.cleanliness * hours * cMod);
-    if (mon.bowl && mon.bowl.remaining > 0) {
-      const ate = Math.min(mon.bowl.remaining, BOWL_EAT_RATE * hours);
-      mon.bowl.remaining -= ate;
-      if (mon.bowl.remaining < 0.01) mon.bowl = null;
-      mon.hunger = Math.max(0, Math.min(100, mon.hunger + ate + DECAY.hunger * hours * nuMod));
-    } else {
-      mon.bowl = null;
-      mon.hunger = Math.max(0, mon.hunger + DECAY.hunger * hours * nuMod);
-    }
-  });
-  state.lastTickAt = now;
-  store.setJSON('mps_state', state);
-}
 
 let _visibilityRegistered = false;
 function registerVisibilityHandler() {

@@ -1144,7 +1144,7 @@ export class Hub extends Phaser.Scene {
       fontFamily: FONT, fontSize: '19px', fontStyle: 'bold', color: '#88EEFF',
     }).setOrigin(0.5));
     popup.add(this.add.text(W / 2, panY + 44, t('ach.earned', { earned: earned.size, total: ACHIEVEMENTS.length }), {
-      fontFamily: FONT, fontSize: '13px', color: '#5588AA',
+      fontFamily: FONT, fontSize: '13px', color: '#6699BB',
     }).setOrigin(0.5));
 
     ACHIEVEMENTS.forEach((a, i) => {
