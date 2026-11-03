@@ -2,9 +2,22 @@ import { collection, getDocs, doc, setDoc, query, orderBy, limit } from 'firebas
 import { auth, db } from './firebase';
 import type { GameState, PublicShop, PublicMonster } from './types';
 
+let _lastPublishAt = 0;
+let _lastPublishMonsterCount = -1;
+let _lastPublishSold = -1;
+
 export async function publishShop(state: GameState): Promise<void> {
   const user = auth.currentUser;
   if (!user) return;
+  const now = Date.now();
+  if (
+    now - _lastPublishAt < 5 * 60_000 &&
+    state.monsters.length === _lastPublishMonsterCount &&
+    state.stats.sold === _lastPublishSold
+  ) return;
+  _lastPublishAt = now;
+  _lastPublishMonsterCount = state.monsters.length;
+  _lastPublishSold = state.stats.sold;
   const name = user.displayName || `Player #${user.uid.slice(-4).toUpperCase()}`;
   const monsters: PublicMonster[] = state.monsters.map(m => ({
     id: m.id,
@@ -39,7 +52,7 @@ export async function fetchShops(limitCount: number = 20): Promise<PublicShop[]>
     const q = query(
       collection(db, 'shops'),
       orderBy('updatedAt', 'desc'),
-      limit(limitCount + 1),
+      limit(limitCount),
     );
     const snap = await getDocs(q);
     const shops: PublicShop[] = [];

@@ -1523,7 +1523,7 @@ export class HabitatRoom extends Phaser.Scene {
 
     const pct = Math.round((1 - getDecayMult(state, habitat)) * 100);
     this._pickerItems.push(
-      this.add.text(W / 2, panelY + 50, pct > 0 ? `-${pct}% stat decay` : 'ยังไม่มีของตกแต่ง', {
+      this.add.text(W / 2, panelY + 50, pct > 0 ? t('decor.decayPct', { pct: String(pct) }) : t('decor.noDecor'), {
         fontFamily: FONT, fontSize: '13px', color: pct > 0 ? habColor : '#8877AA',
       }).setOrigin(0.5).setDepth(29)
     );

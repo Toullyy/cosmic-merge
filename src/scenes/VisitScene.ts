@@ -51,6 +51,7 @@ export class VisitScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(10);
 
     fetchShops().then(shops => {
+      if (!this.scene.isActive('VisitScene')) return;
       loadTxt.destroy();
       this._showList(shops);
     });
@@ -138,10 +139,12 @@ export class VisitScene extends Phaser.Scene {
     this._clearItems();
 
     const backBtn = makeButton(this, 52, 50, 86, 40, t('visit.backList'), 0x1A1040, () => {
+      this._clearItems();
       const loadT = this.add.text(W / 2, H / 2, t('visit.loading'), {
         fontFamily: FONT, fontSize: '20px', color: '#888888',
       }).setOrigin(0.5).setDepth(10);
       fetchShops().then(shops => {
+        if (!this.scene.isActive('VisitScene')) return;
         loadT.destroy();
         this._showList(shops);
       });
