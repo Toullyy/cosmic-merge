@@ -64,7 +64,7 @@ export class HatchScene extends Phaser.Scene {
 
     // Species hint text
     this.add.text(W / 2, cy - 158, sp.name + '  ·  ⏱' + sp.hatchHours + 'h', {
-      fontFamily: FONT, fontSize: '14px', color: '#8866AA',
+      fontFamily: FONT, fontSize: '14px', color: '#AA99CC',
     }).setOrigin(0.5).setDepth(3);
 
     // ── Glow ramp (400ms): ring brightens as hatch approaches ─────────────

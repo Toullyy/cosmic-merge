@@ -5,9 +5,9 @@ import { t, currentLang, setLang } from '../i18n';
 import type { Achievement } from '../data';
 import { makeMonsterTexture, getVariantModifiers, shiftHue, darken, lighten } from '../MonsterRenderer';
 import { makeButton, setButtonLabel, setButtonColor } from '../ui/Button';
-import { showToast } from '../ui/Toast';
+import { showToast, showFloat } from '../ui/Toast';
 import { Ads } from '../ads';
-import type { Monster, Egg, HabitatType } from '../types';
+import type { Monster, Egg, HabitatType, GameState } from '../types';
 
 const HAB_PLATE: Record<string, [number, string]> = {
   dirt:    [0x7A4420, '#FFE8B0'],
@@ -40,18 +40,22 @@ export class Hub extends Phaser.Scene {
   private _visitorBanner: Phaser.GameObjects.Container | null = null;
   private _visitorTimer: Phaser.Time.TimerEvent | null = null;
   private _dailyAdBadge: Phaser.GameObjects.Container | null = null;
+  private _eggStripContainer: Phaser.GameObjects.Container | null = null;
+  private _eggStripTexts = new Map<string, Phaser.GameObjects.Text>();
 
   constructor() { super({ key: 'Hub' }); }
 
   create() {
     sfx.unlock();
     const W = this.scale.width, H = this.scale.height;
+    this.cameras.main.fadeIn(180, 0, 0, 0);
     this._displayGroup = this.add.group();
 
     this._buildBackground(W, H);
     this._buildVignette(W, H);
     this._buildShopSign(W, H);
     this._buildHUD(W);
+    this._buildEggTimerStrip(W);
     this._buildTabs(W);
     this._buildBottomNav(W, H);
     this._bgGraphics = this.add.graphics().setDepth(1);
@@ -242,9 +246,9 @@ export class Hub extends Phaser.Scene {
     const g = this._bgGraphics;
     g.clear();
     g.fillStyle(0x1E0C04, 0.20);
-    g.fillRoundedRect(6, 128, W - 12, H - 230, 12);
+    g.fillRoundedRect(6, 174, W - 12, H - 276, 12);
     g.lineStyle(1.5, 0x6B4A2A, 0.30);
-    g.strokeRoundedRect(6, 128, W - 12, H - 230, 12);
+    g.strokeRoundedRect(6, 174, W - 12, H - 276, 12);
   }
 
   private _buildHUD(W: number) {
@@ -316,6 +320,17 @@ export class Hub extends Phaser.Scene {
       fontFamily: FONT, fontSize: '20px', color: '#FFFFFF', fontStyle: 'bold',
     }).setOrigin(0.5, 0.5).setDepth(11).setInteractive({ useHandCursor: true, hitArea: new Phaser.Geom.Circle(0, 0, 18), hitAreaCallback: Phaser.Geom.Circle.Contains })
       .on('pointerdown', () => { this.scene.launch('HowToPlay'); });
+
+    // Shop Level Badge — circular badge overlaid on left edge of coin box
+    const shopLv = Math.min(99, Math.floor(Math.sqrt((Game.state!.stats.sold ?? 0) / 2)) + 1);
+    const isMilestone = shopLv === 5 || shopLv === 10 || shopLv === 20 || shopLv === 50;
+    const lvBadgeBg = this.add.graphics().setDepth(12);
+    lvBadgeBg.fillStyle(isMilestone ? 0xFFAA00 : 0x5522AA, 1);
+    lvBadgeBg.fillCircle(28, 34, 22);
+    lvBadgeBg.lineStyle(3, isMilestone ? 0xFFEE44 : 0xCC88FF, 1);
+    lvBadgeBg.strokeCircle(28, 34, 22);
+    this.add.text(28, 30, 'Lv', { fontFamily: FONT, fontSize: '9px', color: '#FFFFFF', fontStyle: 'bold' }).setOrigin(0.5).setDepth(13);
+    this.add.text(28, 40, String(shopLv), { fontFamily: FONT, fontSize: '14px', color: '#FFFFFF', fontStyle: 'bold', stroke: '#000000', strokeThickness: 2 }).setOrigin(0.5).setDepth(13);
   }
 
   private _adCooldownRemaining(): number {
@@ -349,6 +364,91 @@ export class Hub extends Phaser.Scene {
     });
   }
 
+  private _buildEggTimerStrip(W: number) {
+    // Dark bar background spanning Y=76–122, depth 7 (above HUD, below tabs)
+    const bar = this.add.graphics().setDepth(7);
+    bar.fillStyle(0x07040F, 0.82);
+    bar.fillRect(0, 76, W, 46);
+    bar.lineStyle(1.5, 0x2A1A50, 1);
+    bar.beginPath(); bar.moveTo(0, 76); bar.lineTo(W, 76); bar.strokePath();
+    bar.lineStyle(1, 0x3A2A60, 0.7);
+    bar.beginPath(); bar.moveTo(0, 121); bar.lineTo(W, 121); bar.strokePath();
+
+    this._eggStripContainer = this.add.container(0, 0).setDepth(8);
+    this._updateEggTimerStrip();
+  }
+
+  private _updateEggTimerStrip() {
+    if (!this._eggStripContainer) return;
+    this._eggStripContainer.removeAll(true);
+    this._eggStripTexts.clear();
+    const W = this.scale.width;
+    const eggs = Game.state?.eggs ?? [];
+    const stripCY = 99; // vertical center of 76-122
+
+    if (eggs.length === 0) {
+      const pillW = 160, pillH = 28;
+      const cx = W / 2;
+      const pill = this.add.graphics();
+      pill.fillStyle(0x1A0A40, 0.9);
+      pill.fillRoundedRect(cx - pillW / 2, stripCY - pillH / 2, pillW, pillH, 12);
+      pill.lineStyle(1.5, 0x6644CC, 0.8);
+      pill.strokeRoundedRect(cx - pillW / 2, stripCY - pillH / 2, pillW, pillH, 12);
+      this._eggStripContainer.add(pill);
+      this._eggStripContainer.add(this.add.text(cx, stripCY, '🥚 + ' + t('egg.buy'), {
+        fontFamily: FONT, fontSize: '13px', color: '#9988DD', fontStyle: 'bold',
+      }).setOrigin(0.5));
+      const zone = this.add.zone(cx, stripCY, pillW, pillH).setInteractive();
+      zone.on('pointerdown', () => { this.scene.start('Merchant'); });
+      this._eggStripContainer.add(zone);
+      return;
+    }
+
+    const maxShow = Math.min(eggs.length, 4);
+    const pillW = Math.min(118, Math.floor((W - 24) / maxShow) - 4);
+    const gap = 4;
+    const totalW = pillW * maxShow + gap * (maxShow - 1);
+    const startX = (W - totalW) / 2;
+    const now = Date.now();
+
+    eggs.slice(0, maxShow).forEach((egg, i) => {
+      const cx = startX + i * (pillW + gap) + pillW / 2;
+      const remaining = Math.max(0, egg.hatchEndAt - now);
+      const ready = remaining <= 0;
+
+      const pill = this.add.graphics();
+      pill.fillStyle(ready ? 0x0D3018 : 0x0C0828, 0.95);
+      pill.fillRoundedRect(cx - pillW / 2, stripCY - 14, pillW, 28, 9);
+      const borderCol = ready ? 0x44FF88 : (HAB_GLOW[egg.habitatType] ?? 0x6644CC);
+      pill.lineStyle(1.5, borderCol, ready ? 1 : 0.75);
+      pill.strokeRoundedRect(cx - pillW / 2, stripCY - 14, pillW, 28, 9);
+      this._eggStripContainer!.add(pill);
+
+      const label = ready ? '✨ Ready!' : ('🥚 ' + this._formatMs(remaining));
+      const txt = this.add.text(cx, stripCY - 3, label, {
+        fontFamily: FONT, fontSize: '11px',
+        color: ready ? '#88FFAA' : '#AABBFF', fontStyle: ready ? 'bold' : 'normal',
+      }).setOrigin(0.5);
+      this._eggStripTexts.set(egg.id, txt);
+      this._eggStripContainer!.add(txt);
+
+      const sp = SPECIES[egg.speciesId];
+      this._eggStripContainer!.add(this.add.text(cx, stripCY + 8, sp.name.slice(0, 7), {
+        fontFamily: FONT, fontSize: '9px', color: '#887799',
+      }).setOrigin(0.5));
+
+      const zone = this.add.zone(cx, stripCY, pillW, 28).setInteractive();
+      zone.on('pointerdown', () => { this.scene.start('Merchant'); });
+      this._eggStripContainer!.add(zone);
+    });
+
+    if (eggs.length > maxShow) {
+      this._eggStripContainer!.add(this.add.text(W - 8, stripCY, '+' + (eggs.length - maxShow), {
+        fontFamily: FONT, fontSize: '11px', color: '#9988DD',
+      }).setOrigin(1, 0.5));
+    }
+  }
+
   private _buildTabs(W: number) {
     const types: HabitatType[] = ['dirt', 'grass', 'aquatic'];
     const labels: Record<string, string> = { dirt: t('tab.dirt'), grass: t('tab.grass'), aquatic: t('tab.aquatic') };
@@ -358,14 +458,14 @@ export class Hub extends Phaser.Scene {
       const unlocked = Game.state!.habitats[type].unlocked;
       const isActive = type === this._currentHabitat;
       const tabBg = this.add.graphics().setDepth(5);
-      this._drawTab(tabBg, x, 76, tabW, 60, isActive, unlocked, type);
+      this._drawTab(tabBg, x, 122, tabW, 60, isActive, unlocked, type);
       const lbl = unlocked ? labels[type] : (labels[type] + ' 🔒');
-      const tabTxt = this.add.text(x + tabW/2, 102, lbl, {
+      const tabTxt = this.add.text(x + tabW/2, 148, lbl, {
         fontFamily: FONT, fontSize: '17px', fontStyle: isActive ? 'bold' : 'normal',
         color: isActive ? '#FFFFFF' : (unlocked ? '#E8D8C8' : '#BBAA99'),
       }).setOrigin(0.5).setDepth(6);
       this._tabBtns[type] = { bg: tabBg, txt: tabTxt };
-      const zone = this.add.zone(x + tabW/2, 106, tabW - 4, 56).setInteractive().setDepth(7);
+      const zone = this.add.zone(x + tabW/2, 152, tabW - 4, 56).setInteractive().setDepth(7);
       zone.on('pointerdown', () => {
         if (!Game.state!.habitats[type].unlocked) { this._tryUnlockHabitat(type); return; }
         this._currentHabitat = type;
@@ -434,7 +534,7 @@ export class Hub extends Phaser.Scene {
       const btn = this._tabBtns[type];
       const isActive = type === this._currentHabitat;
       const unlocked = Game.state!.habitats[type].unlocked;
-      this._drawTab(btn.bg, x, 76, tabW, 60, isActive, unlocked, type);
+      this._drawTab(btn.bg, x, 122, tabW, 60, isActive, unlocked, type);
       if (!unlocked) {
         const cost = HABITATS[type].unlockCost;
         btn.txt.setStyle({ fontSize: '13px', color: '#A09088', fontStyle: 'normal', align: 'center' });
@@ -464,13 +564,23 @@ export class Hub extends Phaser.Scene {
     g.lineStyle(1.2, woodLight, 0.42); g.strokeRoundedRect(x + 2, y + 2, w - 4, h - 4, 6);
   }
 
-  private _drawGlassCard(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number, glowColor: number) {
+  private _getHabitatCardBg(habitat?: HabitatType): number {
+    switch (habitat ?? this._currentHabitat) {
+      case 'dirt':    return 0x1E0C06;
+      case 'grass':   return 0x081406;
+      case 'aquatic': return 0x06101A;
+      default:        return 0x14102A;
+    }
+  }
+
+  private _drawGlassCard(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number, glowColor: number, bgColor?: number) {
     const r = 14;
+    const fill = bgColor ?? 0x14102A;
     g.fillStyle(0x000000, 0.42);
     g.fillRoundedRect(x + 4, y + 6, w, h, r);
     g.fillStyle(glowColor, 0.10);
     g.fillRoundedRect(x - 2, y - 2, w + 4, h + 4, r + 2);
-    g.fillStyle(0x14102A, 1);
+    g.fillStyle(fill, 1);
     g.fillRoundedRect(x, y, w, h, r);
     g.lineStyle(2, glowColor, 0.80);
     g.strokeRoundedRect(x, y, w, h, r);
@@ -557,7 +667,7 @@ export class Hub extends Phaser.Scene {
       Ads.maybeInterstitial(() => { this.scene.start('Merchant'); });
     }, 15).setDepth(10);
 
-    const unclaimedCount = (Game.state!.quests ?? []).filter(q => q.completed && !q.claimed).length;
+    const unclaimedCount = [...(Game.state!.quests ?? []), ...(Game.state!.weeklyQuests ?? [])].filter(q => q.completed && !q.claimed).length;
     const questLabel = unclaimedCount > 0 ? t('nav.questsDone') : t('nav.quests');
     this._questBtn = makeButton(this, xs[1], btnY, bw, bh, questLabel, unclaimedCount > 0 ? 0x22AA44 : NAV_COLOR, () => {
       this._showQuestsPanel();
@@ -719,7 +829,7 @@ export class Hub extends Phaser.Scene {
   }
 
   private _buildVisitorBanner(W: number, H: number) {
-    this._visitorBanner = this.add.container(0, H - 128).setDepth(14);
+    this._visitorBanner = this.add.container(0, H - 160).setDepth(14);
     this._updateVisitorBanner();
   }
 
@@ -729,38 +839,155 @@ export class Hub extends Phaser.Scene {
     const state = Game.state!;
     const W = this.scale.width;
     const now = Date.now();
-    if (!state.visitorSpeciesId || !state.visitorExpiresAt || now >= state.visitorExpiresAt) return;
 
-    const sp = SPECIES[state.visitorSpeciesId];
-    const remaining = Math.max(0, state.visitorExpiresAt - now);
-    const mins = Math.ceil(remaining / 60000);
-    const hasMon = state.monsters.some(m => m.speciesId === state.visitorSpeciesId);
+    const isRushHour = !!(state.rushHourUntil && now < state.rushHourUntil);
 
-    const bg = this.add.graphics();
-    bg.fillStyle(0x5A3800, 0.95);
-    bg.fillRoundedRect(8, 0, W - 16, 32, 10);
-    bg.lineStyle(2, 0xFFCC00, 0.9);
-    bg.strokeRoundedRect(8, 0, W - 16, 32, 10);
-    this._visitorBanner.add(bg);
+    if (state.visitorSpeciesId && state.visitorExpiresAt && now < state.visitorExpiresAt) {
+      // ── Visitor banner (with optional Rush Hour highlight) ──────────────────
+      const sp = SPECIES[state.visitorSpeciesId];
+      const remaining = Math.max(0, state.visitorExpiresAt - now);
+      const mins = Math.ceil(remaining / 60000);
+      const hasMon = state.monsters.some(m => m.speciesId === state.visitorSpeciesId);
+      const totalMult = isRushHour ? (state.visitorPriceMult ?? 2) * 2 : (state.visitorPriceMult ?? 2);
 
-    const bannerMsg = t('visitor.banner', { name: sp.name, mult: state.visitorPriceMult ?? 2, mins })
-      + (hasMon ? '' : ' ' + t('visitor.bannerNone'));
-    this._visitorBanner.add(this.add.text(W / 2, 16, bannerMsg, {
-      fontFamily: FONT, fontSize: '13px', color: hasMon ? '#FFE066' : '#BB9944', fontStyle: 'bold',
-    }).setOrigin(0.5));
+      const bg = this.add.graphics();
+      if (isRushHour) {
+        bg.fillStyle(0x7A1500, 0.97);
+        bg.fillRoundedRect(8, 0, W - 16, 32, 10);
+        bg.lineStyle(2, 0xFF6600, 1);
+        bg.strokeRoundedRect(8, 0, W - 16, 32, 10);
+      } else {
+        bg.fillStyle(0x5A3800, 0.95);
+        bg.fillRoundedRect(8, 0, W - 16, 32, 10);
+        bg.lineStyle(2, 0xFFCC00, 0.9);
+        bg.strokeRoundedRect(8, 0, W - 16, 32, 10);
+      }
+      this._visitorBanner.add(bg);
 
-    const zone = this.add.zone(W / 2, 16, W - 16, 32).setInteractive();
-    zone.on('pointerdown', () => this._showVisitorPopup());
-    this._visitorBanner.add(zone);
+      const prefix = isRushHour ? '⚡ Rush Hour! ' : '';
+      const bannerMsg = prefix + t('visitor.banner', { name: sp.name, mult: totalMult, mins })
+        + (hasMon ? '' : ' ' + t('visitor.bannerNone'));
+      this._visitorBanner.add(this.add.text(W / 2, 16, bannerMsg, {
+        fontFamily: FONT, fontSize: '13px', color: isRushHour ? '#FF9944' : (hasMon ? '#FFE066' : '#BB9944'), fontStyle: 'bold',
+      }).setOrigin(0.5));
+
+      if (isRushHour) {
+        const pulse = this.add.graphics();
+        pulse.lineStyle(2, 0xFF4400, 0.6);
+        pulse.strokeRoundedRect(8, 0, W - 16, 32, 10);
+        this._visitorBanner.add(pulse);
+        this.tweens.add({ targets: pulse, alpha: 0.1, duration: 500, ease: 'Sine.InOut', yoyo: true, repeat: -1 });
+      }
+
+      const zone = this.add.zone(W / 2, 16, W - 16, 32).setInteractive();
+      zone.on('pointerdown', () => this._showVisitorPopup());
+      this._visitorBanner.add(zone);
+      return;
+    }
+
+    // ── Standalone Rush Hour banner (no visitor yet) ────────────────────────
+    if (isRushHour) {
+      const rushMinsLeft = Math.ceil(((state.rushHourUntil ?? 0) - now) / 60000);
+      const bg = this.add.graphics();
+      bg.fillStyle(0x7A1500, 0.97);
+      bg.fillRoundedRect(8, 0, W - 16, 32, 10);
+      bg.lineStyle(2, 0xFF6600, 1);
+      bg.strokeRoundedRect(8, 0, W - 16, 32, 10);
+      this._visitorBanner.add(bg);
+      this._visitorBanner.add(this.add.text(W / 2, 16, `⚡ Rush Hour! Visitor price ×4  ${rushMinsLeft}m left`, {
+        fontFamily: FONT, fontSize: '13px', color: '#FF9944', fontStyle: 'bold',
+      }).setOrigin(0.5));
+      const pulse = this.add.graphics();
+      pulse.lineStyle(2, 0xFF4400, 0.6);
+      pulse.strokeRoundedRect(8, 0, W - 16, 32, 10);
+      this._visitorBanner.add(pulse);
+      this.tweens.add({ targets: pulse, alpha: 0.1, duration: 500, ease: 'Sine.InOut', yoyo: true, repeat: -1 });
+      const zone = this.add.zone(W / 2, 16, W - 16, 32).setInteractive();
+      zone.on('pointerdown', () => this._showVisitorPopup());
+      this._visitorBanner.add(zone);
+      return;
+    }
+
+    // ── Quest chip (shown when no visitor) ────────────────────────────────────
+    const quests = state.quests ?? [];
+    const weekly = state.weeklyQuests ?? [];
+    const unclaimed = [...quests, ...weekly].filter(q => q.completed && !q.claimed);
+    const active = quests.find(q => !q.completed) ?? weekly.find(q => !q.completed);
+
+    if (unclaimed.length > 0) {
+      const bg = this.add.graphics();
+      bg.fillStyle(0x1A4010, 0.95);
+      bg.fillRoundedRect(8, 0, W - 16, 32, 10);
+      bg.lineStyle(2, 0x66FF44, 0.85);
+      bg.strokeRoundedRect(8, 0, W - 16, 32, 10);
+      this._visitorBanner.add(bg);
+      this._visitorBanner.add(this.add.text(W / 2, 16, '✅ ' + t('quest.chipClaim', { n: unclaimed.length, s: unclaimed.length > 1 ? 's' : '' }), {
+        fontFamily: FONT, fontSize: '13px', color: '#AAFFAA', fontStyle: 'bold',
+      }).setOrigin(0.5));
+      const zone = this.add.zone(W / 2, 16, W - 16, 32).setInteractive();
+      zone.on('pointerdown', () => this._showQuestsPanel());
+      this._visitorBanner.add(zone);
+    } else if (active) {
+      const chipH = 44;
+      const bg = this.add.graphics();
+      bg.fillStyle(0x0E0620, 0.94);
+      bg.fillRoundedRect(8, 0, W - 16, chipH, 10);
+      bg.lineStyle(1.5, 0x7755BB, 0.80);
+      bg.strokeRoundedRect(8, 0, W - 16, chipH, 10);
+      this._visitorBanner.add(bg);
+
+      const prog = Math.min(active.progress, active.target);
+      const pct = prog / active.target;
+      const barX = 14, barY = chipH - 10, barW = W - 100, barH = 5;
+      const barG = this.add.graphics();
+      barG.fillStyle(0x2A1650, 1); barG.fillRoundedRect(barX, barY, barW, barH, 2.5);
+      barG.fillStyle(0xBB99FF, 1); barG.fillRoundedRect(barX, barY, Math.max(6, barW * pct), barH, 2.5);
+      this._visitorBanner.add(barG);
+
+      this._visitorBanner.add(this.add.text(14, chipH / 2 - 6, '🎯 ' + active.label, {
+        fontFamily: FONT, fontSize: '12px', color: '#DDD0FF', fontStyle: 'bold',
+      }).setOrigin(0, 0.5));
+      this._visitorBanner.add(this.add.text(14, chipH / 2 + 8, prog + ' / ' + active.target, {
+        fontFamily: FONT, fontSize: '11px', color: '#AA99DD',
+      }).setOrigin(0, 0.5));
+      this._visitorBanner.add(this.add.text(W - 22, chipH / 2, '+' + active.coinReward + '💰  ›', {
+        fontFamily: FONT, fontSize: '13px', color: '#FFD700', fontStyle: 'bold',
+      }).setOrigin(1, 0.5));
+
+      const zone = this.add.zone(W / 2, chipH / 2, W - 16, chipH).setInteractive();
+      zone.on('pointerdown', () => this._showQuestsPanel());
+      this._visitorBanner.add(zone);
+    }
+  }
+
+  private _tickRushHour(state: GameState): void {
+    const now = Date.now();
+    if (state.rushHourUntil && now >= state.rushHourUntil) {
+      state.rushHourUntil = 0;
+    }
+    if (!state.rushHourUntil && state.rushHourNextAt && now >= state.rushHourNextAt) {
+      state.rushHourUntil = now + 600000;
+      // Advance to next 12:00 or 20:00
+      const d = new Date();
+      const noon = new Date(d); noon.setHours(12, 0, 0, 0);
+      const eve  = new Date(d); eve.setHours(20, 0, 0, 0);
+      const tmrNoon = new Date(noon); tmrNoon.setDate(tmrNoon.getDate() + 1);
+      const h = d.getHours();
+      if (h < 12) state.rushHourNextAt = noon.getTime();
+      else if (h < 20) state.rushHourNextAt = eve.getTime();
+      else state.rushHourNextAt = tmrNoon.getTime();
+    }
   }
 
   private _startVisitorTimer() {
     if (this._visitorTimer) this._visitorTimer.remove();
     this._visitorTimer = this.time.addEvent({
       delay: 10000, loop: true, callback: () => {
-        checkAndUpdateVisitor(Game.state!);
+        const state = Game.state!;
+        checkAndUpdateVisitor(state);
+        this._tickRushHour(state);
         this._updateVisitorBanner();
-        store.setJSON('mps_state', Game.state);
+        store.setJSON('mps_state', state);
       },
     });
   }
@@ -789,7 +1016,196 @@ export class Hub extends Phaser.Scene {
     if (this._coinTxt) this._coinTxt.setText('💰 ' + state.coins);
     if (this._diamondTxt) this._diamondTxt.setText('💎 ' + (state.diamonds ?? 0));
 
-    this._showDailyLoginPopup(reward, state.loginStreak!);
+    if (state.wheelClaimedDate !== today) {
+      this._showSpinWheel(reward, state.loginStreak!);
+    } else {
+      this._showDailyLoginPopup(reward, state.loginStreak!);
+    }
+  }
+
+  private _showSpinWheel(streakReward: typeof DAILY_REWARDS[0], streak: number) {
+    const W = this.scale.width, H = this.scale.height;
+    const state = Game.state!;
+    const today = new Date().toISOString().slice(0, 10);
+
+    const SEGS = [
+      { label: '50💰',  coins: 50,  diamonds: 0, crystals: 0, weight: 3, color: 0xF57C00, border: 0xFFCC44 },
+      { label: '150💰', coins: 150, diamonds: 0, crystals: 0, weight: 2, color: 0xFFAA00, border: 0xFFEE88 },
+      { label: '1💎',   coins: 0,   diamonds: 1, crystals: 0, weight: 2, color: 0x2244BB, border: 0x88AAFF },
+      { label: '3💎',   coins: 0,   diamonds: 3, crystals: 0, weight: 2, color: 0x113399, border: 0x5588FF },
+      { label: '1🌙',   coins: 0,   diamonds: 0, crystals: 1, weight: 1, color: 0x4A0080, border: 0xCC88FF },
+    ] as const;
+
+    const totalWeight = SEGS.reduce((s, sg) => s + sg.weight, 0);
+    let r = Math.floor(Math.random() * totalWeight);
+    let winner = 0;
+    for (let i = 0; i < SEGS.length; i++) { r -= SEGS[i].weight; if (r < 0) { winner = i; break; } }
+
+    // Build angle ranges (0°=top, clockwise)
+    const segAngles: { start: number; end: number; mid: number }[] = [];
+    let cur = 0;
+    for (const sg of SEGS) {
+      const span = (sg.weight / totalWeight) * 360;
+      segAngles.push({ start: cur, end: cur + span, mid: cur + span / 2 });
+      cur += span;
+    }
+
+    // Target: pointer at top (0° in our coordinate), spin 3 full rotations + alignment
+    const winnerMid = segAngles[winner].mid;
+    const toTop = ((360 - winnerMid) % 360);
+    const targetAngle = toTop + 3 * 360;
+
+    const popup = this.add.container(0, 0).setDepth(65);
+
+    const overlay = this.add.graphics();
+    overlay.fillStyle(0x000000, 0.82);
+    overlay.fillRect(0, 0, W, H);
+    popup.add(overlay);
+
+    const panelW = 390, panelH = 540;
+    const px = W / 2 - panelW / 2, py = H / 2 - panelH / 2 - 20;
+    const panelG = this.add.graphics();
+    panelG.fillStyle(0x0d0828, 1);
+    panelG.fillRoundedRect(px, py, panelW, panelH, 22);
+    panelG.lineStyle(2.5, 0x9955FF, 1);
+    panelG.strokeRoundedRect(px, py, panelW, panelH, 22);
+    panelG.fillStyle(0x3311AA, 0.12);
+    panelG.fillRoundedRect(px + 4, py + 4, panelW - 8, 60, { tl: 18, tr: 18, bl: 0, br: 0 });
+    popup.add(panelG);
+
+    popup.add(this.add.text(W / 2, py + 32, '🎡 Daily Spin!', {
+      fontFamily: FONT, fontSize: '22px', fontStyle: 'bold', color: '#FFFFFF',
+    }).setOrigin(0.5));
+    popup.add(this.add.text(W / 2, py + 60, `Day ${streak}  ·  Streak Reward: 💰${streakReward.coins}` + (streakReward.diamonds > 0 ? ` 💎${streakReward.diamonds}` : '') + ' granted!', {
+      fontFamily: FONT, fontSize: '12px', color: '#BB88FF',
+    }).setOrigin(0.5));
+
+    // Wheel
+    const wheelCx = W / 2, wheelCy = py + 240;
+    const wheelR = 140;
+    const wheelCont = this.add.container(wheelCx, wheelCy).setDepth(66);
+    popup.add(wheelCont);
+
+    const wheelG = this.add.graphics();
+    for (let i = 0; i < SEGS.length; i++) {
+      const startRad = (segAngles[i].start - 90) * (Math.PI / 180);
+      const endRad   = (segAngles[i].end   - 90) * (Math.PI / 180);
+      wheelG.fillStyle(SEGS[i].color, 1);
+      wheelG.beginPath(); wheelG.moveTo(0, 0);
+      wheelG.arc(0, 0, wheelR, startRad, endRad, false);
+      wheelG.closePath(); wheelG.fillPath();
+      wheelG.lineStyle(2, SEGS[i].border, 0.65);
+      wheelG.beginPath(); wheelG.moveTo(0, 0);
+      wheelG.arc(0, 0, wheelR, startRad, endRad, false);
+      wheelG.closePath(); wheelG.strokePath();
+    }
+    wheelG.fillStyle(0x0d0828, 1); wheelG.fillCircle(0, 0, 20);
+    wheelG.lineStyle(2.5, 0xAA88FF, 0.9); wheelG.strokeCircle(0, 0, 20);
+    wheelCont.add(wheelG);
+
+    for (let i = 0; i < SEGS.length; i++) {
+      const midRad = (segAngles[i].mid - 90) * (Math.PI / 180);
+      const lx = Math.cos(midRad) * (wheelR * 0.65);
+      const ly = Math.sin(midRad) * (wheelR * 0.65);
+      wheelCont.add(this.add.text(lx, ly, SEGS[i].label, {
+        fontFamily: FONT, fontSize: '13px', fontStyle: 'bold', color: '#FFFFFF',
+        stroke: '#000000', strokeThickness: 2,
+      }).setOrigin(0.5));
+    }
+
+    // Pointer (fixed, at top)
+    const ptrG = this.add.graphics().setDepth(67);
+    ptrG.fillStyle(0xFFDD44, 1);
+    ptrG.fillTriangle(W / 2 - 13, wheelCy - wheelR - 20, W / 2 + 13, wheelCy - wheelR - 20, W / 2, wheelCy - wheelR + 12);
+    ptrG.lineStyle(2, 0xAA8800, 1);
+    ptrG.strokeTriangle(W / 2 - 13, wheelCy - wheelR - 20, W / 2 + 13, wheelCy - wheelR - 20, W / 2, wheelCy - wheelR + 12);
+    popup.add(ptrG);
+
+    let spun = false;
+    const spinBtn = makeButton(this, W / 2, py + panelH - 50, 220, 46, '🎡 SPIN!', 0x6622BB, () => {
+      if (spun) return;
+      spun = true;
+      (spinBtn as Phaser.GameObjects.Container).setAlpha(0.4);
+
+      this.tweens.add({
+        targets: wheelCont, angle: targetAngle, duration: 3600, ease: 'Cubic.Out',
+        onComplete: () => {
+          const seg = SEGS[winner];
+          state.coins       = (state.coins       ?? 0) + seg.coins;
+          state.diamonds    = (state.diamonds    ?? 0) + seg.diamonds;
+          state.moonCrystals = (state.moonCrystals ?? 0) + seg.crystals;
+          state.wheelClaimedDate = today;
+          store.setJSON('mps_state', state);
+          this._updateCoinDisplay();
+
+          const rewardStr = (seg.coins > 0 ? `+${seg.coins}💰` : '') +
+            (seg.diamonds > 0 ? `+${seg.diamonds}💎` : '') +
+            (seg.crystals > 0 ? `+${seg.crystals}🌙` : '');
+          const rewardTxt = this.add.text(W / 2, wheelCy + wheelR + 36, rewardStr, {
+            fontFamily: FONT, fontSize: '30px', fontStyle: 'bold', color: '#FFD700',
+            stroke: '#000000', strokeThickness: 3,
+          }).setOrigin(0.5).setDepth(69).setScale(0);
+          popup.add(rewardTxt);
+          this.tweens.add({ targets: rewardTxt, scale: 1, duration: 420, ease: 'Back.Out' });
+          this._spawnParticles(W / 2, wheelCy, 0xFFD700, 20);
+
+          const closeBtn = makeButton(this, W / 2, py + panelH - 50, 220, 46, '🎉 Claim!', 0x226611, () => {
+            popup.destroy();
+          }, 15);
+          popup.add(closeBtn as Phaser.GameObjects.Container);
+          (spinBtn as Phaser.GameObjects.Container).destroy();
+        },
+      });
+    }, 16);
+    popup.add(spinBtn as Phaser.GameObjects.Container);
+  }
+
+  private _spawnParticles(x: number, y: number, color: number, count: number) {
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2 + Math.random() * 0.6;
+      const speed = 50 + Math.random() * 90;
+      const pg = this.add.graphics().setDepth(68);
+      pg.fillStyle(color, 1);
+      pg.fillCircle(0, 0, 3 + Math.random() * 4);
+      pg.x = x; pg.y = y;
+      this.tweens.add({
+        targets: pg,
+        x: x + Math.cos(angle) * speed,
+        y: y + Math.sin(angle) * speed - 20,
+        alpha: 0, scaleX: 0.2, scaleY: 0.2,
+        duration: 400 + Math.random() * 300, ease: 'Cubic.Out',
+        onComplete: (_tw: any, tg: any) => { try { tg[0].destroy(); } catch { /* ignore */ } },
+      });
+    }
+  }
+
+  private _coinBurst(fromX: number, fromY: number, amount: number) {
+    const targetX = 100, targetY = 40; // coin HUD center
+    for (let i = 0; i < 8; i++) {
+      const delay = i * 55;
+      const sx = fromX + (Math.random() - 0.5) * 40;
+      const sy = fromY + (Math.random() - 0.5) * 20;
+      const pg = this.add.graphics().setDepth(70);
+      pg.fillStyle(0xFFD700, 1);
+      pg.fillCircle(0, 0, 5);
+      pg.lineStyle(1.5, 0xAA8800, 0.7);
+      pg.strokeCircle(0, 0, 5);
+      pg.x = sx; pg.y = sy;
+      this.tweens.add({
+        targets: pg, x: targetX, y: targetY, delay,
+        duration: 380 + Math.random() * 120, ease: 'Cubic.In',
+        onComplete: (_tw: any, tg: any) => {
+          try { tg[0].destroy(); } catch { /* ignore */ }
+          if (i === 7) {
+            // Scale bounce on coin label when last coin arrives
+            if (this._coinTxt) {
+              this.tweens.add({ targets: this._coinTxt, scaleX: 1.3, scaleY: 1.3, duration: 100, ease: 'Back.Out', yoyo: true });
+            }
+            showFloat(this, targetX, targetY - 20, '+' + amount + '💰', '#FFD700');
+          }
+        },
+      });
+    }
   }
 
   private _restoreDailyAdBadgeIfNeeded() {
@@ -1022,6 +1438,7 @@ export class Hub extends Phaser.Scene {
         store.setJSON('mps_state', state);
         sfx.sell();
         showToast(this, t('toast.soldFor', { price: offerPrice }), '#aaffaa');
+        this._coinBurst(W / 2, H / 2, offerPrice);
         close();
         this._updateCoinDisplay();
         this._updateVisitorBanner();
@@ -1038,75 +1455,136 @@ export class Hub extends Phaser.Scene {
 
   private _showQuestsPanel() {
     const state = Game.state!;
-    const quests = state.quests ?? [];
+    const daily   = state.quests ?? [];
+    const weekly  = state.weeklyQuests ?? [];
     const W = this.scale.width, H = this.scale.height;
+    const now = Date.now();
 
     const popup = this.add.container(0, 0).setDepth(50);
     const overlay = this.add.graphics();
     overlay.fillStyle(0x000000, 0.65); overlay.fillRect(0, 0, W, H);
     popup.add(overlay);
 
-    const panH = 50 + quests.length * 90 + 60;
-    const panY = H / 2 - panH / 2;
+    const ROW_H = 84;
+    const panH = Math.min(H - 40, 56 + (daily.length + weekly.length) * ROW_H + 32 + 50);
+    const panY = Math.max(20, H / 2 - panH / 2);
     const panel = this.add.graphics();
-    panel.fillStyle(0x1C1408, 1);
+    panel.fillStyle(0x100C1C, 1);
     panel.fillRoundedRect(W/2 - 170, panY, 340, panH, 16);
     panel.lineStyle(2, 0xCC9900, 0.8);
     panel.strokeRoundedRect(W/2 - 170, panY, 340, panH, 16);
     popup.add(panel);
 
-    popup.add(this.add.text(W/2, panY + 24, t('quests.title'), { fontFamily: FONT, fontSize: '19px', fontStyle: 'bold', color: '#FFD700' }).setOrigin(0.5));
+    popup.add(this.add.text(W/2, panY + 22, t('quests.title'), {
+      fontFamily: FONT, fontSize: '19px', fontStyle: 'bold', color: '#FFD700',
+    }).setOrigin(0.5));
 
-    const resetAt = state.questResetAt ?? 0;
-    const minsLeft = Math.max(0, Math.floor((resetAt - Date.now()) / 60000));
-    const hLeft = Math.floor(minsLeft / 60), mLeft = minsLeft % 60;
-    popup.add(this.add.text(W/2, panY + 42, t('quests.resets', { h: hLeft, m: mLeft }), { fontFamily: FONT, fontSize: '13px', color: '#AA9944' }).setOrigin(0.5));
+    let curY = panY + 42;
 
-    quests.forEach((q, qi) => {
-      const qy = panY + 58 + qi * 90;
-      const done = q.completed;
-      const clmd = q.claimed;
-      const qBg = this.add.graphics();
-      qBg.fillStyle(done ? (clmd ? 0x1A2A1A : 0x2A3A10) : 0x221A08, 1);
-      qBg.fillRoundedRect(W/2 - 155, qy, 310, 78, 10);
-      qBg.lineStyle(1.5, done ? 0x66CC44 : 0x6A5010, 0.7);
-      qBg.strokeRoundedRect(W/2 - 155, qy, 310, 78, 10);
-      popup.add(qBg);
-
-      popup.add(this.add.text(W/2 - 145, qy + 14, q.label, { fontFamily: FONT, fontSize: '13px', fontStyle: 'bold', color: done ? '#AAFFAA' : '#FFEEAA' }).setOrigin(0, 0.5));
-      popup.add(this.add.text(W/2 - 145, qy + 36, t('quests.reward', { amount: q.coinReward }), { fontFamily: FONT, fontSize: '12px', color: '#FFD700' }).setOrigin(0, 0.5));
-
-      const barW = 160, barH = 10;
-      const barBg = this.add.graphics();
-      barBg.fillStyle(0x000000, 0.5); barBg.fillRoundedRect(W/2 - 145, qy + 54, barW, barH, 4);
-      const fill = Math.min(1, q.progress / q.target);
-      if (fill > 0) {
-        barBg.fillStyle(done ? 0x44DD44 : 0xDD9922, 1);
-        barBg.fillRoundedRect(W/2 - 145, qy + 54, barW * fill, barH, 4);
+    const drawSection = (label: string, labelCol: string, resetAt: number, quests: typeof daily, isWeekly: boolean) => {
+      const minsLeft = Math.max(0, Math.floor((resetAt - now) / 60000));
+      let resetStr: string;
+      if (isWeekly) {
+        const dLeft = Math.floor(minsLeft / 1440), hLeft2 = Math.floor((minsLeft % 1440) / 60);
+        resetStr = t('quests.weeklyResets', { d: dLeft, h: hLeft2 });
+      } else {
+        const hLeft = Math.floor(minsLeft / 60), mLeft = minsLeft % 60;
+        resetStr = t('quests.resets', { h: hLeft, m: mLeft });
       }
-      popup.add(barBg);
-      popup.add(this.add.text(W/2 + 20, qy + 59, q.progress + '/' + q.target, { fontFamily: FONT, fontSize: '12px', color: '#CCCCCC' }).setOrigin(0, 0.5));
 
-      if (done && !clmd) {
-        const claimBtn = makeButton(this, W/2 + 105, qy + 40, 90, 36, t('quests.claim'), 0x2A7A10, () => {
-          q.claimed = true;
-          state.coins += q.coinReward;
-          state.stats.questsCompleted = (state.stats.questsCompleted ?? 0) + 1;
-          store.setJSON('mps_state', state);
-          sfx.buy();
-          showToast(this, t('quests.toast', { amount: q.coinReward }), '#aaffaa');
-          this._updateCoinDisplay();
-          this._updateQuestBtn();
-          const newAch = getNewAchievements(state);
-          newAch.forEach(a => this._showAchievementPopup(a));
-          close();
-          this._showQuestsPanel();
-        }, 12);
-        popup.add(claimBtn);
-      } else if (clmd) {
-        popup.add(this.add.text(W/2 + 105, qy + 40, t('quests.claimed'), { fontFamily: FONT, fontSize: '12px', color: '#66AA66' }).setOrigin(0.5));
-      }
-    });
+      // Section header
+      const hdrBg = this.add.graphics();
+      hdrBg.fillStyle(isWeekly ? 0x1A0A30 : 0x1C1408, 1);
+      hdrBg.fillRoundedRect(W/2 - 162, curY, 324, 24, 6);
+      popup.add(hdrBg);
+      popup.add(this.add.text(W/2 - 152, curY + 12, label, {
+        fontFamily: FONT, fontSize: '13px', fontStyle: 'bold', color: labelCol,
+      }).setOrigin(0, 0.5));
+      popup.add(this.add.text(W/2 + 150, curY + 12, resetStr, {
+        fontFamily: FONT, fontSize: '11px', color: '#887766',
+      }).setOrigin(1, 0.5));
+      curY += 28;
+
+      quests.forEach(q => {
+        const done = q.completed, clmd = q.claimed;
+        const diamonds = q.diamondReward ?? 0;
+        const crystals = q.crystalReward ?? 0;
+        const hasDiamond = diamonds > 0;
+
+        const qBg = this.add.graphics();
+        qBg.fillStyle(done ? (clmd ? 0x101820 : (isWeekly ? 0x1A103A : 0x1A2A10)) : (isWeekly ? 0x12082A : 0x1A1408), 1);
+        qBg.fillRoundedRect(W/2 - 158, curY, 316, ROW_H - 6, 10);
+        qBg.lineStyle(1.5, done ? (isWeekly ? 0x8855FF : 0x55BB33) : (isWeekly ? 0x4422AA : 0x5A3A10), 0.75);
+        qBg.strokeRoundedRect(W/2 - 158, curY, 316, ROW_H - 6, 10);
+        popup.add(qBg);
+
+        popup.add(this.add.text(W/2 - 148, curY + 13, q.label, {
+          fontFamily: FONT, fontSize: '13px', fontStyle: 'bold',
+          color: done ? (isWeekly ? '#CCAAFF' : '#AAFFAA') : (isWeekly ? '#C0A8EE' : '#FFEEAA'),
+        }).setOrigin(0, 0.5));
+
+        let rewardStr: string;
+        if (crystals > 0) {
+          rewardStr = t('quests.rewardCrystal', { diamonds: String(diamonds), crystals: String(crystals), coins: String(q.coinReward) });
+        } else if (hasDiamond) {
+          rewardStr = t('quests.rewardDiamond', { amount: String(diamonds), coins: String(q.coinReward) });
+        } else {
+          rewardStr = t('quests.reward', { amount: q.coinReward });
+        }
+        popup.add(this.add.text(W/2 - 148, curY + 34, rewardStr, {
+          fontFamily: FONT, fontSize: '11px', color: isWeekly ? '#BB99FF' : '#FFD700',
+        }).setOrigin(0, 0.5));
+
+        const barW = 150, barH = 8;
+        const barG = this.add.graphics();
+        barG.fillStyle(0x000000, 0.45); barG.fillRoundedRect(W/2 - 148, curY + 52, barW, barH, 3);
+        const fill = Math.min(1, q.progress / q.target);
+        if (fill > 0) {
+          barG.fillStyle(done ? (isWeekly ? 0xAA66FF : 0x44DD44) : (isWeekly ? 0x6633CC : 0xDD9922), 1);
+          barG.fillRoundedRect(W/2 - 148, curY + 52, barW * fill, barH, 3);
+        }
+        popup.add(barG);
+        popup.add(this.add.text(W/2 + 8, curY + 56, q.progress + '/' + q.target, {
+          fontFamily: FONT, fontSize: '11px', color: '#BBBBBB',
+        }).setOrigin(0, 0.5));
+
+        if (done && !clmd) {
+          const claimBtn = makeButton(this, W/2 + 112, curY + (ROW_H - 6) / 2, 88, 34,
+            t('quests.claim'), isWeekly ? 0x5522BB : 0x2A7A10, () => {
+              q.claimed = true;
+              state.coins += q.coinReward;
+              if (diamonds > 0) state.diamonds = (state.diamonds ?? 0) + diamonds;
+              if (crystals > 0) state.moonCrystals = (state.moonCrystals ?? 0) + crystals;
+              state.stats.questsCompleted = (state.stats.questsCompleted ?? 0) + 1;
+              store.setJSON('mps_state', state);
+              sfx.buy();
+              if (crystals > 0) {
+                showToast(this, t('quests.toastCrystal', { diamonds: String(diamonds), crystals: String(crystals) }), '#DDBBFF');
+              } else if (hasDiamond) {
+                showToast(this, t('quests.toastDiamond', { diamonds: String(diamonds), coins: String(q.coinReward) }), '#AACCFF');
+              } else {
+                showToast(this, t('quests.toast', { amount: q.coinReward }), '#aaffaa');
+              }
+              this._updateCoinDisplay();
+              this._updateQuestBtn();
+              getNewAchievements(state).forEach(a => this._showAchievementPopup(a));
+              close();
+              this._showQuestsPanel();
+            }, 11);
+          popup.add(claimBtn);
+        } else if (clmd) {
+          popup.add(this.add.text(W/2 + 112, curY + (ROW_H - 6) / 2, t('quests.claimed'), {
+            fontFamily: FONT, fontSize: '11px', color: isWeekly ? '#8866CC' : '#66AA66',
+          }).setOrigin(0.5));
+        }
+
+        curY += ROW_H;
+      });
+    };
+
+    drawSection(t('quests.daily'),  '#FFD700', state.questResetAt ?? 0,       daily,  false);
+    curY += 4;
+    drawSection(t('quests.weekly'), '#CC99FF', state.weeklyQuestResetAt ?? 0, weekly, true);
 
     const close = () => popup.destroy();
     popup.add(makeButton(this, W/2 - 70, panY + panH - 28, 120, 40, t('btn.close'), 0x2a1560, close, 13));
@@ -1214,7 +1692,8 @@ export class Hub extends Phaser.Scene {
     const H = this.scale.height, W = this.scale.width;
     const bw = 118, bh = 52, btnY = H - 54;
     const x = W * 3 / 8;
-    const unclaimedCount = (Game.state!.quests ?? []).filter(q => q.completed && !q.claimed).length;
+    const allQuests = [...(Game.state!.quests ?? []), ...(Game.state!.weeklyQuests ?? [])];
+    const unclaimedCount = allQuests.filter(q => q.completed && !q.claimed).length;
     setButtonLabel(this._questBtn, unclaimedCount > 0 ? t('nav.questsDone') : t('nav.quests'));
     setButtonColor(this._questBtn, unclaimedCount > 0 ? 0x22AA44 : 0x1A1040);
     this._updateQuestDot(x, bw, btnY, bh, unclaimedCount > 0);
@@ -1244,6 +1723,7 @@ export class Hub extends Phaser.Scene {
     if (this._dexDot) this._updateDexDot(W * 5 / 8, bw, btnY, bh, hasNew);
     this._updateQuestBtn();
     this._updateVisitorBanner();
+    this._updateEggTimerStrip();
 
     if (monsters.length === 0 && eggs.length === 0) {
       const emptyTxt = this.add.text(W/2, 460, t('hub.empty'), {
@@ -1281,19 +1761,20 @@ export class Hub extends Phaser.Scene {
     const vpCY = vpY + vpH/2;
 
     const glowCol = HAB_GLOW[this._currentHabitat] ?? 0x8844CC;
+    const cardBg = this._getHabitatCardBg();
     const frame = this.add.graphics().setDepth(20);
-    this._drawGlassCard(frame, cx - CW/2, cy - CH/2, CW, CH, glowCol);
+    this._drawGlassCard(frame, cx - CW/2, cy - CH/2, CW, CH, glowCol, cardBg);
     this._displayGroup.add(frame);
 
     const interior = this.add.graphics().setDepth(21);
-    interior.fillStyle(0x0A0818, 0.70); interior.fillRect(vpX, vpY, vpW, vpH);
-    interior.lineStyle(1, glowCol, 0.20); interior.strokeRect(vpX, vpY, vpW, vpH);
+    interior.fillStyle(glowCol, 0.06); interior.fillRect(vpX, vpY, vpW, vpH);
+    interior.lineStyle(1, glowCol, 0.25); interior.strokeRect(vpX, vpY, vpW, vpH);
     this._displayGroup.add(interior);
 
     const namePlateG = this.add.graphics().setDepth(22);
-    namePlateG.fillStyle(0x000000, 0.55);
+    namePlateG.fillStyle(0x000000, 0.40);
     namePlateG.fillRoundedRect(cx - CW/2, cy + CH/2 - nameH, CW, nameH, { tl: 0, tr: 0, bl: 14, br: 14 });
-    namePlateG.lineStyle(1, glowCol, 0.20);
+    namePlateG.lineStyle(1, glowCol, 0.28);
     namePlateG.beginPath();
     namePlateG.moveTo(cx - CW/2 + 14, cy + CH/2 - nameH);
     namePlateG.lineTo(cx + CW/2 - 14, cy + CH/2 - nameH);
@@ -1302,12 +1783,12 @@ export class Hub extends Phaser.Scene {
 
     this._displayGroup.add(this.add.text(cx, vpCY - 8, '🥚', {
       fontFamily: FONT, fontSize: '36px',
-    }).setOrigin(0.5).setDepth(22).setAlpha(0.4));
+    }).setOrigin(0.5).setDepth(22).setAlpha(0.55));
     this._displayGroup.add(this.add.text(cx, vpCY + 22, t('hub.goShop'), {
-      fontFamily: FONT, fontSize: '13px', color: '#9080BB',
+      fontFamily: FONT, fontSize: '13px', color: '#C8B8EE',
     }).setOrigin(0.5).setDepth(22));
     this._displayGroup.add(this.add.text(cx, cy + CH/2 - nameH / 2, t('hub.empty').split('!')[0], {
-      fontFamily: FONT, fontSize: '13px', color: '#AAAACC',
+      fontFamily: FONT, fontSize: '13px', color: '#D0C8EE',
     }).setOrigin(0.5).setDepth(23));
 
     const zone = this.add.zone(cx, cy, CW, CH).setInteractive().setDepth(25);
@@ -1324,19 +1805,20 @@ export class Hub extends Phaser.Scene {
     const vpW = CW - vpPad*2, vpH = CH - nameH - vpPad*2;
 
     const glowCol = HAB_GLOW[this._currentHabitat] ?? 0x8844CC;
+    const cardBg = this._getHabitatCardBg();
     const frame = this.add.graphics().setDepth(20);
-    this._drawGlassCard(frame, cx - CW/2, cy - CH/2, CW, CH, glowCol);
+    this._drawGlassCard(frame, cx - CW/2, cy - CH/2, CW, CH, glowCol, cardBg);
     this._displayGroup.add(frame);
 
     const interior = this.add.graphics().setDepth(21);
-    interior.fillStyle(0x0A0818, 0.80); interior.fillRect(vpX, vpY, vpW, vpH);
-    interior.lineStyle(1, glowCol, 0.20); interior.strokeRect(vpX, vpY, vpW, vpH);
+    interior.fillStyle(glowCol, 0.08); interior.fillRect(vpX, vpY, vpW, vpH);
+    interior.lineStyle(1, glowCol, 0.28); interior.strokeRect(vpX, vpY, vpW, vpH);
     this._displayGroup.add(interior);
 
     const namePlateG = this.add.graphics().setDepth(22);
-    namePlateG.fillStyle(glowCol, 0.18);
+    namePlateG.fillStyle(glowCol, 0.22);
     namePlateG.fillRoundedRect(cx - CW/2, cy + CH/2 - nameH, CW, nameH, { tl: 0, tr: 0, bl: 14, br: 14 });
-    namePlateG.lineStyle(1, glowCol, 0.35);
+    namePlateG.lineStyle(1, glowCol, 0.40);
     namePlateG.beginPath();
     namePlateG.moveTo(cx - CW/2 + 14, cy + CH/2 - nameH);
     namePlateG.lineTo(cx + CW/2 - 14, cy + CH/2 - nameH);
@@ -1378,7 +1860,7 @@ export class Hub extends Phaser.Scene {
   private _getSlotPositions(W: number) {
     const H = this.scale.height;
     const col1 = W / 4, col2 = W * 3 / 4;
-    const startY = 242;
+    const startY = 288;
     // Keep row-3 card bottom above the nav bar (center H-54, height 52 → top H-80)
     const maxCY3 = H - 80 - 98 - 8;
     const spacing = Math.min(210, Math.floor((maxCY3 - startY) / 2));
@@ -1399,7 +1881,7 @@ export class Hub extends Phaser.Scene {
 
     const glowCol = HAB_GLOW[sp.habitat] ?? 0x8844CC;
     const frame = this.add.graphics().setDepth(20);
-    this._drawGlassCard(frame, cx - CW/2, cy - CH/2, CW, CH, glowCol);
+    this._drawGlassCard(frame, cx - CW/2, cy - CH/2, CW, CH, glowCol, this._getHabitatCardBg(sp.habitat as HabitatType));
     this._displayGroup.add(frame);
 
     const innerBg = this.add.graphics().setDepth(21);
@@ -1450,6 +1932,27 @@ export class Hub extends Phaser.Scene {
       }).setOrigin(1, 0).setDepth(24));
     }
 
+    // Evolved ✨ badge
+    if (mon.evolved) {
+      this._displayGroup.add(this.add.text(vpX + 4, vpY + vpH - 4, '✨', {
+        fontFamily: FONT, fontSize: '13px',
+      }).setOrigin(0, 1).setDepth(24));
+    }
+
+    // Featured species gold banner
+    const featuredId = Game.state!.featuredSpeciesId;
+    if (featuredId !== undefined && mon.speciesId === featuredId && (Game.state!.featuredUntil ?? 0) > Date.now()) {
+      const featBg = this.add.graphics().setDepth(25);
+      featBg.fillStyle(0x7A5000, 0.95);
+      featBg.fillRoundedRect(vpX, vpY + vpH - 20, vpW, 20, { tl: 0, tr: 0, bl: 2, br: 2 });
+      featBg.lineStyle(1, 0xFFCC00, 0.7);
+      featBg.strokeRoundedRect(vpX, vpY + vpH - 20, vpW, 20, { tl: 0, tr: 0, bl: 2, br: 2 });
+      this._displayGroup.add(featBg);
+      this._displayGroup.add(this.add.text(cx, vpY + vpH - 10, '⭐ ' + t('hub.featured2x'), {
+        fontFamily: FONT, fontSize: '11px', color: '#FFD700', fontStyle: 'bold',
+      }).setOrigin(0.5).setDepth(26));
+    }
+
     const vpCY = vpY + vpH/2 + 2;
     const texKey = makeMonsterTexture(this, mon);
     const img = this.add.image(cx, vpCY, texKey).setDisplaySize(96, 96).setDepth(22);
@@ -1465,6 +1968,34 @@ export class Hub extends Phaser.Scene {
         duration: 1400 + Math.random() * 600, ease: 'Sine.InOut', yoyo: true, repeat: -1,
       });
     });
+
+    // Happy Bloom — gold border pulse + floating stars when happiness is maxed
+    if (mon.happiness >= 100) {
+      const bloomBorder = this.add.graphics().setDepth(29);
+      bloomBorder.lineStyle(3, 0xFFD700, 1);
+      bloomBorder.strokeRoundedRect(cx - CW/2, cy - CH/2, CW, CH, 8);
+      this._displayGroup.add(bloomBorder);
+      this.tweens.add({ targets: bloomBorder, alpha: 0.2, duration: 900, ease: 'Sine.InOut', yoyo: true, repeat: -1 });
+      const spawnStars = () => {
+        if (!img.active) return;
+        for (let i = 0; i < 3; i++) {
+          const sx = cx + (Math.random() - 0.5) * 60;
+          const sy = vpCY + (Math.random() - 0.5) * 20;
+          const star = this.add.text(sx, sy, Math.random() > 0.5 ? '✦' : '✧', {
+            fontFamily: FONT, fontSize: `${11 + Math.floor(Math.random() * 6)}px`,
+            color: Math.random() > 0.5 ? '#FFD0F0' : '#FFFFFF',
+          }).setOrigin(0.5).setDepth(28).setAlpha(0);
+          this._displayGroup.add(star);
+          this.tweens.add({
+            targets: star, y: sy - 40 - Math.random() * 20, alpha: { from: 0.9, to: 0 },
+            duration: 1200 + Math.random() * 600, ease: 'Sine.In', delay: i * 200,
+            onComplete: () => { if (star.active) star.destroy(); },
+          });
+        }
+      };
+      spawnStars();
+      this.time.addEvent({ delay: 3000, loop: true, callback: spawnStars });
+    }
 
     // Stat indicator dots (hunger · happiness · cleanliness) bottom-left of viewport
     const statDotG = this.add.graphics().setDepth(24);
@@ -1496,6 +2027,15 @@ export class Hub extends Phaser.Scene {
         fontFamily: FONT, fontSize: '13px', color: '#ffffff', fontStyle: 'bold',
         stroke: '#000000', strokeThickness: 1,
       }).setOrigin(0.5).setDepth(26));
+
+      if (ready) {
+        // Pulsing green glow border on the whole card
+        const readyGlow = this.add.graphics().setDepth(20);
+        readyGlow.lineStyle(3, 0x44FF88, 0.8);
+        readyGlow.strokeRoundedRect(cx - CW/2, cy - CH/2, CW, CH, 8);
+        this._displayGroup.add(readyGlow);
+        this.tweens.add({ targets: readyGlow, alpha: 0.15, duration: 700, ease: 'Sine.InOut', yoyo: true, repeat: -1 });
+      }
     }
 
     const zone = this.add.zone(cx, cy, CW, CH).setInteractive().setDepth(27);
@@ -1670,6 +2210,20 @@ export class Hub extends Phaser.Scene {
       (child as Phaser.GameObjects.Text).setText(remaining <= 0 ? '✨ Ready!' : this._formatMs(remaining));
       (child as Phaser.GameObjects.Text).setStyle({ color: remaining <= 0 ? '#aaffaa' : '#BBCCFF' });
     });
+    this._updateEggStripTimerLabels();
+  }
+
+  private _updateEggStripTimerLabels() {
+    const now = Date.now();
+    this._eggStripTexts.forEach((txt, eggId) => {
+      if (!txt.active) return;
+      const egg = Game.state?.eggs.find(e => e.id === eggId);
+      if (!egg) return;
+      const remaining = Math.max(0, egg.hatchEndAt - now);
+      const ready = remaining <= 0;
+      txt.setText(ready ? '✨ Ready!' : ('🥚 ' + this._formatMs(remaining)));
+      txt.setStyle({ color: ready ? '#88FFAA' : '#AABBFF', fontStyle: ready ? 'bold' : 'normal' });
+    });
   }
 
   private _formatMs(ms: number): string {
@@ -1684,7 +2238,11 @@ export class Hub extends Phaser.Scene {
   }
 
   private _updateCoinDisplay() {
-    if (this._coinTxt) this._coinTxt.setText('💰 ' + Game.state!.coins);
+    if (this._coinTxt) {
+      this._coinTxt.setText('💰 ' + Game.state!.coins);
+      this.tweens.killTweensOf(this._coinTxt);
+      this.tweens.add({ targets: this._coinTxt, scaleX: 1.28, scaleY: 1.28, duration: 110, ease: 'Back.Out', yoyo: true });
+    }
     if (this._diamondTxt) this._diamondTxt.setText('💎 ' + (Game.state!.diamonds ?? 0));
   }
 

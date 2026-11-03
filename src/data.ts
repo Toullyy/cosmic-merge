@@ -183,13 +183,21 @@ export function checkAndUpdateVisitor(state: GameState): void {
 }
 
 // ── DAILY QUESTS ─────────────────────────────────────────────────────────────
-interface QuestDef { type: Quest['type']; targets: number[]; coins: number[]; makeLbl: (n: number) => string; }
+interface QuestDef { type: Quest['type']; targets: number[]; coins: number[]; diamonds?: number[]; crystals?: number[]; makeLbl: (n: number) => string; }
 const QUEST_DEFS: QuestDef[] = [
   { type: 'feed',  targets: [3, 5, 8], coins: [20, 35, 55], makeLbl: n => t('quest.feed',  { n: String(n) }) },
   { type: 'play',  targets: [2, 4, 6], coins: [25, 40, 65], makeLbl: n => t('quest.play',  { n: String(n) }) },
   { type: 'clean', targets: [2, 4, 6], coins: [20, 35, 55], makeLbl: n => t('quest.clean', { n: String(n) }) },
   { type: 'sell',  targets: [1, 2, 3], coins: [30, 55, 90], makeLbl: n => t('quest.sell',  { n: String(n) }) },
   { type: 'hatch', targets: [1, 2],    coins: [40, 80],      makeLbl: n => t('quest.hatch', { n: String(n), s: '' }) },
+];
+
+const WEEKLY_QUEST_DEFS: QuestDef[] = [
+  { type: 'feed',  targets: [15, 25, 40], coins: [80,  150, 250], diamonds: [2, 3, 5], makeLbl: n => t('quest.feed',  { n: String(n) }) },
+  { type: 'play',  targets: [15, 25, 40], coins: [80,  150, 250], diamonds: [2, 3, 5], makeLbl: n => t('quest.play',  { n: String(n) }) },
+  { type: 'clean', targets: [15, 20, 35], coins: [70,  130, 220], diamonds: [2, 3, 5], makeLbl: n => t('quest.clean', { n: String(n) }) },
+  { type: 'sell',  targets: [5,  10, 15], coins: [120, 250, 400], diamonds: [3, 5, 8], makeLbl: n => t('quest.sell',  { n: String(n) }) },
+  { type: 'hatch', targets: [3,  5,  8],  coins: [100, 200, 320], diamonds: [3, 5, 7], crystals: [0, 0, 1], makeLbl: n => t('quest.hatch', { n: String(n), s: '' }) },
 ];
 
 export function generateDailyQuests(): Quest[] {
@@ -204,6 +212,25 @@ export function generateDailyQuests(): Quest[] {
       completed: false,
       claimed: false,
       coinReward: def.coins[ti],
+      label: def.makeLbl(def.targets[ti]),
+    };
+  });
+}
+
+export function generateWeeklyQuests(): Quest[] {
+  const defs = [...WEEKLY_QUEST_DEFS].sort(() => Math.random() - 0.5).slice(0, 3);
+  return defs.map((def, i) => {
+    const ti = Math.floor(Math.random() * def.targets.length);
+    return {
+      id: 'wq' + i + '_' + Date.now(),
+      type: def.type,
+      target: def.targets[ti],
+      progress: 0,
+      completed: false,
+      claimed: false,
+      coinReward: def.coins[ti],
+      diamondReward: def.diamonds?.[ti] ?? 0,
+      crystalReward: def.crystals?.[ti] ?? 0,
       label: def.makeLbl(def.targets[ti]),
     };
   });

@@ -61,15 +61,19 @@ export function reconcileOfflineTime(state: GameState): void {
 }
 
 export function recordQuestProgress(type: Quest['type']): void {
-  if (!Game.state?.quests) return;
+  if (!Game.state) return;
   let changed = false;
-  Game.state.quests.forEach(q => {
-    if (q.type === type && !q.completed) {
-      q.progress = Math.min(q.target, q.progress + 1);
-      if (q.progress >= q.target) q.completed = true;
-      changed = true;
-    }
-  });
+  const tick = (list: Quest[] | undefined) => {
+    list?.forEach(q => {
+      if (q.type === type && !q.completed) {
+        q.progress = Math.min(q.target, q.progress + 1);
+        if (q.progress >= q.target) q.completed = true;
+        changed = true;
+      }
+    });
+  };
+  tick(Game.state.quests);
+  tick(Game.state.weeklyQuests);
   if (changed) store.setJSON('mps_state', Game.state);
 }
 

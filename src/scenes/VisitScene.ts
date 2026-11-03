@@ -75,7 +75,7 @@ export class VisitScene extends Phaser.Scene {
 
     if (shops.length === 0) {
       const txt = this.add.text(W / 2, H / 2, t('visit.empty'), {
-        fontFamily: FONT, fontSize: '18px', color: '#666666',
+        fontFamily: FONT, fontSize: '18px', color: '#AAAAAA',
         align: 'center', wordWrap: { width: 420 },
       }).setOrigin(0.5).setDepth(10);
       this._items.push(txt);
@@ -122,7 +122,7 @@ export class VisitScene extends Phaser.Scene {
     container.add(infoT);
 
     const agoT = this.add.text(cx - cW / 2 + 18, cy + 28, _formatAgo(shop.updatedAt), {
-      fontFamily: FONT, fontSize: '12px', color: '#555577',
+      fontFamily: FONT, fontSize: '12px', color: '#9999BB',
     }).setOrigin(0, 0.5);
     container.add(agoT);
 
@@ -164,7 +164,7 @@ export class VisitScene extends Phaser.Scene {
 
     if (shop.monsters.length === 0) {
       const emptyT = this.add.text(W / 2, H / 2, t('visit.noMonsters'), {
-        fontFamily: FONT, fontSize: '18px', color: '#555555', align: 'center',
+        fontFamily: FONT, fontSize: '18px', color: '#AAAAAA', align: 'center',
       }).setOrigin(0.5).setDepth(10);
       this._items.push(emptyT);
       return;

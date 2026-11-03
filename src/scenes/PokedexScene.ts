@@ -258,6 +258,19 @@ export class PokedexScene extends Phaser.Scene {
           }).setOrigin(0.5).setDepth(6);
         }
 
+        // Mastery badge (sold 3+ of this species)
+        const masteryCount = (Game.state!.speciesSold ?? {})[sp.id] ?? 0;
+        if (masteryCount >= 3) {
+          const mb = this.add.graphics().setDepth(5);
+          mb.fillStyle(0x7A5000, 0.92);
+          mb.fillRoundedRect(cx + cellW / 2 - 26, cy + cellH / 2 - 20, 22, 15, 4);
+          mb.lineStyle(1, 0xFFCC00, 0.7);
+          mb.strokeRoundedRect(cx + cellW / 2 - 26, cy + cellH / 2 - 20, 22, 15, 4);
+          this.add.text(cx + cellW / 2 - 15, cy + cellH / 2 - 13, '🏆', {
+            fontFamily: FONT, fontSize: '9px',
+          }).setOrigin(0.5).setDepth(6);
+        }
+
         // NEW badge
         if (this._newOnes.has(sp.id)) {
           const badgeBg = this.add.graphics().setDepth(5);

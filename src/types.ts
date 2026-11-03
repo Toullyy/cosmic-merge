@@ -28,6 +28,8 @@ export interface Monster {
   ownedTool?: string;
   trait?: string;
   bowl?: { foodId: string; remaining: number; maxAmount: number; color: number } | null;
+  evolved?: boolean;
+  evolvedAt?: number;
 }
 
 export interface Egg {
@@ -53,6 +55,8 @@ export interface Quest {
   completed: boolean;
   claimed: boolean;
   coinReward: number;
+  diamondReward?: number;
+  crystalReward?: number;
   label: string;
 }
 
@@ -112,6 +116,18 @@ export interface GameState {
   longestStreak?: number;
   dailyAdClaimedDate?: string;
   discoveredColors?: Record<string, number[]>;
+  // Gameplay depth fields
+  moonCrystals?: number;
+  shopLevel?: number;
+  habitatMilestones?: { dirt: number; grass: number; aquatic: number };
+  speciesSold?: Record<number, number>;
+  wheelClaimedDate?: string;
+  featuredSpeciesId?: number;
+  featuredUntil?: number;
+  rushHourUntil?: number;
+  rushHourNextAt?: number;
+  weeklyQuests?: Quest[];
+  weeklyQuestResetAt?: number;
 }
 
 export interface PublicMonster {

@@ -69,6 +69,7 @@ export class HabitatRoom extends Phaser.Scene {
     sfx.unlock();
     const W = this.scale.width, H = this.scale.height;
     this._W = W; this._H = H;
+    this.cameras.main.fadeIn(220, 0, 0, 0);
 
     const monster = Game.state!.monsters.find(m => m.id === this._monsterId);
     if (!monster) { this.scene.start('Hub'); return; }
@@ -104,9 +105,17 @@ export class HabitatRoom extends Phaser.Scene {
 
   private _calcSell(sp: Species): number {
     const m = this._monster;
+    const state = Game.state!;
     const golden = getVariantModifiers(m.variantIndex).isGolden ? 1.5 : 1;
     const traitMod = TRAITS.find(t => t.id === m.trait)?.sellMod ?? 1;
-    return Math.max(10, Math.round(sp.price * (1 + m.level * 0.2) * (m.happiness / 100) * 0.8 * golden * traitMod));
+    const evolvedMod = m.evolved ? 1.8 : 1;
+    const hab = m.habitatType as 'dirt' | 'grass' | 'aquatic';
+    const milestoneCount = state.habitatMilestones?.[hab] ?? 0;
+    const milestoneMod = milestoneCount >= 20 ? 1.30 : milestoneCount >= 10 ? 1.20 : milestoneCount >= 5 ? 1.10 : 1;
+    const masteryCount = state.speciesSold?.[m.speciesId] ?? 0;
+    const masteryMod = masteryCount >= 3 ? 1.15 : 1;
+    const featuredMod = (state.featuredSpeciesId === m.speciesId && (state.featuredUntil ?? 0) > Date.now()) ? 2 : 1;
+    return Math.max(10, Math.round(sp.price * (1 + m.level * 0.2) * (m.happiness / 100) * 0.8 * golden * traitMod * evolvedMod * milestoneMod * masteryMod * featuredMod));
   }
 
   // ── BACKGROUND ────────────────────────────────────────────────────────────
@@ -599,6 +608,23 @@ export class HabitatRoom extends Phaser.Scene {
 
     const texKey = makeMonsterTexture(this, this._monster);
     this._monImg = this.add.image(leftX, monY, texKey).setDisplaySize(182, 182).setDepth(5);
+
+    // Evolved glow ring — follows monster position via walk/bob update callbacks
+    if (this._monster.evolved) {
+      const evolveRing = this.add.graphics().setDepth(4);
+      const drawRing = () => {
+        if (!evolveRing.active) return;
+        evolveRing.clear();
+        evolveRing.lineStyle(5, 0xCC88FF, 0.75);
+        evolveRing.strokeCircle(this._monImg.x, this._monImg.y + 10, 72);
+        evolveRing.lineStyle(2, 0xFFDDFF, 0.40);
+        evolveRing.strokeCircle(this._monImg.x, this._monImg.y + 10, 82);
+      };
+      drawRing();
+      this.tweens.add({ targets: evolveRing, alpha: 0.4, duration: 900, ease: 'Sine.InOut', yoyo: true, repeat: -1 });
+      this.time.addEvent({ delay: 16, loop: true, callback: drawRing });
+    }
+
     this._dirtyOverlay = this.add.graphics().setDepth(6);
 
     this._walkTween = this.tweens.add({
@@ -1170,6 +1196,27 @@ export class HabitatRoom extends Phaser.Scene {
       stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5).setDepth(20);
 
+    // Ascend button — visible for level 10 monsters that haven't evolved yet
+    const state2 = Game.state!;
+    const m2 = this._monster;
+    if (m2.level >= 10 && !m2.evolved) {
+      const canAscend = (state2.moonCrystals ?? 0) >= 1;
+      const ascBtn = makeButton(this, W / 2, H - 138, 220, 40,
+        canAscend ? t('btn.ascend') : t('btn.ascendNeed'), canAscend ? 0x4A1580 : 0x2A2A2A,
+        () => { if (canAscend) this._doAscend(); else showToast(this, t('toast.needCrystal'), '#ffaaaa'); }, 13);
+      ascBtn.setDepth(20);
+      // Moon crystal count display
+      this.add.text(W / 2, H - 118, '🌙 ' + (state2.moonCrystals ?? 0) + ' crystal', {
+        fontFamily: FONT, fontSize: '11px', color: '#CC88FF',
+        stroke: '#000000', strokeThickness: 2,
+      }).setOrigin(0.5).setDepth(20);
+    } else if (m2.evolved) {
+      this.add.text(W / 2, H - 130, '✨ ' + t('label.evolved'), {
+        fontFamily: FONT, fontSize: '14px', fontStyle: 'bold', color: '#FFD700',
+        stroke: '#000000', strokeThickness: 2,
+      }).setOrigin(0.5).setDepth(20);
+    }
+
     this.events.once('shutdown', () => {
       if (this._renameInput) {
         try { document.body.removeChild(this._renameInput); } catch { /* ignore */ }
@@ -1291,6 +1338,8 @@ export class HabitatRoom extends Phaser.Scene {
           this._playBowlFeedAnim(food.id, food.tier);
           showFloat(this, this._bowlX, this._bowlY - 42, '+' + actualHungerAdded + '🍖 +' + food.happinessGain + '💛', '#ffcc44');
           this._refreshStats();
+          this._bounceBar('hunger');
+          this._bounceBar('happiness');
           this._drawBowl();
           this._updateCoinDisplay();
           this._clearPicker();
@@ -1335,6 +1384,7 @@ export class HabitatRoom extends Phaser.Scene {
           this._playPetAnim(ownedToy.id);
           showFloat(this, this._monImg.x, this._monImg.y - 85, '+' + playHapGain + '💛', '#ffdd55');
           this._refreshStats();
+          this._bounceBar('happiness');
           this._clearPicker();
         }, 14);
       fbtn.setDepth(29);
@@ -1387,6 +1437,7 @@ export class HabitatRoom extends Phaser.Scene {
             this._playPetAnim(toy.id);
             showFloat(this, this._monImg.x, this._monImg.y - 85, '+' + toy.happinessGain + '💛', '#ffdd55');
             this._refreshStats();
+            this._bounceBar('happiness');
             this._updateCoinDisplay();
             this._clearPicker();
           }, 10);
@@ -1432,6 +1483,7 @@ export class HabitatRoom extends Phaser.Scene {
           this._playCleanAnim(ownedTool.id);
           showFloat(this, this._monImg.x, this._monImg.y - 85, '+' + ownedTool.cleanGain + '✨', '#88ccff');
           this._refreshStats();
+          this._bounceBar('cleanliness');
           this._clearPicker();
         }, 14);
       cleanBtn.setDepth(29);
@@ -1485,6 +1537,7 @@ export class HabitatRoom extends Phaser.Scene {
             this._playCleanAnim(tool.id);
             showFloat(this, this._monImg.x, this._monImg.y - 85, '+' + tool.cleanGain + '✨', '#88ccff');
             this._refreshStats();
+            this._bounceBar('cleanliness');
             this._updateCoinDisplay();
             this._clearPicker();
           }, 10);
@@ -1930,13 +1983,30 @@ export class HabitatRoom extends Phaser.Scene {
 
     const finalize = (price: number) => {
       popup.destroy();
-      Game.state!.coins += price;
-      Game.state!.monsters = Game.state!.monsters.filter(m => m.id !== this._monster.id);
-      Game.state!.listings = Game.state!.listings.filter(l => l.id !== listing.id);
-      Game.state!.stats.sold++;
-      Game.state!.stats.totalEarned += price;
+      const state = Game.state!;
+      state.coins += price;
+      state.monsters = state.monsters.filter(m => m.id !== this._monster.id);
+      state.listings = state.listings.filter(l => l.id !== listing.id);
+      state.stats.sold++;
+      state.stats.totalEarned += price;
+      // habitat milestone tracking
+      const hab = this._monster.habitatType as 'dirt' | 'grass' | 'aquatic';
+      if (!state.habitatMilestones) state.habitatMilestones = { dirt: 0, grass: 0, aquatic: 0 };
+      state.habitatMilestones[hab]++;
+      const milestoneCount = state.habitatMilestones[hab];
+      if (milestoneCount === 5 || milestoneCount === 10 || milestoneCount === 20) {
+        const pct = milestoneCount >= 20 ? 30 : milestoneCount >= 10 ? 20 : 10;
+        showToast(this, '🏅 ' + t('toast.habitatBonus', { pct }), '#FFD700');
+      }
+      // species mastery tracking
+      if (!state.speciesSold) state.speciesSold = {};
+      const sid = this._monster.speciesId;
+      state.speciesSold[sid] = (state.speciesSold[sid] ?? 0) + 1;
+      if (state.speciesSold[sid] === 3) {
+        showToast(this, '🏆 ' + t('toast.speciesMaster', { name: this._sp.name }), '#FFDD44');
+      }
       recordQuestProgress('sell');
-      store.setJSON('mps_state', Game.state);
+      store.setJSON('mps_state', state);
       sfx.sell();
       this._spawnParticles(W/2, H/2 - 80, 0xFFD700, 26);
       showFloat(this, W/2, H/2 - 120, '+' + price + ' 💰', '#ffd700');
@@ -1952,6 +2022,22 @@ export class HabitatRoom extends Phaser.Scene {
     popup.add(makeButton(this, W/2, H/2 + 148, 120, 38, t('btn.cancel'), 0x4A2890, () => {
       popup.destroy();
     }, 13));
+  }
+
+  private _doAscend() {
+    const state = Game.state!;
+    state.moonCrystals = (state.moonCrystals ?? 0) - 1;
+    this._monster.evolved = true;
+    this._monster.evolvedAt = Date.now();
+    store.setJSON('mps_state', state);
+    this._sellPrice = this._calcSell(this._sp);
+    // Visual burst
+    this._spawnParticles(this._monImg.x, this._monImg.y, 0xCC88FF, 30);
+    const ring = this.add.graphics().setDepth(33);
+    ring.lineStyle(6, 0xCC88FF, 1); ring.strokeCircle(this._monImg.x, this._monImg.y, 24);
+    this.tweens.add({ targets: ring, scaleX: 6, scaleY: 6, alpha: 0, duration: 700, ease: 'Quad.Out', onComplete: () => { try { ring.destroy(); } catch { /**/ } } });
+    showToast(this, '✨ ' + t('toast.ascended', { name: this._monster.nickname ?? this._sp.name }), '#CC88FF');
+    this.time.delayedCall(800, () => this.scene.restart({ monsterId: this._monster.id }));
   }
 
   private _showCancelListing(listing: Listing) {
@@ -2039,12 +2125,46 @@ export class HabitatRoom extends Phaser.Scene {
         m.xp -= needed;
         m.level = Math.min(10, m.level + 1);
         sfx.levelup();
+        this.cameras.main.shake(260, 0.007);
         this._spawnParticles(this._monImg.x, this._monImg.y, 0xFFD700, 24);
         this._spawnParticles(this._monImg.x, this._monImg.y, 0xFFFFFF, 12);
+        // Big floating level-up text
+        const lvTxt = this.add.text(this._monImg.x, this._monImg.y - 60, '⭐ Lv' + m.level + ' ⭐', {
+          fontFamily: FONT, fontSize: '28px', fontStyle: 'bold', color: '#FFD700',
+          stroke: '#000000', strokeThickness: 5,
+        }).setOrigin(0.5).setDepth(33).setScale(0);
+        this.tweens.add({
+          targets: lvTxt, scaleX: 1.0, scaleY: 1.0, duration: 320, ease: 'Back.Out',
+          onComplete: () => {
+            this.tweens.add({
+              targets: lvTxt, y: lvTxt.y - 70, alpha: 0,
+              duration: 900, delay: 600, ease: 'Sine.In',
+              onComplete: () => { try { lvTxt.destroy(); } catch { /**/ } },
+            });
+          },
+        });
+        // Screen flash ring
+        const ring = this.add.graphics().setDepth(33);
+        ring.lineStyle(8, 0xFFD700, 0.9);
+        ring.strokeCircle(this._monImg.x, this._monImg.y, 20);
+        this.tweens.add({
+          targets: ring, scaleX: 5, scaleY: 5, alpha: 0, duration: 500, ease: 'Quad.Out',
+          onComplete: () => { try { ring.destroy(); } catch { /**/ } },
+        });
         showToast(this, t('toast.levelUp', { name: m.nickname ?? SPECIES[m.speciesId].name, n: m.level }), '#FFD700');
         this._sellPrice = this._calcSell(this._sp);
       }
     }
+  }
+
+  private _bounceBar(key: string) {
+    const e = this._bars[key];
+    if (!e) return;
+    this.tweens.killTweensOf(e.fill);
+    this.tweens.add({
+      targets: e.fill, scaleY: 1.18, scaleX: 1.02,
+      duration: 90, ease: 'Sine.Out', yoyo: true,
+    });
   }
 
   // ── PARTICLES ─────────────────────────────────────────────────────────────
@@ -2317,6 +2437,9 @@ export class HabitatRoom extends Phaser.Scene {
   // ── UTILS ─────────────────────────────────────────────────────────────────
 
   private _updateCoinDisplay() {
-    if (this._coinTxt) this._coinTxt.setText('💰 ' + Game.state!.coins);
+    if (!this._coinTxt) return;
+    this._coinTxt.setText('💰 ' + Game.state!.coins);
+    this.tweens.killTweensOf(this._coinTxt);
+    this.tweens.add({ targets: this._coinTxt, scaleX: 1.3, scaleY: 1.3, duration: 120, ease: 'Back.Out', yoyo: true });
   }
 }

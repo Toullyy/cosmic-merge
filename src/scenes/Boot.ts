@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { Game, store, getNewAchievements, reconcileOfflineTime } from '../utils';
 import type { GameState } from '../types';
-import { newState, generateMerchantStock, MERCHANT_REFRESH_MS, TANK_CAPACITY, randomBuyer, VISITOR_INTERVAL_MS, checkAndUpdateVisitor, generateDailyQuests, TRAITS } from '../data';
+import { newState, generateMerchantStock, MERCHANT_REFRESH_MS, TANK_CAPACITY, randomBuyer, VISITOR_INTERVAL_MS, checkAndUpdateVisitor, generateDailyQuests, generateWeeklyQuests, TRAITS } from '../data';
 import { preloadMonsterTexture } from '../MonsterRenderer';
 import { initCloudAuth, loadFromCloud, scheduleSaveToCloud } from '../cloudSync';
 import { auth } from '../firebase';
@@ -71,6 +71,15 @@ export class Boot extends Phaser.Scene {
         const midnight = new Date(); midnight.setHours(24, 0, 0, 0);
         Game.state.questResetAt = midnight.getTime();
       }
+      // weekly quests — reset every Monday midnight
+      if (!Game.state.weeklyQuests || !Game.state.weeklyQuestResetAt || now2 >= Game.state.weeklyQuestResetAt) {
+        Game.state.weeklyQuests = generateWeeklyQuests();
+        const nextMon = new Date();
+        const daysUntilMon = (8 - nextMon.getDay()) % 7 || 7;
+        nextMon.setDate(nextMon.getDate() + daysUntilMon);
+        nextMon.setHours(0, 0, 0, 0);
+        Game.state.weeklyQuestResetAt = nextMon.getTime();
+      }
       // assign trait to monsters that don't have one; initialise bowl
       Game.state.monsters.forEach(m => {
         if (!m.trait) m.trait = TRAITS[Math.floor(Math.random() * TRAITS.length)].id;
@@ -85,6 +94,33 @@ export class Boot extends Phaser.Scene {
       if (Game.state.lastLoginDate === undefined) Game.state.lastLoginDate = '';
       if (!Game.state.dailyAdClaimedDate) Game.state.dailyAdClaimedDate = '';
       if (!Game.state.discoveredColors)   Game.state.discoveredColors   = {};
+      // gameplay depth migrations
+      if (Game.state.moonCrystals === undefined) Game.state.moonCrystals = 0;
+      if (!Game.state.habitatMilestones) Game.state.habitatMilestones = { dirt: 0, grass: 0, aquatic: 0 };
+      if (!Game.state.speciesSold) Game.state.speciesSold = {};
+      if (!Game.state.wheelClaimedDate) Game.state.wheelClaimedDate = '';
+      if (Game.state.shopLevel === undefined) Game.state.shopLevel = 1;
+      // monsters: init evolved flag
+      Game.state.monsters.forEach(m => {
+        if (m.evolved === undefined) m.evolved = false;
+      });
+      // featured species: pick from week seed if missing/expired
+      const _now = Date.now();
+      if (!Game.state.featuredSpeciesId || !Game.state.featuredUntil || _now > Game.state.featuredUntil) {
+        const _week = Math.floor(_now / (7 * 24 * 3600000));
+        Game.state.featuredSpeciesId = (_week * 3 + 7) % 15;
+        const _nextSun = new Date(); _nextSun.setDate(_nextSun.getDate() + (7 - _nextSun.getDay()) % 7 || 7); _nextSun.setHours(0, 0, 0, 0);
+        Game.state.featuredUntil = _nextSun.getTime();
+      }
+      // rush hour scheduling
+      if (!Game.state.rushHourNextAt) {
+        const _d = new Date(); const _h = _d.getHours();
+        const _todayNoon = new Date(_d); _todayNoon.setHours(12, 0, 0, 0);
+        const _today8pm = new Date(_d); _today8pm.setHours(20, 0, 0, 0);
+        if (_h < 12) Game.state.rushHourNextAt = _todayNoon.getTime();
+        else if (_h < 20) Game.state.rushHourNextAt = _today8pm.getTime();
+        else { const _tmrNoon = new Date(_todayNoon); _tmrNoon.setDate(_tmrNoon.getDate() + 1); Game.state.rushHourNextAt = _tmrNoon.getTime(); }
+      }
       // deduplicate monsters by id (fix for users who got duplicates from double-tap bug)
       const seenIds = new Set<string>();
       Game.state.monsters = Game.state.monsters.filter(m => {

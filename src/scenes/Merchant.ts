@@ -22,6 +22,7 @@ export class Merchant extends Phaser.Scene {
   create() {
     sfx.unlock();
     const W = this.scale.width, H = this.scale.height;
+    this.cameras.main.fadeIn(200, 0, 0, 0);
 
     this._buildBackground(W, H);
     this._buildHUD(W, H);
@@ -43,6 +44,43 @@ export class Merchant extends Phaser.Scene {
     this._buildGrid(W, H);
     this._startRefreshTimer();
     this._startAmbient(W, H);
+    this._entryBurst(W, H);
+  }
+
+  private _entryBurst(W: number, H: number) {
+    const colors = [0xFFCC44, 0xCC66FF, 0x66DDFF, 0xFF88CC, 0xFFEE88, 0xAA88FF];
+    const cx = W / 2;
+    for (let i = 0; i < 28; i++) {
+      const delay = i * 28;
+      this.time.delayedCall(delay, () => {
+        const angle = (i / 28) * Math.PI * 2 + Math.random() * 0.4;
+        const speed = 80 + Math.random() * 140;
+        const col = colors[Math.floor(Math.random() * colors.length)];
+        const pg = this.add.graphics().setDepth(10);
+        pg.fillStyle(col, 1);
+        pg.fillCircle(0, 0, 3 + Math.random() * 4);
+        pg.x = cx + (Math.random() - 0.5) * 80;
+        pg.y = 68 + Math.random() * 30;
+        this.tweens.add({
+          targets: pg,
+          x: pg.x + Math.cos(angle) * speed,
+          y: pg.y + Math.sin(angle) * speed - 30,
+          alpha: 0, scaleX: 0.15, scaleY: 0.15,
+          duration: 550 + Math.random() * 350, ease: 'Cubic.Out',
+          onComplete: (_tw: any, tg: any) => { try { tg[0].destroy(); } catch { /* */ } },
+        });
+      });
+    }
+    // Title scale-in pop
+    this.time.delayedCall(80, () => {
+      const titleObjs = this.children.list.filter(
+        (c: any) => c.type === 'Text' && c.text?.includes('✶')
+      ) as Phaser.GameObjects.Text[];
+      titleObjs.forEach(t => {
+        t.setScale(0.6);
+        this.tweens.add({ targets: t, scaleX: 1, scaleY: 1, duration: 380, ease: 'Back.Out' });
+      });
+    });
   }
 
   // ── BACKGROUND ─────────────────────────────────────────────────────────────
