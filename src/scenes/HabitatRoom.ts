@@ -1182,7 +1182,14 @@ export class HabitatRoom extends Phaser.Scene {
     const isGoldenMon = mods.isGolden;
     const goldenMult = isGoldenMon ? 1.5 : 1;
     const traitSellMod = trait?.sellMod ?? 1;
-    const maxPrice = Math.max(10, Math.round(sp.price * (1 + 10 * 0.2) * 0.8 * goldenMult * traitSellMod));
+    const evolvedMod = this._monster.evolved ? 1.8 : 1;
+    const hab = this._monster.habitatType as 'dirt' | 'grass' | 'aquatic';
+    const milestoneCount = Game.state!.habitatMilestones?.[hab] ?? 0;
+    const milestoneMod = milestoneCount >= 20 ? 1.30 : milestoneCount >= 10 ? 1.20 : milestoneCount >= 5 ? 1.10 : 1;
+    const masteryCount = Game.state!.speciesSold?.[this._monster.speciesId] ?? 0;
+    const masteryMod = masteryCount >= 3 ? 1.15 : 1;
+    const featuredMod = (Game.state!.featuredSpeciesId === this._monster.speciesId && (Game.state!.featuredUntil ?? 0) > Date.now()) ? 2 : 1;
+    const maxPrice = Math.max(10, Math.round(sp.price * (1 + 10 * 0.2) * 0.8 * goldenMult * traitSellMod * evolvedMod * milestoneMod * masteryMod * featuredMod));
     const hintLabel = isGoldenMon
       ? t('hint.golden', { max: maxPrice })
       : t('hint.normal', { max: maxPrice });

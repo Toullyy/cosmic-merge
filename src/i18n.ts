@@ -66,6 +66,9 @@ const D: Record<Lang, Record<string, string>> = {
     'btn.close':         'Close',
     'btn.cancel':        'Cancel',
     'btn.confirm':       'Confirm',
+    'btn.hatchNow':      'Hatch Now!',
+    'btn.later':         'Later',
+    'toast.breedEggReady': '🎉 Breeding egg is ready to hatch!',
     'confirm.unlock':    'Unlock this habitat for {cost} coins?',
     // HabitatRoom
     'btn.sell':       'Sell  {price}💰',
@@ -289,6 +292,9 @@ const D: Record<Lang, Record<string, string>> = {
     'btn.close':         'ปิด',
     'btn.cancel':        'ยกเลิก',
     'btn.confirm':       'ยืนยัน',
+    'btn.hatchNow':      'ฟักเลย!',
+    'btn.later':         'ทีหลัง',
+    'toast.breedEggReady': '🎉 ไข่ผสมพันธุ์พร้อมฟักแล้ว!',
     'confirm.unlock':    'ปลดล็อก habitat นี้ใช้ {cost} เหรียญ?',
     // HabitatRoom
     'btn.sell':       'ขาย  {price}💰',

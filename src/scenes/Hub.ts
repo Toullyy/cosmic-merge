@@ -42,6 +42,9 @@ export class Hub extends Phaser.Scene {
   private _dailyAdBadge: Phaser.GameObjects.Container | null = null;
   private _eggStripContainer: Phaser.GameObjects.Container | null = null;
   private _eggStripTexts = new Map<string, Phaser.GameObjects.Text>();
+  private _bloomTimers: Phaser.Time.TimerEvent[] = [];
+  private _bannerTweens: Phaser.Tweens.Tween[] = [];
+  private _hatchPrompted = new Set<string>();
 
   constructor() { super({ key: 'Hub' }); }
 
@@ -72,6 +75,7 @@ export class Hub extends Phaser.Scene {
     this.time.delayedCall(400, () => {
       this._checkDailyLogin();
       this._restoreDailyAdBadgeIfNeeded();
+      this._checkReadyBreedingEggs();
     });
   }
 
@@ -129,17 +133,6 @@ export class Hub extends Phaser.Scene {
       bg.fillStyle(col, 0.15); bg.fillCircle(bx, by - 4, 14);
     });
 
-    // Decorative sign on back wall center
-    const signX = W / 2, signY = H * 0.68;
-    bg.fillStyle(0x3A1808, 0.5); bg.fillRoundedRect(signX - 97, signY - 27, 194, 50, 6);
-    bg.fillStyle(0xC87820, 1); bg.fillRoundedRect(signX - 95, signY - 26, 190, 48, 5);
-    bg.lineStyle(2, 0xFFD070, 0.70); bg.strokeRoundedRect(signX - 95, signY - 26, 190, 48, 5);
-    bg.lineStyle(1, 0xFFE0A0, 0.35); bg.strokeRoundedRect(signX - 90, signY - 21, 180, 38, 4);
-    // Sign nails
-    [[signX - 84, signY - 19], [signX + 84, signY - 19], [signX - 84, signY + 17], [signX + 84, signY + 17]].forEach(([nx, ny]) => {
-      bg.fillStyle(0xC0A050, 1); bg.fillCircle(nx, ny, 4);
-      bg.fillStyle(0xFFD890, 0.6); bg.fillCircle(nx - 1, ny - 1, 2);
-    });
 
     // Small treasure chest on shelf right
     const chX = W * 0.72, chY = shelfY - 20;
@@ -194,16 +187,8 @@ export class Hub extends Phaser.Scene {
     v.fillRect(W * 0.90, 0, W * 0.10, H);
   }
 
-  private _buildShopSign(W: number, H: number) {
-    const signY = H * 0.68;
-    this.add.text(W / 2, signY - 8, t('hub.sign'), {
-      fontFamily: FONT, fontSize: '15px', fontStyle: 'bold',
-      color: '#FFFFFF', stroke: '#5A2A00', strokeThickness: 3,
-    }).setOrigin(0.5).setDepth(1);
-    this.add.text(W / 2, signY + 10, t('hub.tagline'), {
-      fontFamily: FONT, fontSize: '12px',
-      color: '#FFFFFF', stroke: '#5A2A00', strokeThickness: 2,
-    }).setOrigin(0.5).setDepth(1);
+  private _buildShopSign(_W: number, _H: number) {
+    // Sign removed — wooden board showed through the inter-card gap at row 3
   }
 
   private _startAmbient(W: number, H: number) {
@@ -835,6 +820,8 @@ export class Hub extends Phaser.Scene {
 
   private _updateVisitorBanner() {
     if (!this._visitorBanner) return;
+    this._bannerTweens.forEach(t => t.stop());
+    this._bannerTweens = [];
     this._visitorBanner.removeAll(true);
     const state = Game.state!;
     const W = this.scale.width;
@@ -876,7 +863,7 @@ export class Hub extends Phaser.Scene {
         pulse.lineStyle(2, 0xFF4400, 0.6);
         pulse.strokeRoundedRect(8, 0, W - 16, 32, 10);
         this._visitorBanner.add(pulse);
-        this.tweens.add({ targets: pulse, alpha: 0.1, duration: 500, ease: 'Sine.InOut', yoyo: true, repeat: -1 });
+        this._bannerTweens.push(this.tweens.add({ targets: pulse, alpha: 0.1, duration: 500, ease: 'Sine.InOut', yoyo: true, repeat: -1 }));
       }
 
       const zone = this.add.zone(W / 2, 16, W - 16, 32).setInteractive();
@@ -901,7 +888,7 @@ export class Hub extends Phaser.Scene {
       pulse.lineStyle(2, 0xFF4400, 0.6);
       pulse.strokeRoundedRect(8, 0, W - 16, 32, 10);
       this._visitorBanner.add(pulse);
-      this.tweens.add({ targets: pulse, alpha: 0.1, duration: 500, ease: 'Sine.InOut', yoyo: true, repeat: -1 });
+      this._bannerTweens.push(this.tweens.add({ targets: pulse, alpha: 0.1, duration: 500, ease: 'Sine.InOut', yoyo: true, repeat: -1 }));
       const zone = this.add.zone(W / 2, 16, W - 16, 32).setInteractive();
       zone.on('pointerdown', () => this._showVisitorPopup());
       this._visitorBanner.add(zone);
@@ -1702,6 +1689,8 @@ export class Hub extends Phaser.Scene {
   refreshAll() {
     this._bobTweens.forEach(t => { try { t.stop(); } catch { /* ignore */ } });
     this._bobTweens = [];
+    this._bloomTimers.forEach(t => t.destroy());
+    this._bloomTimers = [];
     this._displayGroup.clear(true, true);
 
     const newAch = getNewAchievements(Game.state!);
@@ -1720,7 +1709,7 @@ export class Hub extends Phaser.Scene {
     if (this._dexBtn) {
       setButtonLabel(this._dexBtn, t('nav.dex', { n: disc }));
     }
-    if (this._dexDot) this._updateDexDot(W * 5 / 8, bw, btnY, bh, hasNew);
+    if (this._dexDot) this._updateDexDot(W / 2, 100, btnY, bh, hasNew);
     this._updateQuestBtn();
     this._updateVisitorBanner();
     this._updateEggTimerStrip();
@@ -1994,7 +1983,7 @@ export class Hub extends Phaser.Scene {
         }
       };
       spawnStars();
-      this.time.addEvent({ delay: 3000, loop: true, callback: spawnStars });
+      this._bloomTimers.push(this.time.addEvent({ delay: 3000, loop: true, callback: spawnStars }));
     }
 
     // Stat indicator dots (hunger · happiness · cleanliness) bottom-left of viewport
@@ -2141,7 +2130,7 @@ export class Hub extends Phaser.Scene {
       if (Date.now() >= refreshedEgg.hatchEndAt) {
         const cap = (Game.state!.tanks?.[egg.habitatType] ?? 1) * TANK_CAPACITY;
         const monCount = Game.state!.monsters.filter(m => m.habitatType === egg.habitatType).length;
-        if (monCount >= cap) { showToast(this, 'Habitat full! Buy more tanks to hatch.', '#ff9999'); return; }
+        if (monCount >= cap) { showToast(this, t('toast.habitatFull'), '#ff9999'); return; }
         this.scene.launch('HatchScene', { eggId: refreshedEgg.id });
       } else {
         const remaining = Math.max(0, refreshedEgg.hatchEndAt - Date.now());
@@ -2211,6 +2200,7 @@ export class Hub extends Phaser.Scene {
       (child as Phaser.GameObjects.Text).setStyle({ color: remaining <= 0 ? '#aaffaa' : '#BBCCFF' });
     });
     this._updateEggStripTimerLabels();
+    this._checkReadyBreedingEggs();
   }
 
   private _updateEggStripTimerLabels() {
@@ -2253,6 +2243,56 @@ export class Hub extends Phaser.Scene {
     if (!disc.includes(speciesId)) {
       disc.push(speciesId);
     }
+  }
+
+  private _checkReadyBreedingEggs() {
+    const now = Date.now();
+    const readyEgg = Game.state!.eggs.find(
+      e => e.source === 'breeding' && now >= e.hatchEndAt && !this._hatchPrompted.has(e.id),
+    );
+    if (!readyEgg) return;
+    this._hatchPrompted.add(readyEgg.id);
+
+    const W = this.scale.width, H = this.scale.height;
+    const sp = SPECIES[readyEgg.speciesId];
+    const popup = this.add.container(0, 0).setDepth(55);
+
+    const overlay = this.add.graphics();
+    overlay.fillStyle(0x000000, 0.65);
+    overlay.fillRect(0, 0, W, H);
+    popup.add(overlay);
+
+    const panel = this.add.graphics();
+    panel.fillStyle(0x0A0820, 1);
+    panel.fillRoundedRect(W / 2 - 160, H / 2 - 110, 320, 220, 18);
+    panel.lineStyle(2, 0xAA66FF, 0.9);
+    panel.strokeRoundedRect(W / 2 - 160, H / 2 - 110, 320, 220, 18);
+    popup.add(panel);
+
+    popup.add(this.add.text(W / 2, H / 2 - 80, '🥚✨', {
+      fontFamily: FONT, fontSize: '36px',
+    }).setOrigin(0.5));
+    popup.add(this.add.text(W / 2, H / 2 - 36, t('toast.breedEggReady'), {
+      fontFamily: FONT, fontSize: '17px', fontStyle: 'bold', color: '#CC99FF',
+    }).setOrigin(0.5));
+    popup.add(this.add.text(W / 2, H / 2 - 10, sp.name, {
+      fontFamily: FONT, fontSize: '14px', color: '#DDCCFF',
+    }).setOrigin(0.5));
+
+    const close = () => { popup.destroy(); };
+
+    const hatchBtn = makeButton(this, W / 2, H / 2 + 44, 220, 46, '🐣 ' + t('btn.hatchNow'), 0x5A2A90, () => {
+      close();
+      const cap = (Game.state!.tanks?.[readyEgg.habitatType] ?? 1) * TANK_CAPACITY;
+      const monCount = Game.state!.monsters.filter(m => m.habitatType === readyEgg.habitatType).length;
+      if (monCount >= cap) { showToast(this, t('toast.habitatFull'), '#ff9999'); return; }
+      this.scene.launch('HatchScene', { eggId: readyEgg.id });
+    });
+    popup.add(hatchBtn);
+
+    const laterBtn = makeButton(this, W / 2, H / 2 + 96, 220, 38, t('btn.later'), 0x221144, close, 14);
+    popup.add(laterBtn);
+    overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, W, H), Phaser.Geom.Rectangle.Contains);
   }
 
   onEggHatched(eggId: string, monster: Monster) {

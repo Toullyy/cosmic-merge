@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { Game, FONT, store, sfx } from '../utils';
 import { t } from '../i18n';
-import { SPECIES, HABITATS, newEgg } from '../data';
+import { SPECIES, HABITATS, newEgg, TANK_CAPACITY } from '../data';
 import { makeMonsterTexture, lighten } from '../MonsterRenderer';
 import { makeButton, setButtonLabel } from '../ui/Button';
 import { showToast, showFloat } from '../ui/Toast';
@@ -321,6 +321,20 @@ export class BreedingLab extends Phaser.Scene {
     if (a.id === b.id) { showToast(this, t('toast.cannotSelf'), '#ff9999'); return; }
 
     const spA = SPECIES[a.speciesId], spB = SPECIES[b.speciesId];
+
+    // Capacity check: predict child species habitat and ensure there's room
+    const childSpeciesIdPreview = a.speciesId === b.speciesId
+      ? a.speciesId
+      : 15 + (a.speciesId + b.speciesId) % 10;
+    const childHabitat = SPECIES[childSpeciesIdPreview].habitat;
+    const childCap = (Game.state!.tanks?.[childHabitat] ?? 1) * TANK_CAPACITY;
+    const childOccupancy = Game.state!.monsters.filter(m => m.habitatType === childHabitat).length
+      + Game.state!.eggs.filter(e => e.habitatType === childHabitat).length;
+    if (childOccupancy >= childCap) {
+      showToast(this, t('toast.habitatFull'), '#ff9999');
+      return;
+    }
+
     const breedCost = Math.round(Math.max(spA.price, spB.price) * 0.3);
     if (Game.state!.coins < breedCost) {
       showToast(this, t('toast.notEnoughCoins'), '#ff9999');
