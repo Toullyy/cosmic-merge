@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { Game, store, getNewAchievements, reconcileOfflineTime } from '../utils';
+import { Game, store, getNewAchievements, reconcileOfflineTime, calcShopLevel } from '../utils';
 import type { GameState } from '../types';
 import { newState, generateMerchantStock, MERCHANT_REFRESH_MS, TANK_CAPACITY, randomBuyer, VISITOR_INTERVAL_MS, checkAndUpdateVisitor, ensureQuestsFresh, TRAITS } from '../data';
 import { preloadMonsterTexture } from '../MonsterRenderer';
@@ -87,6 +87,9 @@ export class Boot extends Phaser.Scene {
       if (!Game.state.habitatMilestones) Game.state.habitatMilestones = { dirt: 0, grass: 0, aquatic: 0 };
       if (!Game.state.speciesSold) Game.state.speciesSold = {};
       if (!Game.state.wheelClaimedDate) Game.state.wheelClaimedDate = '';
+      // Retroactive: existing players just sync level, no reward
+      if (Game.state.shopLevel === undefined)
+        Game.state.shopLevel = calcShopLevel(Game.state.stats.sold);
       // monsters: init evolved flag
       Game.state.monsters.forEach(m => {
         if (m.evolved === undefined) m.evolved = false;

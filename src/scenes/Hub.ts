@@ -1,5 +1,5 @@
 ﻿import Phaser from 'phaser';
-import { Game, FONT, store, sfx, getNewAchievements, recordQuestProgress, localDateKey } from '../utils';
+import { Game, FONT, store, sfx, getNewAchievements, recordQuestProgress, localDateKey, checkAndApplyShopLevelUp, calcShopLevel } from '../utils';
 import { SPECIES, HABITATS, TANK_COST, TANK_CAPACITY, MAX_TANKS, getLevelName, AD_COINS_REWARD, AD_COOLDOWN_MS, checkAndUpdateVisitor, VISITOR_DURATION_MS, TRAITS, ACHIEVEMENTS, DAILY_REWARDS, ensureQuestsFresh, calcSellPrice } from '../data';
 import { t, currentLang, setLang } from '../i18n';
 import type { Achievement } from '../data';
@@ -45,6 +45,9 @@ export class Hub extends Phaser.Scene {
   private _bloomTimers: Phaser.Time.TimerEvent[] = [];
   private _bannerTweens: Phaser.Tweens.Tween[] = [];
   private _hatchPrompted = new Set<string>();
+  private _shopLvBg!: Phaser.GameObjects.Graphics;
+  private _shopLvTxt!: Phaser.GameObjects.Text;
+  private _lastShownShopLv = 0;
   private _welcomeActive = false;
   private _hatchPromptActive = false;
   private _instantOfferActive = false;
@@ -397,16 +400,24 @@ export class Hub extends Phaser.Scene {
     }).setOrigin(0.5, 0.5).setDepth(11).setInteractive({ useHandCursor: true, hitArea: new Phaser.Geom.Circle(0, 0, 18), hitAreaCallback: Phaser.Geom.Circle.Contains })
       .on('pointerdown', () => { this.scene.launch('HowToPlay'); });
 
-    // Shop Level Badge — circular badge overlaid on left edge of coin box
-    const shopLv = Math.min(99, Math.floor(Math.sqrt((Game.state!.stats.sold ?? 0) / 2)) + 1);
-    const isMilestone = shopLv === 5 || shopLv === 10 || shopLv === 20 || shopLv === 50;
-    const lvBadgeBg = this.add.graphics().setDepth(12);
-    lvBadgeBg.fillStyle(isMilestone ? 0xFFAA00 : 0x5522AA, 1);
-    lvBadgeBg.fillCircle(28, 34, 22);
-    lvBadgeBg.lineStyle(3, isMilestone ? 0xFFEE44 : 0xCC88FF, 1);
-    lvBadgeBg.strokeCircle(28, 34, 22);
+    // Shop Level Badge — tap to view daily check-in
+    this._shopLvBg = this.add.graphics().setDepth(12);
     this.add.text(28, 30, 'Lv', { fontFamily: FONT, fontSize: '9px', color: '#FFFFFF', fontStyle: 'bold' }).setOrigin(0.5).setDepth(13);
-    this.add.text(28, 40, String(shopLv), { fontFamily: FONT, fontSize: '14px', color: '#FFFFFF', fontStyle: 'bold', stroke: '#000000', strokeThickness: 2 }).setOrigin(0.5).setDepth(13);
+    this._shopLvTxt = this.add.text(28, 40, '', { fontFamily: FONT, fontSize: '14px', color: '#FFFFFF', fontStyle: 'bold', stroke: '#000000', strokeThickness: 2 }).setOrigin(0.5).setDepth(13);
+    this.add.zone(28, 34, 50, 50).setInteractive({ useHandCursor: true }).setDepth(14)
+      .on('pointerdown', () => this._showDailyCheckInView());
+    this._updateShopBadge();
+  }
+
+  private _updateShopBadge() {
+    const shopLv = calcShopLevel(Game.state!.stats.sold);
+    const isMilestone = shopLv % 5 === 0;
+    this._shopLvBg.clear();
+    this._shopLvBg.fillStyle(isMilestone ? 0xFFAA00 : 0x5522AA, 1);
+    this._shopLvBg.fillCircle(28, 34, 22);
+    this._shopLvBg.lineStyle(3, isMilestone ? 0xFFEE44 : 0xCC88FF, 1);
+    this._shopLvBg.strokeCircle(28, 34, 22);
+    this._shopLvTxt.setText(String(shopLv));
   }
 
   private _adCooldownRemaining(): number {
@@ -1340,6 +1351,14 @@ export class Hub extends Phaser.Scene {
     this._dailyAdBadge = badge;
   }
 
+  private _showDailyCheckInView() {
+    const state = Game.state!;
+    const streak = state.loginStreak ?? 1;
+    const dayIdx = ((streak - 1) % DAILY_REWARDS.length);
+    const reward = DAILY_REWARDS[dayIdx];
+    this._showDailyLoginPopup(reward, streak);
+  }
+
   private _showDailyLoginPopup(reward: typeof DAILY_REWARDS[0], streak: number) {
     const W = this.scale.width, H = this.scale.height;
     const cx = W / 2;
@@ -1548,6 +1567,7 @@ export class Hub extends Phaser.Scene {
         state.stats.totalEarned += price;
         state.stats.visitorSales = (state.stats.visitorSales ?? 0) + 1;
         recordQuestProgress('sell');
+        checkAndApplyShopLevelUp(state);
         state.visitorSpeciesId = undefined;
         state.visitorExpiresAt = undefined;
         store.setJSON('mps_state', state);
@@ -1855,6 +1875,15 @@ export class Hub extends Phaser.Scene {
       setButtonLabel(this._dexBtn, t('nav.dex', { n: disc }));
     }
     if (this._dexDot) this._updateDexDot(W / 2, 100, btnY, bh, hasNew);
+    this._updateShopBadge();
+    // Show level-up modal if a sell triggered one (may come from HabitatRoom)
+    const pendingLv = Game.state!.pendingShopLvPopup;
+    if (pendingLv) {
+      Game.state!.pendingShopLvPopup = undefined;
+      store.setJSON('mps_state', Game.state);
+      const lv = pendingLv;
+      this.time.delayedCall(300, () => this._showShopLevelUpPopup(lv));
+    }
     this._updateQuestBtn();
     this._updateVisitorBanner();
     this._updateEggTimerStrip();
@@ -2389,6 +2418,90 @@ export class Hub extends Phaser.Scene {
     const disc = Game.state!.stats.discovered;
     if (!disc.includes(speciesId)) {
       disc.push(speciesId);
+    }
+  }
+
+  private _showShopLevelUpPopup(newLevel: number) {
+    const W = this.scale.width, H = this.scale.height;
+    const isMilestone = newLevel % 5 === 0;
+    const coins = newLevel * 30;
+    const diamonds = newLevel % 5 === 0 ? 2 : 0;
+    const crystals = newLevel % 10 === 0 ? 1 : 0;
+
+    const popup = this.add.container(0, 0).setDepth(58);
+    const overlay = this.add.graphics();
+    overlay.fillStyle(0x000000, 0.70);
+    overlay.fillRect(0, 0, W, H);
+    popup.add(overlay);
+
+    const panW = 340, panH = 310;
+    const px = W / 2 - panW / 2, py = H / 2 - panH / 2 - 20;
+    const panel = this.add.graphics();
+    panel.fillStyle(0x0A0820, 1);
+    panel.fillRoundedRect(px, py, panW, panH, 20);
+    panel.lineStyle(3, isMilestone ? 0xFFCC00 : 0x9955FF, 1);
+    panel.strokeRoundedRect(px, py, panW, panH, 20);
+    if (isMilestone) {
+      panel.fillStyle(0xFFAA00, 0.08);
+      panel.fillRoundedRect(px + 4, py + 4, panW - 8, 60, { tl: 16, tr: 16, bl: 0, br: 0 });
+    }
+    popup.add(panel);
+
+    // Badge animation
+    const badge = this.add.graphics().setDepth(59);
+    badge.fillStyle(isMilestone ? 0xFFAA00 : 0x5522AA, 1);
+    badge.fillCircle(W / 2, py + 50, 34);
+    badge.lineStyle(4, isMilestone ? 0xFFEE44 : 0xCC88FF, 1);
+    badge.strokeCircle(W / 2, py + 50, 34);
+    popup.add(badge);
+    popup.add(this.add.text(W / 2, py + 44, 'Lv', { fontFamily: FONT, fontSize: '12px', color: '#FFFFFF', fontStyle: 'bold' }).setOrigin(0.5));
+    popup.add(this.add.text(W / 2, py + 58, String(newLevel), { fontFamily: FONT, fontSize: '22px', color: '#FFFFFF', fontStyle: 'bold', stroke: '#000000', strokeThickness: 2 }).setOrigin(0.5));
+
+    popup.add(this.add.text(W / 2, py + 100, t('shopLv.levelUp', { n: newLevel }), {
+      fontFamily: FONT, fontSize: '22px', fontStyle: 'bold',
+      color: isMilestone ? '#FFD700' : '#CC99FF',
+    }).setOrigin(0.5));
+
+    // Reward lines
+    let ry = py + 138;
+    popup.add(this.add.text(W / 2, ry, `+${coins} 💰`, { fontFamily: FONT, fontSize: '20px', color: '#FFD700', fontStyle: 'bold' }).setOrigin(0.5));
+    if (diamonds > 0) {
+      ry += 36;
+      popup.add(this.add.text(W / 2, ry, `+${diamonds} 💎`, { fontFamily: FONT, fontSize: '20px', color: '#88CCFF', fontStyle: 'bold' }).setOrigin(0.5));
+    }
+    if (crystals > 0) {
+      ry += 36;
+      popup.add(this.add.text(W / 2, ry, t('shopLv.rewardCrystal'), { fontFamily: FONT, fontSize: '18px', color: '#CCAAFF', fontStyle: 'bold' }).setOrigin(0.5));
+    }
+
+    const close = () => { popup.destroy(); };
+    popup.add(makeButton(this, W / 2, py + panH - 32, 180, 44, '🎉 ' + t('btn.confirm'), isMilestone ? 0x7A5A00 : 0x3A1878, close, 15));
+
+    overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, W, H), Phaser.Geom.Rectangle.Contains);
+    overlay.on('pointerdown', close);
+
+    // Particle burst
+    this._spawnLvUpBurst(W / 2, py + 50, isMilestone ? 0xFFD700 : 0xAA66FF);
+    sfx.levelup();
+  }
+
+  private _spawnLvUpBurst(cx: number, cy: number, color: number) {
+    for (let i = 0; i < 18; i++) {
+      const angle = (i / 18) * Math.PI * 2;
+      const dist = 60 + Math.random() * 50;
+      const star = this.add.text(cx, cy, '✦', {
+        fontFamily: FONT, fontSize: `${10 + Math.floor(Math.random() * 8)}px`,
+        color: '#' + color.toString(16).padStart(6, '0'),
+      }).setOrigin(0.5).setDepth(59).setAlpha(0.9);
+      this.tweens.add({
+        targets: star,
+        x: cx + Math.cos(angle) * dist,
+        y: cy + Math.sin(angle) * dist,
+        alpha: 0, scaleX: 0.3, scaleY: 0.3,
+        duration: 700 + Math.random() * 400,
+        ease: 'Sine.Out',
+        onComplete: () => { if (star.active) star.destroy(); },
+      });
     }
   }
 

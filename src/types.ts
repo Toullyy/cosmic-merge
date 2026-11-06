@@ -128,6 +128,8 @@ export interface GameState {
   rushHourNextAt?: number;
   weeklyQuests?: Quest[];
   weeklyQuestResetAt?: number;
+  shopLevel?: number;
+  pendingShopLvPopup?: number;
 }
 
 export interface PublicMonster {

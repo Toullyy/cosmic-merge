@@ -212,6 +212,10 @@ const D: Record<Lang, Record<string, string>> = {
     'toast.ascended':      '✨ {name} has Ascended!',
     'toast.habitatBonus':  '🏅 Habitat Bonus +{pct}% sell price!',
     'toast.speciesMaster': '🏆 {name} Master! +15% sell price',
+    'shopLv.levelUp':      '⭐ Shop Level {n}!',
+    'shopLv.reward':       '+{coins}💰',
+    'shopLv.rewardDiam':   '+{coins}💰  +{d}💎',
+    'shopLv.rewardCrystal':'🌙 Moon Crystal +1',
     // Hub — featured species
     'hub.featured2x':      '2× price!',
     // HowToPlay
@@ -514,6 +518,10 @@ const D: Record<Lang, Record<string, string>> = {
     'toast.ascended':      '✨ {name} เลื่อนขั้นสำเร็จ!',
     'toast.habitatBonus':  '🏅 โบนัสแหล่งอาศัย +{pct}% ราคาขาย!',
     'toast.speciesMaster': '🏆 {name} มาสเตอร์! +15% ราคาขาย',
+    'shopLv.levelUp':      '⭐ ร้านเลเวล {n}!',
+    'shopLv.reward':       '+{coins}💰',
+    'shopLv.rewardDiam':   '+{coins}💰  +{d}💎',
+    'shopLv.rewardCrystal':'🌙 มูนคริสตัล +1',
     // Hub — featured species
     'hub.featured2x':      'ราคา 2×!',
     // HowToPlay

@@ -1,5 +1,5 @@
 ﻿import Phaser from 'phaser';
-import { Game, FONT, store, sfx, recordQuestProgress, reconcileOfflineTime } from '../utils';
+import { Game, FONT, store, sfx, recordQuestProgress, reconcileOfflineTime, checkAndApplyShopLevelUp } from '../utils';
 import { t } from '../i18n';
 import { SPECIES, HABITATS, FOOD_TYPES, TOY_TYPES, CLEAN_TOOLS, XP_TABLE, getLevelName, randomBuyer, randomListingDuration, TRAITS, BOWL_EAT_RATE, DECAY, getDecayMult, DECORATIONS, calcSellPrice, calcSellBreakdown, FREE_CARE_COOLDOWN_MS } from '../data';
 import { makeMonsterTexture, getVariantModifiers, lighten, darken } from '../MonsterRenderer';
@@ -2162,10 +2162,23 @@ export class HabitatRoom extends Phaser.Scene {
         showToast(this, '🏆 ' + t('toast.speciesMaster', { name: this._sp.name }), '#FFDD44');
       }
       recordQuestProgress('sell');
+      const lvUp = checkAndApplyShopLevelUp(state);
       store.setJSON('mps_state', state);
       sfx.sell();
       this._spawnParticles(W/2, H/2 - 80, 0xFFD700, 26);
       showFloat(this, W/2, H/2 - 120, '+' + price + ' 💰', '#ffd700');
+      if (lvUp) {
+        const hasExtra = lvUp.diamondsAwarded > 0 || lvUp.moonCrystalsAwarded > 0;
+        const rewardKey = hasExtra ? 'shopLv.rewardDiam' : 'shopLv.reward';
+        showToast(this, t('shopLv.levelUp', { n: lvUp.newLevel }), '#FFD700');
+        this.time.delayedCall(300, () =>
+          showFloat(this, W/2, H/2 - 60,
+            hasExtra
+              ? t('shopLv.rewardDiam', { coins: lvUp.coinsAwarded, d: lvUp.diamondsAwarded })
+              : t(rewardKey, { coins: lvUp.coinsAwarded }),
+            '#FFD700'));
+        if (lvUp.moonCrystalsAwarded) this.time.delayedCall(600, () => showFloat(this, W/2, H/2 - 100, t('shopLv.rewardCrystal'), '#CCAAFF'));
+      }
       this.time.delayedCall(950, () => this.scene.start('Hub'));
     };
 

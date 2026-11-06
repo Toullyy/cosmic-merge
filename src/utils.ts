@@ -104,6 +104,34 @@ export function recordQuestProgress(type: Quest['type']): void {
   if (changed) store.setJSON('mps_state', Game.state);
 }
 
+export function calcShopLevel(sold: number): number {
+  return Math.min(99, Math.floor(Math.sqrt(sold / 2)) + 1);
+}
+
+export interface ShopLevelUpResult {
+  newLevel: number;
+  coinsAwarded: number;
+  diamondsAwarded: number;
+  moonCrystalsAwarded: number;
+}
+
+// Called after stats.sold is incremented. Awards rewards and updates state.shopLevel.
+// Returns null if no level-up occurred.
+export function checkAndApplyShopLevelUp(state: GameState): ShopLevelUpResult | null {
+  const newLv = calcShopLevel(state.stats.sold);
+  const oldLv = state.shopLevel ?? newLv; // first migration run: no reward
+  if (newLv <= oldLv) return null;
+  state.shopLevel = newLv;
+  const coins = newLv * 30;
+  const diamonds = newLv % 5 === 0 ? 2 : 0;
+  const crystals = newLv % 10 === 0 ? 1 : 0;
+  state.coins += coins;
+  if (diamonds)  state.diamonds      = (state.diamonds      ?? 0) + diamonds;
+  if (crystals)  state.moonCrystals  = (state.moonCrystals  ?? 0) + crystals;
+  state.pendingShopLvPopup = newLv;
+  return { newLevel: newLv, coinsAwarded: coins, diamondsAwarded: diamonds, moonCrystalsAwarded: crystals };
+}
+
 export function getNewAchievements(state: GameState): Achievement[] {
   const existing = new Set(state.achievements ?? []);
   const newOnes = ACHIEVEMENTS.filter(a => !existing.has(a.id) && a.check(state));
