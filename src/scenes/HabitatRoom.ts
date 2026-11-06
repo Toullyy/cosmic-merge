@@ -1437,6 +1437,7 @@ export class HabitatRoom extends Phaser.Scene {
             this._monster.happiness = Math.min(100, this._monster.happiness + toy.happinessGain);
             this._monster.lastCaredAt = Date.now();
             this._gainXP(8 + toy.tier * 3);
+            recordQuestProgress('play');
             store.setJSON('mps_state', Game.state);
             sfx.pet();
             this._playPetAnim(toy.id);
@@ -1544,6 +1545,7 @@ export class HabitatRoom extends Phaser.Scene {
             this._monster.cleanliness = Math.min(100, this._monster.cleanliness + tool.cleanGain);
             this._monster.lastCaredAt = Date.now();
             this._gainXP(8 + tool.tier * 3);
+            recordQuestProgress('clean');
             store.setJSON('mps_state', Game.state);
             sfx.clean();
             this._playCleanAnim(tool.id);

@@ -36,6 +36,7 @@ const D: Record<Lang, Record<string, string>> = {
     'visitor.sell':       'Quick Sell {name} for {price}💰',
     'visitor.noMonster':  'You have no {name} to sell',
     'toast.soldFor':      'Sold for {price} 💰!',
+    'visitor.rushHourBanner': '⚡ Rush Hour! Visitor price ×4  {mins}m left',
     // Hub — quests panel
     'quests.title':        '📜 Quests',
     'quests.daily':        '📅 Daily',
@@ -218,6 +219,9 @@ const D: Record<Lang, Record<string, string>> = {
     'shopLv.rewardCrystal':'🌙 Moon Crystal +1',
     // Hub — featured species
     'hub.featured2x':      '2× price!',
+    // Hub — listing overlay
+    'hub.listingReady':    '✓ READY - Tap to collect',
+    'hub.listingActive':   '🏷 For Sale',
     // HowToPlay
     'howto.title': '📖 How to Play',
     'btn.prev':    '◀ Prev',
@@ -342,6 +346,7 @@ const D: Record<Lang, Record<string, string>> = {
     'visitor.sell':       'ขายทันที {name} ราคา {price}💰',
     'visitor.noMonster':  'คุณไม่มี {name} ให้ขาย',
     'toast.soldFor':      'ขายได้ {price} 💰!',
+    'visitor.rushHourBanner': '⚡ Rush Hour! ราคาผู้เยี่ยม ×4  เหลือ {mins}น.',
     // Hub — quests panel
     'quests.title':        '📜 ภารกิจ',
     'quests.daily':        '📅 รายวัน',
@@ -524,6 +529,9 @@ const D: Record<Lang, Record<string, string>> = {
     'shopLv.rewardCrystal':'🌙 มูนคริสตัล +1',
     // Hub — featured species
     'hub.featured2x':      'ราคา 2×!',
+    // Hub — listing overlay
+    'hub.listingReady':    '✓ พร้อมรับเงิน - แตะเพื่อรับ',
+    'hub.listingActive':   '🏷 กำลังขายอยู่',
     // HowToPlay
     'howto.title': '📖 วิธีเล่น',
     'btn.prev':    '◀ ก่อนหน้า',

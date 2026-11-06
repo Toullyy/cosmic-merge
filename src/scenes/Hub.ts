@@ -991,7 +991,7 @@ export class Hub extends Phaser.Scene {
       bg.lineStyle(2, 0xFF6600, 1);
       bg.strokeRoundedRect(8, 0, W - 16, 32, 10);
       this._visitorBanner.add(bg);
-      this._visitorBanner.add(this.add.text(W / 2, 16, `⚡ Rush Hour! Visitor price ×4  ${rushMinsLeft}m left`, {
+      this._visitorBanner.add(this.add.text(W / 2, 16, t('visitor.rushHourBanner', { mins: rushMinsLeft }), {
         fontFamily: FONT, fontSize: '13px', color: '#FF9944', fontStyle: 'bold',
       }).setOrigin(0.5));
       const pulse = this.add.graphics();
@@ -1356,10 +1356,10 @@ export class Hub extends Phaser.Scene {
     const streak = state.loginStreak ?? 1;
     const dayIdx = ((streak - 1) % DAILY_REWARDS.length);
     const reward = DAILY_REWARDS[dayIdx];
-    this._showDailyLoginPopup(reward, streak);
+    this._showDailyLoginPopup(reward, streak, true);
   }
 
-  private _showDailyLoginPopup(reward: typeof DAILY_REWARDS[0], streak: number) {
+  private _showDailyLoginPopup(reward: typeof DAILY_REWARDS[0], streak: number, isReview = false) {
     const W = this.scale.width, H = this.scale.height;
     const cx = W / 2;
     const panelW = 400, panelH = 420;
@@ -1448,7 +1448,7 @@ export class Hub extends Phaser.Scene {
     btnG.lineStyle(2, 0xAA66FF, 1);
     btnG.strokeRoundedRect(cx - 120, btnY, 240, 46, 23);
     popup.add(btnG);
-    const btnTxt = this.add.text(cx, btnY + 23, t('daily.claimBtn'), {
+    const btnTxt = this.add.text(cx, btnY + 23, isReview ? t('btn.close') : t('daily.claimBtn'), {
       fontFamily: FONT, fontSize: '20px', fontStyle: 'bold', color: '#FFFFFF',
     }).setOrigin(0.5);
     popup.add(btnTxt);
@@ -1566,6 +1566,18 @@ export class Hub extends Phaser.Scene {
         state.stats.sold++;
         state.stats.totalEarned += price;
         state.stats.visitorSales = (state.stats.visitorSales ?? 0) + 1;
+        if (!state.habitatMilestones) state.habitatMilestones = { dirt: 0, grass: 0, aquatic: 0 };
+        state.habitatMilestones[mon.habitatType]++;
+        const milestoneCount = state.habitatMilestones[mon.habitatType];
+        if (milestoneCount === 5 || milestoneCount === 10 || milestoneCount === 20) {
+          const pct = milestoneCount >= 20 ? 30 : milestoneCount >= 10 ? 20 : 10;
+          showToast(this, '🏅 ' + t('toast.habitatBonus', { pct }), '#FFD700');
+        }
+        if (!state.speciesSold) state.speciesSold = {};
+        state.speciesSold[mon.speciesId] = (state.speciesSold[mon.speciesId] ?? 0) + 1;
+        if (state.speciesSold[mon.speciesId] === 3) {
+          showToast(this, '🏆 ' + t('toast.speciesMaster', { name: SPECIES[mon.speciesId].name }), '#FFDD44');
+        }
         recordQuestProgress('sell');
         checkAndApplyShopLevelUp(state);
         state.visitorSpeciesId = undefined;
@@ -2186,7 +2198,7 @@ export class Hub extends Phaser.Scene {
       banner.lineStyle(1, ready ? 0x55EE88 : 0xFFCC44, 0.55);
       banner.strokeRoundedRect(vpX, vpY, vpW, 22, { tl: 2, tr: 2, bl: 0, br: 0 });
       this._displayGroup.add(banner);
-      this._displayGroup.add(this.add.text(cx, vpY + 11, ready ? '✓ READY - Tap to collect' : '🏷 For Sale', {
+      this._displayGroup.add(this.add.text(cx, vpY + 11, ready ? t('hub.listingReady') : t('hub.listingActive'), {
         fontFamily: FONT, fontSize: '13px', color: '#ffffff', fontStyle: 'bold',
         stroke: '#000000', strokeThickness: 1,
       }).setOrigin(0.5).setDepth(26));
