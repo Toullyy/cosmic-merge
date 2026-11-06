@@ -73,6 +73,10 @@ export class VisitScene extends Phaser.Scene {
     const W = 540, H = 960;
     this._clearItems();
 
+    // Public shop docs come from other clients — ignore malformed entries
+    // instead of letting them throw while building the list.
+    shops = shops.filter(s => s && Array.isArray(s.monsters) && s.stats && typeof s.stats === 'object');
+
     if (shops.length === 0) {
       const txt = this.add.text(W / 2, H / 2, t('visit.empty'), {
         fontFamily: FONT, fontSize: '18px', color: '#AAAAAA',
@@ -137,6 +141,9 @@ export class VisitScene extends Phaser.Scene {
   private _showDetail(shop: PublicShop) {
     const W = 540, H = 960;
     this._clearItems();
+    const monsters = Array.isArray(shop.monsters)
+      ? shop.monsters.filter(m => m && SPECIES[m.speciesId])
+      : [];
 
     const backBtn = makeButton(this, 52, 50, 86, 40, t('visit.backList'), 0x1A1040, () => {
       this._clearItems();
@@ -157,12 +164,12 @@ export class VisitScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(10);
     this._items.push(nameT);
 
-    const statsT = this.add.text(W / 2, 80, `🐾 ${shop.monsters.length}  ·  💰 ${t('visit.sold', { n: String(shop.stats.sold) })}`, {
+    const statsT = this.add.text(W / 2, 80, `🐾 ${monsters.length}  ·  💰 ${t('visit.sold', { n: String(shop.stats.sold) })}`, {
       fontFamily: FONT, fontSize: '14px', color: '#8888AA',
     }).setOrigin(0.5).setDepth(10);
     this._items.push(statsT);
 
-    if (shop.monsters.length === 0) {
+    if (monsters.length === 0) {
       const emptyT = this.add.text(W / 2, H / 2, t('visit.noMonsters'), {
         fontFamily: FONT, fontSize: '18px', color: '#AAAAAA', align: 'center',
       }).setOrigin(0.5).setDepth(10);
@@ -171,7 +178,7 @@ export class VisitScene extends Phaser.Scene {
     }
 
     // Preload monster textures synchronously (SVG fallback)
-    shop.monsters.forEach(m => {
+    monsters.forEach(m => {
       makeMonsterTexture(this, { speciesId: m.speciesId, variantIndex: m.variantIndex } as unknown as Monster);
     });
 
@@ -181,7 +188,7 @@ export class VisitScene extends Phaser.Scene {
 
     this._buildScrollable(VIEW_TOP, VIEW_H, container => {
       let totalH = 0;
-      shop.monsters.forEach((m, i) => {
+      monsters.forEach((m, i) => {
         const col = i % COLS;
         const row = Math.floor(i / COLS);
         const cx = offsetX + col * (CARD_W + GAP) + CARD_W / 2;

@@ -1,9 +1,11 @@
 import Phaser from 'phaser';
-import { FONT } from '../utils';
+import { FONT, Game } from '../utils';
 import { t } from '../i18n';
 import { TRAITS } from '../data';
-import { makeButton } from '../ui/Button';
+import { makeButton, setButtonLabel, setButtonColor } from '../ui/Button';
+import { showToast } from '../ui/Toast';
 import { cloudStatus, linkGoogleAccount } from '../cloudSync';
+import { notificationsEnabled, setNotificationsEnabled, ensureNotificationPermission, scheduleIdleNotifications } from '../notifications';
 
 const TRAIT_PAGE = 4;
 const ACCOUNT_PAGE = 5;
@@ -241,21 +243,21 @@ export class HowToPlay extends Phaser.Scene {
   }
 
   private _renderAccountPage(cx: number, titleY: number) {
-    const syncLabel = cloudStatus.enabled ? '✅ เปิดใช้งาน' : '⚠️ ออฟไลน์';
+    const syncLabel = cloudStatus.enabled ? t('howto.account.syncOn') : t('howto.account.syncOff');
     const acctLabel = cloudStatus.isAnonymous
-      ? '👤 นิรนาม (อุปกรณ์นี้)'
-      : '🔵 บัญชี Google';
+      ? t('howto.account.anonymous')
+      : t('howto.account.google');
 
-    this._contentGroup.add(this.add.text(cx, titleY + 52, 'สถานะซิงค์: ' + syncLabel, {
+    this._contentGroup.add(this.add.text(cx, titleY + 52, t('howto.account.syncStatus', { status: syncLabel }), {
       fontFamily: FONT, fontSize: '16px', color: '#aaffcc',
     }).setOrigin(0.5).setDepth(3));
 
-    this._contentGroup.add(this.add.text(cx, titleY + 96, 'บัญชีปัจจุบัน: ' + acctLabel, {
+    this._contentGroup.add(this.add.text(cx, titleY + 96, t('howto.account.current', { account: acctLabel }), {
       fontFamily: FONT, fontSize: '15px', color: '#ccccee',
     }).setOrigin(0.5).setDepth(3));
 
     this._contentGroup.add(this.add.text(cx, titleY + 150,
-      'เชื่อมต่อ Google เพื่อซิงค์เซฟ\nข้ามอุปกรณ์และป้องกันข้อมูลสูญหาย', {
+      t('howto.account.desc'), {
       fontFamily: FONT, fontSize: '14px', color: '#aaaacc',
       align: 'center', wordWrap: { width: 380 },
     }).setOrigin(0.5).setDepth(3));
@@ -267,18 +269,45 @@ export class HowToPlay extends Phaser.Scene {
       this._contentGroup.add(linkStatusTxt);
 
       const btn = makeButton(this, cx, titleY + 240, 280, 52,
-        '🔵 เชื่อมต่อ Google', 0x1a4488, () => {
-          linkStatusTxt.setText('↗ กำลังไป Google...');
+        t('title.linkGoogle'), 0x1a4488, () => {
+          linkStatusTxt.setText(t('title.googleGoing'));
           // linkGoogleAccount redirects the page away — no result to await
           linkGoogleAccount().catch(() => {
-            linkStatusTxt.setText('❌ ไม่สำเร็จ ลองใหม่อีกครั้ง');
+            linkStatusTxt.setText(t('howto.account.googleFail'));
           });
         }, 16).setDepth(4);
       this._contentGroup.add(btn);
     } else {
-      this._contentGroup.add(this.add.text(cx, titleY + 240, '✅ ซิงค์ข้ามอุปกรณ์เปิดใช้งานแล้ว', {
+      this._contentGroup.add(this.add.text(cx, titleY + 240, t('howto.account.linkedActive'), {
         fontFamily: FONT, fontSize: '15px', color: '#88ffcc', fontStyle: 'bold',
       }).setOrigin(0.5).setDepth(3));
     }
+
+    this._contentGroup.add(this.add.text(cx, titleY + 314, t('notify.desc'), {
+      fontFamily: FONT, fontSize: '12px', color: '#9999bb',
+      align: 'center', wordWrap: { width: 360 },
+    }).setOrigin(0.5).setDepth(3));
+
+    const notifyOn = notificationsEnabled();
+    const notifyBtn = makeButton(this, cx, titleY + 362, 300, 46,
+      notifyOn ? t('notify.on') : t('notify.off'),
+      notifyOn ? 0x1a6a3a : 0x333344, async () => {
+        if (notificationsEnabled()) {
+          setNotificationsEnabled(false);
+          setButtonLabel(notifyBtn, t('notify.off'));
+          setButtonColor(notifyBtn, 0x333344);
+          return;
+        }
+        const granted = await ensureNotificationPermission();
+        if (!granted) {
+          showToast(this, t('notify.denied'), '#ffaaaa');
+          return;
+        }
+        setNotificationsEnabled(true);
+        scheduleIdleNotifications(Game.state);
+        setButtonLabel(notifyBtn, t('notify.on'));
+        setButtonColor(notifyBtn, 0x1a6a3a);
+      }, 14).setDepth(4);
+    this._contentGroup.add(notifyBtn);
   }
 }

@@ -79,6 +79,9 @@ export const CLEAN_TOOLS: CleanTool[] = [
 
 export const DECAY = { happiness: -2, hunger: -5, cleanliness: -3 };
 export const BOWL_EAT_RATE = 8; // hunger units per hour monster eats from bowl
+// Shared cooldown for the free (owned toy/tool) play & clean actions so they
+// cannot be spammed for unlimited XP / quest progress.
+export const FREE_CARE_COOLDOWN_MS = 30 * 1000;
 
 export const HABITATS: Record<HabitatType, HabitatConfig> = {
   dirt:    { label:'Dirt Den',    bgColor:0x3E2723, wallColor:0x5D4037, unlockCost:0    },
@@ -125,6 +128,45 @@ export function randomBuyer(): { name: string; job: string } {
 
 export function randomListingDuration(): number {
   return (15 + Math.floor(Math.random() * 106)) * 60 * 1000;
+}
+
+export interface SellBreakdown {
+  base: number;
+  levelMult: number;
+  happinessMult: number;
+  marketMult: number;
+  goldenMult: number;
+  traitMult: number;
+  evolvedMult: number;
+  milestoneMult: number;
+  masteryMult: number;
+  featuredMult: number;
+  final: number;
+}
+
+// Single source of truth for sell value — keep in sync with HabitatRoom/Hub/Pokedex.
+export function calcSellBreakdown(state: GameState, m: Monster): SellBreakdown {
+  const sp = SPECIES[m.speciesId];
+  const levelMult = 1 + m.level * 0.2;
+  const happinessMult = m.happiness / 100;
+  const marketMult = 0.8;
+  const goldenMult = m.variantIndex % 7 === 0 ? 1.5 : 1;
+  const traitMult = TRAITS.find(tr => tr.id === m.trait)?.sellMod ?? 1;
+  const evolvedMult = m.evolved ? 1.8 : 1;
+  const milestoneCount = state.habitatMilestones?.[m.habitatType] ?? 0;
+  const milestoneMult = milestoneCount >= 20 ? 1.30 : milestoneCount >= 10 ? 1.20 : milestoneCount >= 5 ? 1.10 : 1;
+  const masteryCount = state.speciesSold?.[m.speciesId] ?? 0;
+  const masteryMult = masteryCount >= 3 ? 1.15 : 1;
+  const featuredMult = (state.featuredSpeciesId === m.speciesId && (state.featuredUntil ?? 0) > Date.now()) ? 2 : 1;
+  const final = Math.max(10, Math.round(sp.price * levelMult * happinessMult * marketMult * goldenMult * traitMult * evolvedMult * milestoneMult * masteryMult * featuredMult));
+  return {
+    base: sp.price, levelMult, happinessMult, marketMult, goldenMult,
+    traitMult, evolvedMult, milestoneMult, masteryMult, featuredMult, final,
+  };
+}
+
+export function calcSellPrice(state: GameState, m: Monster): number {
+  return calcSellBreakdown(state, m).final;
 }
 
 export function generateMerchantStock(): number[] {
@@ -234,6 +276,28 @@ export function generateWeeklyQuests(): Quest[] {
       label: def.makeLbl(def.targets[ti]),
     };
   });
+}
+
+// Roll daily/weekly quests over using local midnight (call at boot, on resume, and periodically).
+export function ensureQuestsFresh(state: GameState): boolean {
+  const now = Date.now();
+  let changed = false;
+  if (!state.quests || !state.questResetAt || now >= state.questResetAt) {
+    state.quests = generateDailyQuests();
+    const midnight = new Date(); midnight.setHours(24, 0, 0, 0);
+    state.questResetAt = midnight.getTime();
+    changed = true;
+  }
+  if (!state.weeklyQuests || !state.weeklyQuestResetAt || now >= state.weeklyQuestResetAt) {
+    state.weeklyQuests = generateWeeklyQuests();
+    const nextMon = new Date();
+    const daysUntilMon = (8 - nextMon.getDay()) % 7 || 7;
+    nextMon.setDate(nextMon.getDate() + daysUntilMon);
+    nextMon.setHours(0, 0, 0, 0);
+    state.weeklyQuestResetAt = nextMon.getTime();
+    changed = true;
+  }
+  return changed;
 }
 
 // ── DECORATIONS ───────────────────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { Game, FONT, store } from '../utils';
 import { t } from '../i18n';
-import { SPECIES } from '../data';
+import { SPECIES, calcSellPrice } from '../data';
 import { makeMonsterTexture, preloadMonsterTexture } from '../MonsterRenderer';
 import { makeButton } from '../ui/Button';
 import type { HabitatType, Monster, Species } from '../types';
@@ -359,7 +359,11 @@ export class PokedexScene extends Phaser.Scene {
 
     const habIcons: Record<string, string> = { dirt: '⛰ Dirt', grass: '🌿 Grass', aquatic: '🌊 Aquatic' };
     const isRare = sp.id >= 15;
-    const maxPrice = Math.round(sp.price * 3.0 * 0.8 * 1.5);
+    const maxPrice = calcSellPrice(Game.state!, {
+      id: 'dex_max', speciesId: sp.id, variantIndex: 7, habitatType: sp.habitat,
+      level: 10, xp: 0, happiness: 100, hunger: 100, cleanliness: 100,
+      lastCaredAt: 0, source: 'dex', trait: 'fierce', evolved: true,
+    });
 
     const lines: [string, string][] = [
       [habIcons[sp.habitat] ?? sp.habitat, '#CCDDFF'],

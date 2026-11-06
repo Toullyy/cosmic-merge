@@ -1,7 +1,7 @@
 ﻿import Phaser from 'phaser';
 import { Game, FONT, store, sfx, recordQuestProgress, reconcileOfflineTime } from '../utils';
 import { t } from '../i18n';
-import { SPECIES, HABITATS, FOOD_TYPES, TOY_TYPES, CLEAN_TOOLS, XP_TABLE, getLevelName, randomBuyer, randomListingDuration, TRAITS, BOWL_EAT_RATE, DECAY, getDecayMult, DECORATIONS } from '../data';
+import { SPECIES, HABITATS, FOOD_TYPES, TOY_TYPES, CLEAN_TOOLS, XP_TABLE, getLevelName, randomBuyer, randomListingDuration, TRAITS, BOWL_EAT_RATE, DECAY, getDecayMult, DECORATIONS, calcSellPrice, calcSellBreakdown, FREE_CARE_COOLDOWN_MS } from '../data';
 import { makeMonsterTexture, getVariantModifiers, lighten, darken } from '../MonsterRenderer';
 import { makeButton, setButtonLabel, setButtonColor } from '../ui/Button';
 import { showToast, showFloat } from '../ui/Toast';
@@ -60,6 +60,8 @@ export class HabitatRoom extends Phaser.Scene {
   private _xpLevelTxt: Phaser.GameObjects.Text | null = null;
   private _statsY: number = 0;
   private _decorG: Phaser.GameObjects.Graphics | null = null;
+  private _ascendPopupActive = false;
+  private _sellPopupActive = false;
 
   constructor() { super({ key: 'HabitatRoom' }); }
 
@@ -103,19 +105,8 @@ export class HabitatRoom extends Phaser.Scene {
     }
   }
 
-  private _calcSell(sp: Species): number {
-    const m = this._monster;
-    const state = Game.state!;
-    const golden = getVariantModifiers(m.variantIndex).isGolden ? 1.5 : 1;
-    const traitMod = TRAITS.find(t => t.id === m.trait)?.sellMod ?? 1;
-    const evolvedMod = m.evolved ? 1.8 : 1;
-    const hab = m.habitatType as 'dirt' | 'grass' | 'aquatic';
-    const milestoneCount = state.habitatMilestones?.[hab] ?? 0;
-    const milestoneMod = milestoneCount >= 20 ? 1.30 : milestoneCount >= 10 ? 1.20 : milestoneCount >= 5 ? 1.10 : 1;
-    const masteryCount = state.speciesSold?.[m.speciesId] ?? 0;
-    const masteryMod = masteryCount >= 3 ? 1.15 : 1;
-    const featuredMod = (state.featuredSpeciesId === m.speciesId && (state.featuredUntil ?? 0) > Date.now()) ? 2 : 1;
-    return Math.max(10, Math.round(sp.price * (1 + m.level * 0.2) * (m.happiness / 100) * 0.8 * golden * traitMod * evolvedMod * milestoneMod * masteryMod * featuredMod));
+  private _calcSell(_sp: Species): number {
+    return calcSellPrice(Game.state!, this._monster);
   }
 
   // ── BACKGROUND ────────────────────────────────────────────────────────────
@@ -1210,7 +1201,7 @@ export class HabitatRoom extends Phaser.Scene {
       const canAscend = (state2.moonCrystals ?? 0) >= 1;
       const ascBtn = makeButton(this, W / 2, H - 138, 220, 40,
         canAscend ? t('btn.ascend') : t('btn.ascendNeed'), canAscend ? 0x4A1580 : 0x2A2A2A,
-        () => { if (canAscend) this._doAscend(); else showToast(this, t('toast.needCrystal'), '#ffaaaa'); }, 13);
+        () => { if (canAscend) this._confirmAscend(); else showToast(this, t('toast.needCrystal'), '#ffaaaa'); }, 13);
       ascBtn.setDepth(20);
       // Moon crystal count display
       this.add.text(W / 2, H - 118, '🌙 ' + (state2.moonCrystals ?? 0) + ' crystal', {
@@ -1382,8 +1373,15 @@ export class HabitatRoom extends Phaser.Scene {
       const playHapGain = Math.round(ownedToy.happinessGain * (TRAITS.find(t => t.id === this._monster.trait)?.hapGainMod ?? 1));
       const fbtn = makeButton(this, fpX + fpW/2, fpY + 60, fpW - 30, 54,
         t('toy.playFree', { n: playHapGain }), 0x6030A0, () => {
+          const now = Date.now();
+          const wait = FREE_CARE_COOLDOWN_MS - (now - (this._monster.lastFreeCareAt ?? 0));
+          if (wait > 0) {
+            showToast(this, t('toast.careCooldown', { s: Math.ceil(wait / 1000) }), '#ffaaaa');
+            return;
+          }
+          this._monster.lastFreeCareAt = now;
           this._monster.happiness = Math.min(100, this._monster.happiness + playHapGain);
-          this._monster.lastCaredAt = Date.now();
+          this._monster.lastCaredAt = now;
           this._gainXP(8 + ownedToy.tier * 3);
           recordQuestProgress('play');
           store.setJSON('mps_state', Game.state);
@@ -1481,8 +1479,15 @@ export class HabitatRoom extends Phaser.Scene {
 
       const cleanBtn = makeButton(this, fpX + fpW/2, fpY + 60, fpW - 30, 54,
         t('tool.cleanFree', { n: ownedTool.cleanGain }), 0x1060A0, () => {
+          const now = Date.now();
+          const wait = FREE_CARE_COOLDOWN_MS - (now - (this._monster.lastFreeCareAt ?? 0));
+          if (wait > 0) {
+            showToast(this, t('toast.careCooldown', { s: Math.ceil(wait / 1000) }), '#ffaaaa');
+            return;
+          }
+          this._monster.lastFreeCareAt = now;
           this._monster.cleanliness = Math.min(100, this._monster.cleanliness + ownedTool.cleanGain);
-          this._monster.lastCaredAt = Date.now();
+          this._monster.lastCaredAt = now;
           this._gainXP(8 + ownedTool.tier * 3);
           recordQuestProgress('clean');
           store.setJSON('mps_state', Game.state);
@@ -1920,7 +1925,7 @@ export class HabitatRoom extends Phaser.Scene {
         showToast(this, t('sell.needLevel', { name: this._monster.nickname ?? this._sp.name, level: needed }), '#ffaaaa');
         return;
       }
-      this._doList();
+      this._showSellBreakdown();
       return;
     }
     if (Date.now() >= listing.readyAt) {
@@ -1928,6 +1933,143 @@ export class HabitatRoom extends Phaser.Scene {
     } else {
       this._showCancelListing(listing);
     }
+  }
+
+  private _showSellBreakdown() {
+    if (this._sellPopupActive) return;
+    this._sellPopupActive = true;
+
+    const state = Game.state!;
+    const bd = calcSellBreakdown(state, this._monster);
+    this._sellPrice = bd.final;
+    setButtonLabel(this._sellBtn, t('btn.sell', { price: bd.final }));
+
+    const trait = TRAITS.find(tr => tr.id === this._monster.trait);
+    const rows: Array<[string, string]> = [
+      [t('sell.base'), bd.base + '💰'],
+      [t('sell.levelMult', { lvl: this._monster.level }), '×' + bd.levelMult.toFixed(2)],
+      [t('sell.happyMult', { pct: Math.round(bd.happinessMult * 100) }), '×' + bd.happinessMult.toFixed(2)],
+      [t('sell.market'), '×' + bd.marketMult.toFixed(2)],
+    ];
+    if (bd.goldenMult !== 1) rows.push([t('sell.golden'), '×' + bd.goldenMult.toFixed(2)]);
+    if (bd.traitMult !== 1) rows.push([t('sell.trait', { name: trait?.name ?? '?' }), '×' + bd.traitMult.toFixed(2)]);
+    if (bd.evolvedMult !== 1) rows.push([t('sell.evolved'), '×' + bd.evolvedMult.toFixed(2)]);
+    if (bd.milestoneMult !== 1) rows.push([t('sell.milestone'), '×' + bd.milestoneMult.toFixed(2)]);
+    if (bd.masteryMult !== 1) rows.push([t('sell.mastery'), '×' + bd.masteryMult.toFixed(2)]);
+    if (bd.featuredMult !== 1) rows.push([t('sell.featured'), '×' + bd.featuredMult.toFixed(2)]);
+
+    const W = this._W, H = this._H;
+    const rowH = 24, panelW = 330;
+    const panelH = 108 + rows.length * rowH + 92;
+    const top = H / 2 - panelH / 2;
+    const left = W / 2 - panelW / 2 + 22;
+    const right = W / 2 + panelW / 2 - 22;
+
+    const popup = this.add.container(0, 0).setDepth(52);
+    const dim = this.add.graphics();
+    dim.fillStyle(0x000000, 0.72);
+    dim.fillRect(0, 0, W, H);
+    dim.setInteractive();
+    popup.add(dim);
+
+    const panel = this.add.graphics();
+    panel.fillStyle(0x0B0722, 1);
+    panel.fillRoundedRect(W / 2 - panelW / 2, top, panelW, panelH, 18);
+    panel.lineStyle(2, 0xCC8800, 0.85);
+    panel.strokeRoundedRect(W / 2 - panelW / 2, top, panelW, panelH, 18);
+    popup.add(panel);
+
+    popup.add(this.add.text(W / 2, top + 30, t('sell.breakdownTitle'), {
+      fontFamily: FONT, fontSize: '19px', fontStyle: 'bold', color: '#FFE066',
+    }).setOrigin(0.5));
+
+    rows.forEach(([label, value], i) => {
+      const y = top + 68 + i * rowH;
+      popup.add(this.add.text(left, y, label, {
+        fontFamily: FONT, fontSize: '13px', color: '#BBBBCC',
+      }).setOrigin(0, 0.5));
+      popup.add(this.add.text(right, y, value, {
+        fontFamily: FONT, fontSize: '13px', color: '#DDD8FF',
+      }).setOrigin(1, 0.5));
+    });
+
+    const finalY = top + 68 + rows.length * rowH + 14;
+    const divider = this.add.graphics();
+    divider.lineStyle(1, 0x6655AA, 0.5);
+    divider.lineBetween(left, finalY - 12, right, finalY - 12);
+    popup.add(divider);
+    popup.add(this.add.text(left, finalY, t('sell.final'), {
+      fontFamily: FONT, fontSize: '17px', fontStyle: 'bold', color: '#FFE066',
+    }).setOrigin(0, 0.5));
+    popup.add(this.add.text(right, finalY, bd.final + '💰', {
+      fontFamily: FONT, fontSize: '17px', fontStyle: 'bold', color: '#FFD700',
+    }).setOrigin(1, 0.5));
+
+    let closed = false;
+    const close = (list: boolean) => {
+      if (closed) return;
+      closed = true;
+      this._sellPopupActive = false;
+      popup.destroy();
+      if (list) this._doList();
+    };
+    popup.add(makeButton(this, W / 2 - 78, top + panelH - 42, 140, 44,
+      t('btn.cancel'), 0x2A2A40, () => close(false), 14));
+    popup.add(makeButton(this, W / 2 + 78, top + panelH - 42, 140, 44,
+      t('sell.confirmList'), 0xCC8800, () => close(true), 14));
+
+    popup.setAlpha(0);
+    this.tweens.add({ targets: popup, alpha: 1, duration: 160, ease: 'Sine.Out' });
+  }
+
+  private _confirmAscend() {
+    if (this._ascendPopupActive) return;
+    const state = Game.state!;
+    if (this._monster.evolved || (state.moonCrystals ?? 0) < 1) return;
+    this._ascendPopupActive = true;
+
+    const W = this._W, H = this._H;
+    const popup = this.add.container(0, 0).setDepth(55);
+    const dim = this.add.graphics();
+    dim.fillStyle(0x000000, 0.72);
+    dim.fillRect(0, 0, W, H);
+    dim.setInteractive();
+    popup.add(dim);
+
+    const panel = this.add.graphics();
+    panel.fillStyle(0x100828, 1);
+    panel.fillRoundedRect(W / 2 - 160, H / 2 - 125, 320, 250, 18);
+    panel.lineStyle(2, 0x8A6BFF, 0.85);
+    panel.strokeRoundedRect(W / 2 - 160, H / 2 - 125, 320, 250, 18);
+    popup.add(panel);
+
+    popup.add(this.add.text(W / 2, H / 2 - 82, t('confirm.ascendTitle', {
+      name: this._monster.nickname ?? this._sp.name,
+    }), {
+      fontFamily: FONT, fontSize: '18px', fontStyle: 'bold', color: '#CC88FF',
+      align: 'center', wordWrap: { width: 300 },
+    }).setOrigin(0.5));
+
+    popup.add(this.add.text(W / 2, H / 2 - 20, t('confirm.ascendBody'), {
+      fontFamily: FONT, fontSize: '14px', color: '#DDD8FF',
+      align: 'center', wordWrap: { width: 280 }, lineSpacing: 4,
+    }).setOrigin(0.5));
+
+    let closed = false;
+    const close = (run: boolean) => {
+      if (closed) return;
+      closed = true;
+      this._ascendPopupActive = false;
+      popup.destroy();
+      if (run) this._doAscend();
+    };
+    popup.add(makeButton(this, W / 2 - 78, H / 2 + 82, 140, 44,
+      t('btn.cancel'), 0x2A2A40, () => close(false), 14));
+    popup.add(makeButton(this, W / 2 + 78, H / 2 + 82, 140, 44,
+      t('btn.confirm'), 0x4A1580, () => close(true), 14));
+
+    popup.setAlpha(0);
+    this.tweens.add({ targets: popup, alpha: 1, duration: 160, ease: 'Sine.Out' });
   }
 
   private _doList() {
@@ -1988,9 +2130,16 @@ export class HabitatRoom extends Phaser.Scene {
       fontFamily: FONT, fontSize: '13px', color: '#FFD700',
     }).setOrigin(0.5));
 
+    let done = false;
     const finalize = (price: number) => {
+      if (done) return;
+      done = true;
       popup.destroy();
       const state = Game.state!;
+      // Guard against a second collect popup (or a double-fired ad callback):
+      // only pay out while the listing and monster still exist.
+      if (!state.listings.some(l => l.id === listing.id) ||
+          !state.monsters.some(m => m.id === this._monster.id)) return;
       state.coins += price;
       state.monsters = state.monsters.filter(m => m.id !== this._monster.id);
       state.listings = state.listings.filter(l => l.id !== listing.id);
@@ -2027,12 +2176,18 @@ export class HabitatRoom extends Phaser.Scene {
       Ads.showRewarded(res => { finalize(res.rewarded ? basePrice * 2 : basePrice); });
     }, 14));
     popup.add(makeButton(this, W/2, H/2 + 148, 120, 38, t('btn.cancel'), 0x4A2890, () => {
+      done = true;
       popup.destroy();
     }, 13));
   }
 
   private _doAscend() {
+    if (this._monster.evolved) return;
     const state = Game.state!;
+    if ((state.moonCrystals ?? 0) < 1) {
+      showToast(this, t('toast.needCrystal'), '#ffaaaa');
+      return;
+    }
     state.moonCrystals = (state.moonCrystals ?? 0) - 1;
     this._monster.evolved = true;
     this._monster.evolvedAt = Date.now();
@@ -2126,42 +2281,45 @@ export class HabitatRoom extends Phaser.Scene {
   private _gainXP(amount: number) {
     const m = this._monster;
     m.xp = (m.xp ?? 0) + amount;
-    if (m.level < 10) {
+    let leveled = false;
+    while (m.level < 10) {
       const needed = XP_TABLE[m.level] ?? 9999;
-      if (m.xp >= needed) {
-        m.xp -= needed;
-        m.level = Math.min(10, m.level + 1);
-        sfx.levelup();
-        this.cameras.main.shake(260, 0.007);
-        this._spawnParticles(this._monImg.x, this._monImg.y, 0xFFD700, 24);
-        this._spawnParticles(this._monImg.x, this._monImg.y, 0xFFFFFF, 12);
-        // Big floating level-up text
-        const lvTxt = this.add.text(this._monImg.x, this._monImg.y - 60, '⭐ Lv' + m.level + ' ⭐', {
-          fontFamily: FONT, fontSize: '28px', fontStyle: 'bold', color: '#FFD700',
-          stroke: '#000000', strokeThickness: 5,
-        }).setOrigin(0.5).setDepth(33).setScale(0);
-        this.tweens.add({
-          targets: lvTxt, scaleX: 1.0, scaleY: 1.0, duration: 320, ease: 'Back.Out',
-          onComplete: () => {
-            this.tweens.add({
-              targets: lvTxt, y: lvTxt.y - 70, alpha: 0,
-              duration: 900, delay: 600, ease: 'Sine.In',
-              onComplete: () => { try { lvTxt.destroy(); } catch { /**/ } },
-            });
-          },
-        });
-        // Screen flash ring
-        const ring = this.add.graphics().setDepth(33);
-        ring.lineStyle(8, 0xFFD700, 0.9);
-        ring.strokeCircle(this._monImg.x, this._monImg.y, 20);
-        this.tweens.add({
-          targets: ring, scaleX: 5, scaleY: 5, alpha: 0, duration: 500, ease: 'Quad.Out',
-          onComplete: () => { try { ring.destroy(); } catch { /**/ } },
-        });
-        showToast(this, t('toast.levelUp', { name: m.nickname ?? SPECIES[m.speciesId].name, n: m.level }), '#FFD700');
-        this._sellPrice = this._calcSell(this._sp);
-      }
+      if (m.xp < needed) break;
+      m.xp -= needed;
+      m.level = Math.min(10, m.level + 1);
+      leveled = true;
     }
+    if (!leveled) return;
+
+    sfx.levelup();
+    this.cameras.main.shake(260, 0.007);
+    this._spawnParticles(this._monImg.x, this._monImg.y, 0xFFD700, 24);
+    this._spawnParticles(this._monImg.x, this._monImg.y, 0xFFFFFF, 12);
+    // Big floating level-up text
+    const lvTxt = this.add.text(this._monImg.x, this._monImg.y - 60, '⭐ Lv' + m.level + ' ⭐', {
+      fontFamily: FONT, fontSize: '28px', fontStyle: 'bold', color: '#FFD700',
+      stroke: '#000000', strokeThickness: 5,
+    }).setOrigin(0.5).setDepth(33).setScale(0);
+    this.tweens.add({
+      targets: lvTxt, scaleX: 1.0, scaleY: 1.0, duration: 320, ease: 'Back.Out',
+      onComplete: () => {
+        this.tweens.add({
+          targets: lvTxt, y: lvTxt.y - 70, alpha: 0,
+          duration: 900, delay: 600, ease: 'Sine.In',
+          onComplete: () => { try { lvTxt.destroy(); } catch { /**/ } },
+        });
+      },
+    });
+    // Screen flash ring
+    const ring = this.add.graphics().setDepth(33);
+    ring.lineStyle(8, 0xFFD700, 0.9);
+    ring.strokeCircle(this._monImg.x, this._monImg.y, 20);
+    this.tweens.add({
+      targets: ring, scaleX: 5, scaleY: 5, alpha: 0, duration: 500, ease: 'Quad.Out',
+      onComplete: () => { try { ring.destroy(); } catch { /**/ } },
+    });
+    showToast(this, t('toast.levelUp', { name: m.nickname ?? SPECIES[m.speciesId].name, n: m.level }), '#FFD700');
+    this._sellPrice = this._calcSell(this._sp);
   }
 
   private _bounceBar(key: string) {

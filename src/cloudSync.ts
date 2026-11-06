@@ -35,7 +35,10 @@ async function _doSaveToCloud(state: GameState): Promise<void> {
   try {
     await setDoc(doc(db, 'users', user.uid), {
       state: JSON.stringify(state),
-      savedAt: state.lastTickAt,
+      // Wall-clock write time. Using state.lastTickAt here meant a long-running
+      // session could keep writing a stale timestamp, so other devices would
+      // wrongly consider the cloud save old and discard newer progress.
+      savedAt: Date.now(),
     });
     cloudStatus.synced = true;
     publishShop(state);
@@ -44,13 +47,21 @@ async function _doSaveToCloud(state: GameState): Promise<void> {
   }
 }
 
-export async function loadFromCloud(): Promise<GameState | null> {
+export interface CloudSave {
+  state: GameState;
+  savedAt: number;
+}
+
+export async function loadFromCloud(): Promise<CloudSave | null> {
   const user = auth.currentUser;
   if (!user) return null;
   try {
     const snap = await getDoc(doc(db, 'users', user.uid));
     if (!snap.exists()) return null;
-    return JSON.parse(snap.data().state) as GameState;
+    const data = snap.data();
+    const state = JSON.parse(data.state) as GameState;
+    const savedAt = typeof data.savedAt === 'number' ? data.savedAt : (state.lastTickAt ?? 0);
+    return { state, savedAt };
   } catch {
     return null;
   }

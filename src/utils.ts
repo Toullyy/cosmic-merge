@@ -5,6 +5,14 @@ import { scheduleSaveToCloud } from './cloudSync';
 
 export const FONT = '"Noto Sans Thai", "Sarabun", system-ui, sans-serif';
 
+// Local-time date key (YYYY-MM-DD). Using UTC here caused daily resets to drift
+// relative to the local-midnight quest reset.
+export function localDateKey(ts: number = Date.now()): string {
+  const d = new Date(ts);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
+
 export const store = {
   get(k: string, d: string = ''): string {
     try { const v = localStorage.getItem(k); return v === null ? d : v; } catch { return d; }
@@ -21,21 +29,40 @@ export const store = {
   },
 };
 
+export interface OfflineSummary {
+  elapsedMs: number;
+  readyEggs: number;
+  visitorWaiting: boolean;
+}
+
 export const Game: {
   state: GameState | null;
   phaser: import('phaser').Game | null;
   uid: string | null;
   isAnonymous: boolean;
+  offlineSummary: OfflineSummary | null;
 } = {
   state: null,
   phaser: null,
   uid: null,
   isAnonymous: true,
+  offlineSummary: null,
 };
 
 export function reconcileOfflineTime(state: GameState): void {
   const now = Date.now();
-  const elapsed = Math.min(now - (state.lastTickAt ?? now), 7 * 24 * 3600000);
+  const rawElapsed = now - (state.lastTickAt ?? now);
+  // Guard against a backwards clock jump or a corrupt/future timestamp. Without
+  // this, `hours` is negative, the early-return below leaves lastTickAt in the
+  // future, and all stat decay freezes until real time catches up.
+  if (!Number.isFinite(rawElapsed) || rawElapsed <= 0) {
+    if (state.lastTickAt !== now) {
+      state.lastTickAt = now;
+      store.setJSON('mps_state', state);
+    }
+    return;
+  }
+  const elapsed = Math.min(rawElapsed, 7 * 24 * 3600000);
   const hours = elapsed / 3600000;
   if (hours < 0.001) return;
   state.monsters.forEach(mon => {

@@ -1,6 +1,6 @@
 ﻿import Phaser from 'phaser';
-import { Game, FONT, store, sfx, getNewAchievements, recordQuestProgress } from '../utils';
-import { SPECIES, HABITATS, TANK_COST, TANK_CAPACITY, MAX_TANKS, getLevelName, AD_COINS_REWARD, AD_COOLDOWN_MS, checkAndUpdateVisitor, VISITOR_DURATION_MS, TRAITS, ACHIEVEMENTS, DAILY_REWARDS } from '../data';
+import { Game, FONT, store, sfx, getNewAchievements, recordQuestProgress, localDateKey } from '../utils';
+import { SPECIES, HABITATS, TANK_COST, TANK_CAPACITY, MAX_TANKS, getLevelName, AD_COINS_REWARD, AD_COOLDOWN_MS, checkAndUpdateVisitor, VISITOR_DURATION_MS, TRAITS, ACHIEVEMENTS, DAILY_REWARDS, ensureQuestsFresh, calcSellPrice } from '../data';
 import { t, currentLang, setLang } from '../i18n';
 import type { Achievement } from '../data';
 import { makeMonsterTexture, getVariantModifiers, shiftHue, darken, lighten } from '../MonsterRenderer';
@@ -45,11 +45,15 @@ export class Hub extends Phaser.Scene {
   private _bloomTimers: Phaser.Time.TimerEvent[] = [];
   private _bannerTweens: Phaser.Tweens.Tween[] = [];
   private _hatchPrompted = new Set<string>();
+  private _welcomeActive = false;
+  private _hatchPromptActive = false;
+  private _instantOfferActive = false;
 
   constructor() { super({ key: 'Hub' }); }
 
   create() {
     sfx.unlock();
+    ensureQuestsFresh(Game.state!);
     const W = this.scale.width, H = this.scale.height;
     this.cameras.main.fadeIn(180, 0, 0, 0);
     this._displayGroup = this.add.group();
@@ -73,10 +77,97 @@ export class Hub extends Phaser.Scene {
     if (boot) boot.style.display = 'none';
 
     this.time.delayedCall(400, () => {
-      this._checkDailyLogin();
-      this._restoreDailyAdBadgeIfNeeded();
-      this._checkReadyBreedingEggs();
+      const after = () => {
+        this._checkDailyLogin();
+        this._restoreDailyAdBadgeIfNeeded();
+        this._checkReadyBreedingEggs();
+      };
+      if (Game.offlineSummary) this._showWelcomeBack(after);
+      else after();
     });
+
+    // Merchant's "Quick Hatch" passes the egg id through scene data.
+    const launchEggId = (this.scene.settings.data as { launchHatchEggId?: string } | undefined)?.launchHatchEggId;
+    if (launchEggId && Game.state!.eggs.some(e => e.id === launchEggId)) {
+      this.time.delayedCall(150, () => {
+        if (this.scene.isActive()) this.scene.launch('HatchScene', { eggId: launchEggId });
+      });
+    }
+  }
+
+  // Called when the app returns to the foreground (see Boot visibility handler).
+  onResume() {
+    ensureQuestsFresh(Game.state!);
+    this._checkDailyLogin();
+    this._checkReadyBreedingEggs();
+    this.refreshAll();
+  }
+
+  private _formatAway(ms: number): string {
+    const mins = Math.max(1, Math.floor(ms / 60000));
+    if (mins < 60) return t('welcome.mins', { m: mins });
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return t('welcome.hours', { h: hrs, m: mins % 60 });
+    return t('welcome.days', { d: Math.floor(hrs / 24) });
+  }
+
+  private _showWelcomeBack(onClose: () => void) {
+    const summary = Game.offlineSummary;
+    Game.offlineSummary = null;
+    if (!summary) { onClose(); return; }
+    this._welcomeActive = true;
+
+    const W = this.scale.width, H = this.scale.height;
+    const hasEggs = summary.readyEggs > 0;
+    const hasVisitor = summary.visitorWaiting;
+    const lines = 1 + (hasEggs ? 1 : 0) + (hasVisitor ? 1 : 0);
+    const panelH = 170 + lines * 36;
+    const top = H / 2 - panelH / 2;
+
+    const popup = this.add.container(0, 0).setDepth(56);
+    const dim = this.add.graphics();
+    dim.fillStyle(0x000000, 0.7);
+    dim.fillRect(0, 0, W, H);
+    dim.setInteractive(new Phaser.Geom.Rectangle(0, 0, W, H), Phaser.Geom.Rectangle.Contains);
+    popup.add(dim);
+
+    const panel = this.add.graphics();
+    panel.fillStyle(0x0B0722, 1);
+    panel.fillRoundedRect(W / 2 - 170, top, 340, panelH, 18);
+    panel.lineStyle(2, 0x8A6BFF, 0.85);
+    panel.strokeRoundedRect(W / 2 - 170, top, 340, panelH, 18);
+    popup.add(panel);
+
+    popup.add(this.add.text(W / 2, top + 38, t('welcome.title'), {
+      fontFamily: FONT, fontSize: '22px', fontStyle: 'bold', color: '#FFE066',
+    }).setOrigin(0.5));
+
+    const rows: string[] = [t('welcome.away', { time: this._formatAway(summary.elapsedMs) })];
+    if (hasEggs) rows.push(t('welcome.readyEggs', { n: summary.readyEggs }));
+    if (hasVisitor) rows.push(t('welcome.visitor'));
+
+    rows.forEach((row, i) => {
+      popup.add(this.add.text(W / 2, top + 82 + i * 36, row, {
+        fontFamily: FONT, fontSize: '15px', color: '#DDD8FF',
+        align: 'center', wordWrap: { width: 300 },
+      }).setOrigin(0.5));
+    });
+
+    let closed = false;
+    const close = () => {
+      if (closed) return;
+      closed = true;
+      this._welcomeActive = false;
+      popup.destroy();
+      onClose();
+    };
+    // Tap anywhere to dismiss so this screen can never trap the player.
+    dim.on('pointerdown', close);
+    popup.add(makeButton(this, W / 2, top + panelH - 44, 200, 48,
+      t('welcome.ok'), 0x2A1560, close, 16));
+
+    popup.setAlpha(0);
+    this.tweens.add({ targets: popup, alpha: 1, duration: 180, ease: 'Sine.Out' });
   }
 
   private _buildBackground(W: number, H: number) {
@@ -339,6 +430,8 @@ export class Hub extends Phaser.Scene {
     }
     Ads.showRewarded((res: { rewarded: boolean }) => {
       if (res.rewarded) {
+        // Guard against a second ad callback before the cooldown is written.
+        if (this._adCooldownRemaining() > 0) return;
         Game.state!.coins += AD_COINS_REWARD;
         Game.state!.adCooldownAt = Date.now() + AD_COOLDOWN_MS;
         store.setJSON('mps_state', Game.state);
@@ -796,6 +889,12 @@ export class Hub extends Phaser.Scene {
     };
 
     const confirmBtn = makeButton(this, -75, 80, 130, 44, t('btn.confirm'), 0x226611, () => {
+      if (closed) return;
+      if (Game.state!.coins < cost) {
+        showToast(this, t('toast.needCoinsUnlock', { cost, name: hName }), '#ff9999');
+        close();
+        return;
+      }
       Game.state!.coins -= cost;
       Game.state!.habitats[type].unlocked = true;
       if (!Game.state!.tanks) Game.state!.tanks = { dirt: 4, grass: 0, aquatic: 0 };
@@ -835,7 +934,7 @@ export class Hub extends Phaser.Scene {
       const remaining = Math.max(0, state.visitorExpiresAt - now);
       const mins = Math.ceil(remaining / 60000);
       const hasMon = state.monsters.some(m => m.speciesId === state.visitorSpeciesId);
-      const totalMult = isRushHour ? (state.visitorPriceMult ?? 2) * 2 : (state.visitorPriceMult ?? 2);
+      const totalMult = this._effectiveVisitorMult(state);
 
       const bg = this.add.graphics();
       if (isRushHour) {
@@ -980,11 +1079,12 @@ export class Hub extends Phaser.Scene {
   }
 
   private _checkDailyLogin() {
+    if (this._welcomeActive) return;
     const state = Game.state!;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDateKey();
     if (state.lastLoginDate === today) return;
 
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const yesterday = localDateKey(Date.now() - 86400000);
     if (state.lastLoginDate === yesterday) {
       state.loginStreak = (state.loginStreak ?? 0) + 1;
     } else {
@@ -1013,7 +1113,7 @@ export class Hub extends Phaser.Scene {
   private _showSpinWheel(streakReward: typeof DAILY_REWARDS[0], streak: number) {
     const W = this.scale.width, H = this.scale.height;
     const state = Game.state!;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDateKey();
 
     const SEGS = [
       { label: '50💰',  coins: 50,  diamonds: 0, crystals: 0, weight: 3, color: 0xF57C00, border: 0xFFCC44 },
@@ -1060,10 +1160,11 @@ export class Hub extends Phaser.Scene {
     panelG.fillRoundedRect(px + 4, py + 4, panelW - 8, 60, { tl: 18, tr: 18, bl: 0, br: 0 });
     popup.add(panelG);
 
-    popup.add(this.add.text(W / 2, py + 32, '🎡 Daily Spin!', {
+    popup.add(this.add.text(W / 2, py + 32, t('daily.spinTitle'), {
       fontFamily: FONT, fontSize: '22px', fontStyle: 'bold', color: '#FFFFFF',
     }).setOrigin(0.5));
-    popup.add(this.add.text(W / 2, py + 60, `Day ${streak}  ·  Streak Reward: 💰${streakReward.coins}` + (streakReward.diamonds > 0 ? ` 💎${streakReward.diamonds}` : '') + ' granted!', {
+    const streakRewardStr = `💰${streakReward.coins}` + (streakReward.diamonds > 0 ? ` 💎${streakReward.diamonds}` : '');
+    popup.add(this.add.text(W / 2, py + 60, t('daily.streakAward', { n: streak, reward: streakRewardStr }), {
       fontFamily: FONT, fontSize: '12px', color: '#BB88FF',
     }).setOrigin(0.5));
 
@@ -1109,7 +1210,7 @@ export class Hub extends Phaser.Scene {
     popup.add(ptrG);
 
     let spun = false;
-    const spinBtn = makeButton(this, W / 2, py + panelH - 50, 220, 46, '🎡 SPIN!', 0x6622BB, () => {
+    const spinBtn = makeButton(this, W / 2, py + panelH - 50, 220, 46, t('daily.spinBtn'), 0x6622BB, () => {
       if (spun) return;
       spun = true;
       (spinBtn as Phaser.GameObjects.Container).setAlpha(0.4);
@@ -1136,7 +1237,7 @@ export class Hub extends Phaser.Scene {
           this.tweens.add({ targets: rewardTxt, scale: 1, duration: 420, ease: 'Back.Out' });
           this._spawnParticles(W / 2, wheelCy, 0xFFD700, 20);
 
-          const closeBtn = makeButton(this, W / 2, py + panelH - 50, 220, 46, '🎉 Claim!', 0x226611, () => {
+          const closeBtn = makeButton(this, W / 2, py + panelH - 50, 220, 46, t('daily.claim'), 0x226611, () => {
             popup.destroy();
           }, 15);
           popup.add(closeBtn as Phaser.GameObjects.Container);
@@ -1197,7 +1298,7 @@ export class Hub extends Phaser.Scene {
 
   private _restoreDailyAdBadgeIfNeeded() {
     const state = Game.state!;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDateKey();
     if (state.lastLoginDate === today && state.dailyAdClaimedDate !== today) {
       const dayIdx = ((state.loginStreak! - 1) % DAILY_REWARDS.length);
       this._showDailyAdBadge(DAILY_REWARDS[dayIdx]);
@@ -1205,7 +1306,7 @@ export class Hub extends Phaser.Scene {
   }
 
   private _showDailyAdBadge(reward: typeof DAILY_REWARDS[0]) {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDateKey();
     if (Game.state!.dailyAdClaimedDate === today) return;
     if (this._dailyAdBadge) { this._dailyAdBadge.destroy(); this._dailyAdBadge = null; }
     const W = this.scale.width;
@@ -1215,7 +1316,7 @@ export class Hub extends Phaser.Scene {
     bg.fillRoundedRect(-58, -16, 116, 32, 16);
     bg.lineStyle(2, 0x44EE88, 1);
     bg.strokeRoundedRect(-58, -16, 116, 32, 16);
-    const lbl = this.add.text(0, 0, '📺 x2 รับรางวัล', {
+    const lbl = this.add.text(0, 0, t('daily.adBadge'), {
       fontFamily: FONT, fontSize: '13px', fontStyle: 'bold', color: '#AAFFCC',
     }).setOrigin(0.5);
     badge.add([bg, lbl]);
@@ -1223,6 +1324,8 @@ export class Hub extends Phaser.Scene {
     badge.on('pointerdown', () => {
       Ads.showRewarded((res: { rewarded: boolean }) => {
         if (res.rewarded) {
+          // Another callback may have already granted today's bonus.
+          if (Game.state!.dailyAdClaimedDate === today) return;
           Game.state!.coins    += reward.coins;
           Game.state!.diamonds  = (Game.state!.diamonds ?? 0) + reward.diamonds;
           Game.state!.dailyAdClaimedDate = today;
@@ -1262,12 +1365,12 @@ export class Hub extends Phaser.Scene {
     popup.add(panel);
 
     // Header
-    popup.add(this.add.text(cx, py + 34, '🎁  รางวัลเข้าสู่ระบบประจำวัน', {
+    popup.add(this.add.text(cx, py + 34, t('daily.loginTitle'), {
       fontFamily: FONT, fontSize: '19px', fontStyle: 'bold', color: '#FFFFFF',
     }).setOrigin(0.5));
 
     // Streak text
-    popup.add(this.add.text(cx, py + 76, `ต่อเนื่อง  ${streak}  วัน`, {
+    popup.add(this.add.text(cx, py + 76, t('daily.streakDays', { n: streak }), {
       fontFamily: FONT, fontSize: '15px', color: '#BB88FF',
     }).setOrigin(0.5));
 
@@ -1302,7 +1405,7 @@ export class Hub extends Phaser.Scene {
 
     // Big reward display
     const rewardY = py + 194;
-    popup.add(this.add.text(cx, rewardY, 'รางวัลวันนี้', {
+    popup.add(this.add.text(cx, rewardY, t('daily.todayReward'), {
       fontFamily: FONT, fontSize: '14px', color: '#AA88CC',
     }).setOrigin(0.5));
 
@@ -1313,7 +1416,7 @@ export class Hub extends Phaser.Scene {
 
     // Streak bonus note (day 7 special)
     if (streak % DAILY_REWARDS.length === 0) {
-      popup.add(this.add.text(cx, rewardY + 76, '🎉 ครบ 7 วัน! โบนัสสูงสุด', {
+      popup.add(this.add.text(cx, rewardY + 76, t('daily.weekBonus'), {
         fontFamily: FONT, fontSize: '13px', color: '#FF99CC',
       }).setOrigin(0.5));
     }
@@ -1326,7 +1429,7 @@ export class Hub extends Phaser.Scene {
     btnG.lineStyle(2, 0xAA66FF, 1);
     btnG.strokeRoundedRect(cx - 120, btnY, 240, 46, 23);
     popup.add(btnG);
-    const btnTxt = this.add.text(cx, btnY + 23, '✓  รับรางวัล', {
+    const btnTxt = this.add.text(cx, btnY + 23, t('daily.claimBtn'), {
       fontFamily: FONT, fontSize: '20px', fontStyle: 'bold', color: '#FFFFFF',
     }).setOrigin(0.5);
     popup.add(btnTxt);
@@ -1339,7 +1442,7 @@ export class Hub extends Phaser.Scene {
 
     // x2 ad button
     const adBtnY = py + panelH - 56;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDateKey();
     const alreadyClaimed = Game.state!.dailyAdClaimedDate === today;
     const adBtnG = this.add.graphics();
     const adBtnColor = alreadyClaimed ? 0x332244 : 0x117733;
@@ -1349,7 +1452,7 @@ export class Hub extends Phaser.Scene {
     adBtnG.strokeRoundedRect(cx - 120, adBtnY, 240, 40, 20);
     popup.add(adBtnG);
     popup.add(this.add.text(cx, adBtnY + 20,
-      alreadyClaimed ? '✓ รับ x2 แล้ว' : '📺 ดูโฆษณา รับ x2 🎁',
+      alreadyClaimed ? t('daily.adClaimed') : t('daily.adWatch'),
       { fontFamily: FONT, fontSize: '16px', fontStyle: 'bold',
         color: alreadyClaimed ? '#776688' : '#AAFFCC' }
     ).setOrigin(0.5));
@@ -1358,9 +1461,11 @@ export class Hub extends Phaser.Scene {
       adZone.on('pointerdown', () => {
         Ads.showRewarded((res: { rewarded: boolean }) => {
           if (res.rewarded) {
+            const today2 = localDateKey();
+            if (Game.state!.dailyAdClaimedDate === today2) return;
             Game.state!.coins    += reward.coins;
             Game.state!.diamonds  = (Game.state!.diamonds ?? 0) + reward.diamonds;
-            Game.state!.dailyAdClaimedDate = new Date().toISOString().slice(0, 10);
+            Game.state!.dailyAdClaimedDate = today2;
             store.setJSON('mps_state', Game.state);
             this._updateCoinDisplay();
             showToast(this, `🎁 x2! +${reward.coins}💰` + (reward.diamonds > 0 ? ` +${reward.diamonds}💎` : ''), '#AAFFCC');
@@ -1381,14 +1486,21 @@ export class Hub extends Phaser.Scene {
     });
   }
 
+  private _effectiveVisitorMult(state: GameState): number {
+    const base = state.visitorPriceMult ?? 2;
+    const isRushHour = !!(state.rushHourUntil && Date.now() < state.rushHourUntil);
+    return isRushHour ? base * 2 : base;
+  }
+
   private _showVisitorPopup() {
     const state = Game.state!;
     if (!state.visitorSpeciesId || !state.visitorExpiresAt) return;
     const W = this.scale.width, H = this.scale.height;
     const sp = SPECIES[state.visitorSpeciesId];
-    const mult = state.visitorPriceMult ?? 2;
-    const offerPrice = Math.floor(sp.price * mult);
-    const candidates = state.monsters.filter(m => m.speciesId === state.visitorSpeciesId);
+    const mult = this._effectiveVisitorMult(state);
+    const candidates = state.monsters
+      .filter(m => m.speciesId === state.visitorSpeciesId)
+      .sort((a, b) => calcSellPrice(state, b) - calcSellPrice(state, a));
     const remaining = Math.max(0, state.visitorExpiresAt - Date.now());
     const mins = Math.ceil(remaining / 60000);
 
@@ -1404,38 +1516,70 @@ export class Hub extends Phaser.Scene {
     popup.add(panel);
 
     popup.add(this.add.text(W/2, H/2 - 108, t('visitor.title'), { fontFamily: FONT, fontSize: '20px', fontStyle: 'bold', color: '#FFE066' }).setOrigin(0.5));
-    popup.add(this.add.text(W/2, H/2 - 78, t('visitor.wants', { name: sp.name }), { fontFamily: FONT, fontSize: '16px', color: '#ffffff' }).setOrigin(0.5));
-    popup.add(this.add.text(W/2, H/2 - 52, t('visitor.offer', { price: offerPrice, mult }), { fontFamily: FONT, fontSize: '15px', color: '#FFD700' }).setOrigin(0.5));
-    popup.add(this.add.text(W/2, H/2 - 26, t('visitor.expires', { mins }), { fontFamily: FONT, fontSize: '13px', color: '#BBBBCC' }).setOrigin(0.5));
+    popup.add(this.add.text(W/2, H/2 - 80, t('visitor.wants', { name: sp.name }), { fontFamily: FONT, fontSize: '16px', color: '#ffffff' }).setOrigin(0.5));
 
     const close = () => popup.destroy();
+    const priceFor = (m: Monster) => Math.max(1, Math.round(calcSellPrice(state, m) * mult));
 
-    if (candidates.length > 0) {
-      popup.add(makeButton(this, W/2, H/2 + 20, 260, 48, t('visitor.sell', { name: sp.name, price: offerPrice }), 0x2A7A18, () => {
-        const mon = candidates[0];
+    if (candidates.length === 0) {
+      popup.add(this.add.text(W/2, H/2 - 30, t('visitor.noMonster', { name: sp.name }), { fontFamily: FONT, fontSize: '14px', color: '#BB9944' }).setOrigin(0.5));
+      popup.add(this.add.text(W/2, H/2 - 6, t('visitor.expires', { mins }), { fontFamily: FONT, fontSize: '13px', color: '#BBBBCC' }).setOrigin(0.5));
+      popup.add(makeButton(this, W/2, H/2 + 60, 120, 38, t('btn.close'), 0x2a1560, close, 13));
+    } else {
+      let sel = 0;
+      const selTxt = this.add.text(W/2, H/2 - 52, '', {
+        fontFamily: FONT, fontSize: '13px', color: '#DDCCFF',
+      }).setOrigin(0.5);
+      const offerTxt = this.add.text(W/2, H/2 - 28, '', {
+        fontFamily: FONT, fontSize: '16px', color: '#FFD700', fontStyle: 'bold',
+      }).setOrigin(0.5);
+      const expiresTxt = this.add.text(W/2, H/2 - 4, t('visitor.expires', { mins }), {
+        fontFamily: FONT, fontSize: '13px', color: '#BBBBCC',
+      }).setOrigin(0.5);
+      popup.add([selTxt, offerTxt, expiresTxt]);
+
+      const sellBtn = makeButton(this, W/2, H/2 + 42, 260, 48, '', 0x2A7A18, () => {
+        const mon = candidates[sel];
+        const price = priceFor(mon);
         state.monsters = state.monsters.filter(m => m.id !== mon.id);
         state.listings = state.listings.filter(l => l.monsterId !== mon.id);
-        state.coins += offerPrice;
+        state.coins += price;
         state.stats.sold++;
-        state.stats.totalEarned += offerPrice;
+        state.stats.totalEarned += price;
         state.stats.visitorSales = (state.stats.visitorSales ?? 0) + 1;
         recordQuestProgress('sell');
         state.visitorSpeciesId = undefined;
         state.visitorExpiresAt = undefined;
         store.setJSON('mps_state', state);
         sfx.sell();
-        showToast(this, t('toast.soldFor', { price: offerPrice }), '#aaffaa');
-        this._coinBurst(W / 2, H / 2, offerPrice);
+        showToast(this, t('toast.soldFor', { price }), '#aaffaa');
+        this._coinBurst(W / 2, H / 2, price);
         close();
         this._updateCoinDisplay();
         this._updateVisitorBanner();
         this.refreshAll();
-      }, 13));
-    } else {
-      popup.add(this.add.text(W/2, H/2 + 20, t('visitor.noMonster', { name: sp.name }), { fontFamily: FONT, fontSize: '14px', color: '#BB9944' }).setOrigin(0.5));
+      }, 13);
+      popup.add(sellBtn);
+
+      const refreshOffer = () => {
+        const m = candidates[sel];
+        const price = priceFor(m);
+        const label = (m.nickname ? m.nickname + ' · ' : '') + sp.name + ' · Lv' + m.level;
+        selTxt.setText(candidates.length > 1 ? ('◀  ' + label + '  ▶') : label);
+        offerTxt.setText(t('visitor.offer', { price, mult: Math.round(mult * 10) / 10 }));
+        setButtonLabel(sellBtn, t('visitor.sell', { name: m.nickname ?? sp.name, price }));
+      };
+      refreshOffer();
+
+      if (candidates.length > 1) {
+        const cycle = (dir: number) => { sel = (sel + dir + candidates.length) % candidates.length; refreshOffer(); };
+        popup.add(makeButton(this, W/2 - 138, H/2 - 52, 34, 28, '◀', 0x3A2050, () => cycle(-1), 12));
+        popup.add(makeButton(this, W/2 + 138, H/2 - 52, 34, 28, '▶', 0x3A2050, () => cycle(1), 12));
+      }
+
+      popup.add(makeButton(this, W/2, H/2 + 96, 120, 32, t('btn.close'), 0x2a1560, close, 12));
     }
 
-    popup.add(makeButton(this, W/2, H/2 + 82, 120, 38, t('btn.close'), 0x2a1560, close, 13));
     overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, W, H), Phaser.Geom.Rectangle.Contains);
     overlay.on('pointerdown', close);
   }
@@ -1538,6 +1682,7 @@ export class Hub extends Phaser.Scene {
         if (done && !clmd) {
           const claimBtn = makeButton(this, W/2 + 112, curY + (ROW_H - 6) / 2, 88, 34,
             t('quests.claim'), isWeekly ? 0x5522BB : 0x2A7A10, () => {
+              if (q.claimed) return;
               q.claimed = true;
               state.coins += q.coinReward;
               if (diamonds > 0) state.diamonds = (state.diamonds ?? 0) + diamonds;
@@ -2142,6 +2287,8 @@ export class Hub extends Phaser.Scene {
   }
 
   private _showInstantHatchOffer(eggId: string, name: string, minsLeft: number) {
+    if (this._welcomeActive || this._instantOfferActive) return;
+    this._instantOfferActive = true;
     const W = this.scale.width, H = this.scale.height;
 
     const popup = this.add.container(0, 0).setDepth(40);
@@ -2158,27 +2305,27 @@ export class Hub extends Phaser.Scene {
     panel.strokeRoundedRect(W/2 - 150, H/2 - 100, 300, 200, 16);
     popup.add(panel);
 
-    popup.add(this.add.text(W/2, H/2 - 68, name + ' is hatching…', {
+    popup.add(this.add.text(W/2, H/2 - 68, t('hatchOffer.hatching', { name }), {
       fontFamily: FONT, fontSize: '18px', fontStyle: 'bold', color: '#ffffff',
     }).setOrigin(0.5));
-    popup.add(this.add.text(W/2, H/2 - 40, minsLeft + ' min remaining', {
+    popup.add(this.add.text(W/2, H/2 - 40, t('hatchOffer.remaining', { mins: minsLeft }), {
       fontFamily: FONT, fontSize: '14px', color: '#BBCCFF',
     }).setOrigin(0.5));
 
-    const close = () => { popup.destroy(); };
+    const close = () => { this._instantOfferActive = false; popup.destroy(); };
 
-    popup.add(makeButton(this, W/2, H/2 + 10, 240, 46, 'Watch ad -> Hatch now!', 0x7A4A00, () => {
+    popup.add(makeButton(this, W/2, H/2 + 10, 240, 46, t('hatchOffer.watch'), 0x7A4A00, () => {
       Ads.showRewarded(res => {
         close();
         if (res.rewarded) {
           const egg = Game.state!.eggs.find(e => e.id === eggId);
           if (egg) { egg.hatchEndAt = Date.now() - 1; }
           this.refreshAll();
-          showToast(this, 'Egg hatched instantly! Tap to open', '#aaffaa');
+          showToast(this, t('hatchOffer.hatched'), '#aaffaa');
         }
       });
     }, 14));
-    popup.add(makeButton(this, W/2, H/2 + 68, 120, 38, 'Wait', 0x2a1560, close, 13));
+    popup.add(makeButton(this, W/2, H/2 + 68, 120, 38, t('btn.wait'), 0x2a1560, close, 13));
   }
 
   private _startEggTimer() {
@@ -2246,12 +2393,14 @@ export class Hub extends Phaser.Scene {
   }
 
   private _checkReadyBreedingEggs() {
+    if (this._welcomeActive || this._hatchPromptActive || this.scene.isActive('HatchScene')) return;
     const now = Date.now();
     const readyEgg = Game.state!.eggs.find(
       e => e.source === 'breeding' && now >= e.hatchEndAt && !this._hatchPrompted.has(e.id),
     );
     if (!readyEgg) return;
     this._hatchPrompted.add(readyEgg.id);
+    this._hatchPromptActive = true;
 
     const W = this.scale.width, H = this.scale.height;
     const sp = SPECIES[readyEgg.speciesId];
@@ -2279,7 +2428,7 @@ export class Hub extends Phaser.Scene {
       fontFamily: FONT, fontSize: '14px', color: '#DDCCFF',
     }).setOrigin(0.5));
 
-    const close = () => { popup.destroy(); };
+    const close = () => { this._hatchPromptActive = false; popup.destroy(); };
 
     const hatchBtn = makeButton(this, W / 2, H / 2 + 44, 220, 46, '🐣 ' + t('btn.hatchNow'), 0x5A2A90, () => {
       close();
@@ -2302,11 +2451,8 @@ export class Hub extends Phaser.Scene {
     Game.state!.monsters.push(monster);
     Game.state!.stats.hatched++;
     this._markDiscovered(monster.speciesId);
-    // hatch quest progress
-    (Game.state!.quests ?? []).filter(q => q.type === 'hatch' && !q.completed).forEach(q => {
-      q.progress = Math.min(q.target, q.progress + 1);
-      if (q.progress >= q.target) q.completed = true;
-    });
+    // Advance both daily and weekly hatch quests.
+    recordQuestProgress('hatch');
     store.setJSON('mps_state', Game.state);
     this._updateCoinDisplay();
     this.refreshAll();

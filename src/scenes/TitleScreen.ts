@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { FONT } from '../utils';
+import { t } from '../i18n';
 import { SPECIES } from '../data';
 import { preloadMonsterTexture } from '../MonsterRenderer';
 import type { Monster } from '../types';
@@ -159,7 +160,7 @@ export class TitleScreen extends Phaser.Scene {
       dec.fillStyle(0xFFD890, 0.65); dec.fillCircle(nx - 1.5, ny - 1.5, 2.5);
       dec.lineStyle(1, 0x8A6020, 0.5); dec.strokeCircle(nx, ny, 5);
     });
-    this.add.text(signX, signY - 8, '🏪  ยินดีต้อนรับสู่ร้าน', {
+    this.add.text(signX, signY - 8, t('title.welcome'), {
       fontFamily: FONT, fontSize: '14px', fontStyle: 'bold',
       color: '#FFFFFF', stroke: '#5A2A00', strokeThickness: 3,
     }).setOrigin(0.5).setDepth(2);
@@ -430,7 +431,7 @@ export class TitleScreen extends Phaser.Scene {
     });
 
     // Subtitle on board
-    this.add.text(W/2, BY + BOARD_H - 22, '✨ เลี้ยง • ขาย • สะสมมอนสเตอร์น่ารัก ✨', {
+    this.add.text(W/2, BY + BOARD_H - 22, t('title.subtitle'), {
       fontFamily: FONT, fontSize: '13px', color: '#FFE8AA',
       stroke: '#441800', strokeThickness: 3,
     }).setOrigin(0.5).setDepth(6);
@@ -526,7 +527,7 @@ export class TitleScreen extends Phaser.Scene {
     g.strokeRoundedRect(W/2 - BW/2, CY - BH/2, BW, BH, r);
 
     // Label
-    this.add.text(W/2, CY + 1, '▶  เริ่มเล่น !', {
+    this.add.text(W/2, CY + 1, t('title.start'), {
       fontFamily: FONT, fontSize: '28px', fontStyle: 'bold', color: '#FFFFFF',
       stroke: '#0A3A18', strokeThickness: 4,
     }).setOrigin(0.5).setDepth(9);
@@ -542,7 +543,7 @@ export class TitleScreen extends Phaser.Scene {
     });
 
     // Hint text
-    this.add.text(W/2, CY + BH/2 + 20, 'แตะที่ไหนก็ได้เพื่อเริ่ม', {
+    this.add.text(W/2, CY + BH/2 + 20, t('title.tap'), {
       fontFamily: FONT, fontSize: '13px', color: '#FFEEAA',
       stroke: '#332200', strokeThickness: 3,
     }).setOrigin(0.5).setDepth(9).setAlpha(0.75);
@@ -554,7 +555,7 @@ export class TitleScreen extends Phaser.Scene {
     const BW = 230, BH = 38;
 
     const bg = this.add.graphics().setDepth(21);
-    const lbl = this.add.text(W / 2, BY, '🔵 เชื่อมต่อ Google', {
+    const lbl = this.add.text(W / 2, BY, t('title.linkGoogle'), {
       fontFamily: FONT, fontSize: '14px', color: '#AACCFF',
       stroke: '#001133', strokeThickness: 3,
     }).setOrigin(0.5).setDepth(22);
@@ -572,7 +573,7 @@ export class TitleScreen extends Phaser.Scene {
 
     // Poll until auth resolves (getRedirectResult is async, finishes after scene loads)
     const setLinked = () => {
-      lbl.setText('✅ Google ซิงค์แล้ว');
+      lbl.setText(t('title.googleLinked'));
       lbl.setColor('#88FFCC');
       drawBg(0x0D4422, 0.70);
     };
@@ -591,12 +592,12 @@ export class TitleScreen extends Phaser.Scene {
     const zone = this.add.zone(W / 2, BY, BW, BH).setDepth(22).setInteractive();
     zone.on('pointerdown', () => {
       if (!cloudStatus.isAnonymous) return;
-      lbl.setText('↗ กำลังไป Google...');
+      lbl.setText(t('title.googleGoing'));
       lbl.setColor('#FFFFFF');
       drawBg(0x1144AA, 0.90);
       // linkGoogleAccount redirects the page — no await needed
       linkGoogleAccount().catch(() => {
-        lbl.setText('❌ ไม่สำเร็จ ลองอีกครั้ง');
+        lbl.setText(t('title.googleFail'));
         lbl.setColor('#FF9999');
         drawBg(0x0D2E66, 0.85);
       });
@@ -651,7 +652,7 @@ export class TitleScreen extends Phaser.Scene {
     bar.lineStyle(2.5, 0xFFAA22, 0.70); bar.lineBetween(0, STRIP_Y + 38, W, STRIP_Y + 38);
     bar.fillStyle(0xFFCC44, 0.05); bar.fillRect(0, STRIP_Y - 36, W, 74);
 
-    this.add.text(W / 2, STRIP_Y - 28, '✦ มอนสเตอร์ทั้งหมด ✦', {
+    this.add.text(W / 2, STRIP_Y - 28, t('title.allMonsters'), {
       fontFamily: FONT, fontSize: '11px', color: '#FFD700',
       stroke: '#441100', strokeThickness: 2,
     }).setOrigin(0.5).setDepth(11);

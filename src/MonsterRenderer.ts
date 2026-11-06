@@ -326,7 +326,20 @@ function removePNGBackground(ctx: CanvasRenderingContext2D, size: number): void 
 
 // ── PNG sprite loader (with SVG fallback) ─────────────────────────────────────
 
+// Keep rendering robust when data comes from an untrusted source (e.g. a
+// published shop) or a corrupt save: unknown species fall back to species 0
+// and the variant index is clamped to a finite 0–99 value.
+function sanitizeMonster(monster: Monster): Monster {
+  const validSpecies = SPECIES[monster.speciesId] !== undefined;
+  const vi = Number.isFinite(monster.variantIndex)
+    ? ((Math.floor(monster.variantIndex) % 100) + 100) % 100
+    : 0;
+  if (validSpecies && vi === monster.variantIndex) return monster;
+  return { ...monster, speciesId: validSpecies ? monster.speciesId : 0, variantIndex: vi };
+}
+
 export function preloadMonsterTexture(scene: Phaser.Scene, monster: Monster): Promise<string> {
+  monster = sanitizeMonster(monster);
   const key = 'mon_' + monster.speciesId + '_' + monster.variantIndex;
   if (scene.textures.exists(key)) return Promise.resolve(key);
 
@@ -435,7 +448,7 @@ export function preloadMonsterTexture(scene: Phaser.Scene, monster: Monster): Pr
 function makeMonsterTextureFallback(scene: Phaser.Scene, monster: Monster): string {
   const key = 'mon_' + monster.speciesId + '_' + monster.variantIndex;
   if (scene.textures.exists(key)) return key;
-  const sp = SPECIES[monster.speciesId];
+  const sp = SPECIES[monster.speciesId] ?? SPECIES[0];
   const mods = getVariantModifiers(monster.variantIndex);
   const bodyColor = shiftHue(sp.baseColor, mods.hueShift);
   const SIZE = 128, cx = 64, cy = 64;
@@ -452,6 +465,7 @@ function makeMonsterTextureFallback(scene: Phaser.Scene, monster: Monster): stri
 }
 
 export function makeMonsterTexture(scene: Phaser.Scene, monster: Monster): string {
+  monster = sanitizeMonster(monster);
   const key = 'mon_' + monster.speciesId + '_' + monster.variantIndex;
   if (scene.textures.exists(key)) return key;
   return makeMonsterTextureFallback(scene, monster);

@@ -1,19 +1,32 @@
 import Phaser from 'phaser';
-import { Game, FONT, sfx } from '../utils';
+import { Game, FONT, sfx, store } from '../utils';
 import { t } from '../i18n';
 import { SPECIES, newMonster, DIAMOND_NEW_SPECIES, DIAMOND_NEW_COLOR } from '../data';
 import { shiftHue, darken, lighten, getVariantModifiers, preloadMonsterTexture } from '../MonsterRenderer';
 import { makeButton } from '../ui/Button';
+import type { Monster } from '../types';
 
 export class HatchScene extends Phaser.Scene {
   private _eggId: string = '';
   private _eggGraphic!: Phaser.GameObjects.Graphics;
   private _glowRing: Phaser.GameObjects.Graphics | null = null;
   private _glowTween: Phaser.Tweens.Tween | null = null;
+  private _continueShown = false;
+  private _titleTxt: Phaser.GameObjects.Text | null = null;
+  private _hintTxt: Phaser.GameObjects.Text | null = null;
+  private _timers: number[] = [];
+  private _inputEl: HTMLInputElement | null = null;
 
   constructor() { super({ key: 'HatchScene' }); }
 
-  init(data: { eggId: string }) { this._eggId = data.eggId; }
+  init(data: { eggId: string }) {
+    this._eggId = data.eggId;
+    this._continueShown = false;
+    this._titleTxt = null;
+    this._hintTxt = null;
+    this._timers = [];
+    this._inputEl = null;
+  }
 
   create() {
     const W = this.scale.width, H = this.scale.height;
@@ -57,29 +70,43 @@ export class HatchScene extends Phaser.Scene {
     });
 
     // Hatching title
-    this.add.text(W / 2, cy - 190, t('hatch.hatching'), {
+    this._titleTxt = this.add.text(W / 2, cy - 190, t('hatch.hatching'), {
       fontFamily: FONT, fontSize: '24px', color: '#CCAAFF',
       stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0.5).setDepth(3);
 
     // Species hint text
-    this.add.text(W / 2, cy - 158, sp.name + '  ·  ⏱' + sp.hatchHours + 'h', {
+    this._hintTxt = this.add.text(W / 2, cy - 158, sp.name + '  ·  ⏱' + sp.hatchHours + 'h', {
       fontFamily: FONT, fontSize: '14px', color: '#AA99CC',
     }).setOrigin(0.5).setDepth(3);
 
     // ── Glow ramp (400ms): ring brightens as hatch approaches ─────────────
-    this.time.addEvent({
-      delay: 400, callback: () => {
-        this._addCracks(cx, cy, eggColor);
-        this._startGlowRamp(cx, cy, eggColor);
-      },
-    });
+    // Real-time timers (not Phaser clock) so a laggy device can't stall the
+    // whole hatch sequence.
+    this._later(() => {
+      this._addCracks(cx, cy, eggColor);
+      this._startGlowRamp(cx, cy, eggColor);
+    }, 400);
 
-    this.time.addEvent({
-      delay: 900, callback: () => {
-        this._shakeAndBurst(cx, cy, egg.id, sp.id, eggColor);
-      },
+    this._later(() => this._shakeAndBurst(cx, cy, egg.id, sp.id, eggColor), 900);
+
+    this.events.once('shutdown', () => {
+      this._timers.forEach(id => window.clearTimeout(id));
+      this._timers = [];
+      if (this._inputEl) {
+        try { document.body.removeChild(this._inputEl); } catch { /* ignore */ }
+        this._inputEl = null;
+      }
     });
+  }
+
+  private _later(fn: () => void, ms: number) {
+    const id = window.setTimeout(() => {
+      this._timers = this._timers.filter(t => t !== id);
+      if (!this.scene.isActive()) return;
+      fn();
+    }, ms);
+    this._timers.push(id);
   }
 
   // ── Egg drawing (rich version matching Merchant style, larger) ────────────
@@ -254,7 +281,8 @@ export class HatchScene extends Phaser.Scene {
     sfx.hatch();
 
     // ── Monster creation & state update ──────────────────────────────────
-    const egg = Game.state!.eggs.find(e => e.id === eggId)!;
+    const egg = Game.state!.eggs.find(e => e.id === eggId);
+    if (!egg) { this.scene.stop(); return; }
     const mon = newMonster(egg.speciesId, egg.variantIndex, egg.source);
     const monMods = getVariantModifiers(mon.variantIndex);
     const isNewSpecies = !Game.state!.stats.discovered.includes(mon.speciesId);
@@ -268,19 +296,20 @@ export class HatchScene extends Phaser.Scene {
 
     let diamondReward = 0;
     if (isNewSpecies) {
-      if (Game.state!.newDiscoveries && !Game.state!.newDiscoveries.includes(String(mon.speciesId))) {
-        Game.state!.newDiscoveries.push(String(mon.speciesId));
-      }
-      diamondReward = DIAMOND_NEW_SPECIES;
-    } else if (isNewGolden) {
+      Game.state!.stats.discovered.push(mon.speciesId);
+      diamondReward += DIAMOND_NEW_SPECIES;
+    }
+    if (isNewGolden) {
       goldenList.push(mon.speciesId);
       Game.state!.stats.goldenDiscovered = goldenList;
+      diamondReward += DIAMOND_NEW_COLOR;
+    } else if (!isNewSpecies && isNewColor) {
+      diamondReward += DIAMOND_NEW_COLOR;
+    }
+    if (isNewSpecies || isNewGolden) {
       if (Game.state!.newDiscoveries && !Game.state!.newDiscoveries.includes(String(mon.speciesId))) {
         Game.state!.newDiscoveries.push(String(mon.speciesId));
       }
-      diamondReward = DIAMOND_NEW_COLOR;
-    } else if (isNewColor) {
-      diamondReward = DIAMOND_NEW_COLOR;
     }
 
     // Always track the hue band for this species
@@ -295,26 +324,33 @@ export class HatchScene extends Phaser.Scene {
       Game.state!.diamonds += diamondReward;
     }
 
-    // ── Monster image reveal ──────────────────────────────────────────────
-    preloadMonsterTexture(this, mon).then(texKey => {
-      const W = this.scale.width, H = this.scale.height;
+    // Persist discovery + rewards immediately. Otherwise the Hub's 10s autosave can
+    // store the diamonds while the egg still exists, allowing the reward to be replayed.
+    store.setJSON('mps_state', Game.state);
 
-      const img = this.add.image(cx, cy, texKey).setDisplaySize(160, 160).setAlpha(0).setDepth(7);
-      this.tweens.add({
-        targets: img, alpha: 1,
-        scaleX: { from: 0.2, to: 1 }, scaleY: { from: 0.2, to: 1 },
-        duration: 550, ease: 'Back.Out',
-      });
-      this.tweens.add({
-        targets: img, y: img.y - 10,
-        duration: 1200, ease: 'Sine.InOut', yoyo: true, repeat: -1,
-      });
+    // ── Monster image reveal ──────────────────────────────────────────────
+    const cardY = cy + 130;
+    const cardH = diamondReward > 0 ? 118 : 96;
+
+    const reveal = (texKey: string | null) => {
+      if (!this.scene.isActive()) return;
+      const W = this.scale.width;
+
+      if (texKey) {
+        const img = this.add.image(cx, cy, texKey).setDisplaySize(160, 160).setAlpha(0).setDepth(7);
+        this.tweens.add({
+          targets: img, alpha: 1,
+          scaleX: { from: 0.2, to: 1 }, scaleY: { from: 0.2, to: 1 },
+          duration: 550, ease: 'Back.Out',
+        });
+        this.tweens.add({
+          targets: img, y: img.y - 10,
+          duration: 1200, ease: 'Sine.InOut', yoyo: true, repeat: -1,
+        });
+      }
 
       // ── Info card panel ────────────────────────────────────────────────
-      const cardY = cy + 130;
-      const cardH = diamondReward > 0 ? 118 : 96;
-
-      this.time.delayedCall(300, () => {
+      this._later(() => {
         const cardG = this.add.graphics().setDepth(8).setAlpha(0);
         cardG.fillStyle(0x000000, 0.55);
         cardG.fillRoundedRect(W / 2 - 175, cardY - 8, 350, cardH, 16);
@@ -354,65 +390,101 @@ export class HatchScene extends Phaser.Scene {
           this.tweens.add({ targets: dT, alpha: 1, duration: 250, delay: 200 });
         }
 
-        // Continue button
-        this.time.delayedCall(500, () => this._showContinueBtn(cx, eggId, mon, cardY + cardH + 32));
-      });
-    });
+      }, 300);
+    };
+
+    preloadMonsterTexture(this, mon).then(reveal).catch(() => reveal(null));
+
+    // Safety net: always reveal the continue prompt, even if the texture fails
+    // to load or the reveal throws. Uses real time so low-FPS devices still
+    // get a way out of this scene.
+    this._later(() => this._showContinueBtn(cx, eggId, mon), 2500);
   }
 
   // ── Continue / name input ─────────────────────────────────────────────────
 
-  private _showContinueBtn(cx: number, eggId: string, mon: any, btnY: number) {
-    const W = this.scale.width, H = this.scale.height;
-    const sp = SPECIES[mon.speciesId];
+  private _showContinueBtn(cx: number, eggId: string, mon: Monster) {
+    if (this._continueShown) return;
+    this._continueShown = true;
 
-    this.add.text(cx, btnY, t('hatch.name'), {
+    // Free up the top area for the name prompt + button. The info card stays
+    // near the bottom, away from the on-screen keyboard.
+    this._titleTxt?.setVisible(false);
+    this._hintTxt?.setVisible(false);
+
+    const H = this.scale.height;
+    const sp = SPECIES[mon.speciesId];
+    // Keep a clear gap between the DOM input and the button. The input is a
+    // fixed-height HTML element, so on small screens it grows relative to the
+    // game canvas and can otherwise swallow taps meant for the button.
+    const labelY = 84;
+    const inputY = 112;
+    const btnY = 238;
+
+    this.add.text(cx, labelY, t('hatch.name'), {
       fontFamily: FONT, fontSize: '15px', color: '#CCBBFF',
       stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5).setDepth(10);
 
-    const canvas = this.game.canvas;
-    const rect = canvas.getBoundingClientRect();
-    const scaleY = rect.height / H;
-    const inputTop = rect.top + (btnY + 26) * scaleY;
-
-    const inp = document.createElement('input');
-    inp.type = 'text';
-    inp.placeholder = sp.name;
-    inp.maxLength = 20;
-    inp.style.cssText = [
-      'position:fixed',
-      'left:50%', 'top:' + inputTop + 'px',
-      'transform:translateX(-50%)',
-      'font-size:17px', 'padding:10px 14px',
-      'border-radius:12px', 'border:2px solid #9060ff',
-      'background:#1a0a3e', 'color:#fff',
-      'width:220px', 'text-align:center',
-      'z-index:9999', 'outline:none',
-    ].join(';');
-    document.body.appendChild(inp);
-    inp.focus();
-
+    let inp: HTMLInputElement | null = null;
     let _confirmed = false;
+
     const confirm = () => {
       if (_confirmed) return;
       _confirmed = true;
-      const v = inp.value.trim();
-      if (v && v !== sp.name) mon.nickname = v;
-      try { document.body.removeChild(inp); } catch { /* ignore */ }
-      const hub = this.game.scene.getScene('Hub') as any;
-      if (hub) hub.onEggHatched(eggId, mon);
-      this.scene.stop();
+      try {
+        const v = inp?.value.trim() ?? '';
+        if (v && v !== sp.name) mon.nickname = v;
+        const hub = this.game.scene.getScene('Hub') as any;
+        if (hub) hub.onEggHatched(eggId, mon);
+      } catch (err) {
+        console.error('hatch confirm failed', err);
+      } finally {
+        if (inp) {
+          try { document.body.removeChild(inp); } catch { /* ignore */ }
+          this._inputEl = null;
+        }
+        this.scene.stop();
+      }
     };
 
-    inp.addEventListener('keydown', (e: KeyboardEvent) => { if (e.key === 'Enter') confirm(); });
-
-    const btn = makeButton(this, cx, btnY + 78, 220, 50, t('btn.letsGo'), 0x2a5030, confirm, 18);
+    // Button first: even if the DOM input can't be created, the player can
+    // still leave the scene.
+    const btn = makeButton(this, cx, btnY, 220, 50, t('btn.letsGo'), 0x2a5030, confirm, 18);
     btn.setDepth(10).setAlpha(0);
     this.tweens.add({ targets: btn, alpha: 1, duration: 250 });
 
-    this.events.once('shutdown', () => {
-      try { document.body.removeChild(inp); } catch { /* ignore */ }
-    });
+    try {
+      const rect = this.game.canvas.getBoundingClientRect();
+      const scaleY = rect.height / H;
+      const inputTop = rect.top + inputY * scaleY;
+
+      inp = document.createElement('input');
+      inp.type = 'text';
+      inp.placeholder = sp.name;
+      inp.maxLength = 20;
+      inp.style.cssText = [
+        'position:fixed',
+        'left:50%', 'top:' + inputTop + 'px',
+        'transform:translateX(-50%)',
+        'font-size:17px', 'padding:10px 14px',
+        'border-radius:12px', 'border:2px solid #9060ff',
+        'background:#1a0a3e', 'color:#fff',
+        'width:220px', 'text-align:center',
+        'z-index:9999', 'outline:none',
+      ].join(';');
+      document.body.appendChild(inp);
+      this._inputEl = inp;
+
+      // Auto-focus only on desktop; on phones this opens the keyboard and can
+      // cover the action button.
+      if (window.matchMedia?.('(pointer: fine)').matches) inp.focus();
+
+      inp.addEventListener('keydown', (e: KeyboardEvent) => { if (e.key === 'Enter') confirm(); });
+    } catch (err) {
+      console.error('hatch input failed', err);
+      inp = null;
+      this._inputEl = null;
+    }
   }
 }

@@ -22,6 +22,7 @@ export interface Monster {
   hunger: number;
   cleanliness: number;
   lastCaredAt: number;
+  lastFreeCareAt?: number;
   source: string;
   nickname?: string;
   ownedToy?: string;
@@ -118,7 +119,6 @@ export interface GameState {
   discoveredColors?: Record<string, number[]>;
   // Gameplay depth fields
   moonCrystals?: number;
-  shopLevel?: number;
   habitatMilestones?: { dirt: number; grass: number; aquatic: number };
   speciesSold?: Record<number, number>;
   wheelClaimedDate?: string;

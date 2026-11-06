@@ -628,18 +628,17 @@ export class Merchant extends Phaser.Scene {
 
   private _gemHatch() {
     const state = Game.state!;
-    const egg = state.eggs[0];
+    // Pick the egg that is closest to hatching instead of an arbitrary egg.
+    const egg = [...state.eggs].sort((a, b) => a.hatchEndAt - b.hatchEndAt)[0];
     if (!egg) { showToast(this, t('gems.noEggs'), '#ffaaaa'); return; }
-    const cap = (state.tanks?.[egg.habitatType] ?? 1) * 1;
+    const cap = (state.tanks?.[egg.habitatType] ?? 1) * TANK_CAPACITY;
     const monCount = state.monsters.filter(m => m.habitatType === egg.habitatType).length;
     if (monCount >= cap) { showToast(this, t('toast.habitatFull'), '#ff9999'); return; }
     state.diamonds = (state.diamonds ?? 0) - 5;
     store.setJSON('mps_state', state);
-    this.scene.start('Hub');
-    const hub = this.scene.get('Hub') as any;
-    this.time.delayedCall(100, () => {
-      this.scene.launch('HatchScene', { eggId: egg.id });
-    });
+    // Let Hub launch HatchScene once it is running (launching from a stopping scene
+    // is unreliable because the scene clock is shut down).
+    this.scene.start('Hub', { launchHatchEggId: egg.id });
   }
 
   private _gemBoost() {
@@ -675,6 +674,11 @@ export class Merchant extends Phaser.Scene {
     const habitat = unlocked[Math.floor(Math.random() * unlocked.length)] ?? 'dirt';
     const poolForHabitat = CATALOG.filter(sp => sp.habitat === habitat);
     const sp = poolForHabitat[Math.floor(Math.random() * poolForHabitat.length)];
+    const cap = (state.tanks?.[habitat] ?? 0) * TANK_CAPACITY;
+    const usage = state.monsters.filter(m => m.habitatType === habitat).length
+                + state.eggs.filter(e => e.habitatType === habitat).length;
+    if (cap === 0) { showToast(this, t('toast.buyTankFirst'), '#ffaaaa'); return; }
+    if (usage >= cap) { showToast(this, t('toast.habitatFull'), '#ffaaaa'); return; }
     state.diamonds = (state.diamonds ?? 0) - 8;
     state.eggs.push(newEgg(sp.id, vi, 'lucky'));
     store.setJSON('mps_state', state);

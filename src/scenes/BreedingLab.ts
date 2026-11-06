@@ -344,7 +344,7 @@ export class BreedingLab extends Phaser.Scene {
     this._brewing = true;
     this._breedBtn.setAlpha(0.38);
     this.tweens.killTweensOf(this._breedBtn);
-    setButtonLabel(this._breedBtn, '✨ กำลังผสม...');
+    setButtonLabel(this._breedBtn, t('breed.breeding'));
 
     // Deduct cost upfront; refund half on failure
     Game.state!.coins -= breedCost;
@@ -422,7 +422,7 @@ export class BreedingLab extends Phaser.Scene {
         store.setJSON('mps_state', Game.state);
         sfx.buy();
         showFloat(this, cx, cy + 60, '+' + refund + ' 💰', '#AADDFF');
-        showToast(this, '💔 ผสมพันธุ์ไม่สำเร็จ (คืน ' + refund + ' 💰)', '#ff9999');
+        showToast(this, t('breed.fail', { n: refund }), '#ff9999');
       }
 
       this._selectedA = null; this._selectedB = null;
