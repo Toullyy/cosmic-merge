@@ -572,35 +572,60 @@ export class TitleScreen extends Phaser.Scene {
     drawBg(0x0D2E66, 0.85);
 
     // Poll until auth resolves (getRedirectResult is async, finishes after scene loads)
+    let unsubscribe: (() => void) | null = null;
     const setLinked = () => {
       lbl.setText(t('title.googleLinked'));
       lbl.setColor('#88FFCC');
       drawBg(0x0D4422, 0.70);
+      unsubscribe?.();
     };
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const setFailed = (code?: string | null) => {
+      if (code === 'auth/unauthorized-domain') {
+        lbl.setText(t('title.googleUnauthorized'));
+        lbl.setColor('#FF9999');
+        drawBg(0x5A1414, 0.85);
+        return;
+      }
+      lbl.setText(t('title.googleFail'));
+      lbl.setColor('#FF9999');
+      drawBg(0x0D2E66, 0.85);
+    };
+
+    unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user && !user.isAnonymous) {
         cloudStatus.uid = user.uid;
         cloudStatus.isAnonymous = false;
         cloudStatus.enabled = true;
         setLinked();
-        unsubscribe();
       }
     });
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => unsubscribe());
+    if (!cloudStatus.isAnonymous) setLinked();
+
+    // Boot may finish the redirect result after this scene is created — listen
+    // for the explicit success/failure event instead of relying on the initial
+    // auth-state snapshot alone.
+    const onLinkResult = (ev: Event) => {
+      const detail = (ev as CustomEvent<{ ok: boolean; code?: string | null }>).detail;
+      if (detail?.ok) setLinked(); else setFailed(detail?.code);
+    };
+    window.addEventListener('mps-auth-link', onLinkResult);
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      unsubscribe?.();
+      window.removeEventListener('mps-auth-link', onLinkResult);
+    });
 
     // Tap zone — depth 21 intercepts before the full-screen depth-20 tap
     const zone = this.add.zone(W / 2, BY, BW, BH).setDepth(22).setInteractive();
-    zone.on('pointerdown', () => {
+    zone.on('pointerdown', async () => {
       if (!cloudStatus.isAnonymous) return;
       lbl.setText(t('title.googleGoing'));
       lbl.setColor('#FFFFFF');
       drawBg(0x1144AA, 0.90);
-      // linkGoogleAccount redirects the page — no await needed
-      linkGoogleAccount().catch(() => {
-        lbl.setText(t('title.googleFail'));
-        lbl.setColor('#FF9999');
-        drawBg(0x0D2E66, 0.85);
-      });
+      const result = await linkGoogleAccount().catch(() => 'failed' as const);
+      if (result === 'linked') setLinked();
+      else if (result === 'failed') setFailed(cloudStatus.lastLinkErrorCode);
+      // 'redirecting' leaves the "going" label while the page navigates away.
     });
   }
 

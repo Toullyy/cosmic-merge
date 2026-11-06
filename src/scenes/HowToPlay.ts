@@ -269,12 +269,23 @@ export class HowToPlay extends Phaser.Scene {
       this._contentGroup.add(linkStatusTxt);
 
       const btn = makeButton(this, cx, titleY + 240, 280, 52,
-        t('title.linkGoogle'), 0x1a4488, () => {
+        t('title.linkGoogle'), 0x1a4488, async () => {
+          linkStatusTxt.setColor('#88ffcc');
           linkStatusTxt.setText(t('title.googleGoing'));
-          // linkGoogleAccount redirects the page away — no result to await
-          linkGoogleAccount().catch(() => {
-            linkStatusTxt.setText(t('howto.account.googleFail'));
-          });
+          const result = await linkGoogleAccount().catch(() => 'failed' as const);
+          if (result === 'linked') {
+            linkStatusTxt.setText(t('howto.account.linkedActive'));
+            setButtonLabel(btn, t('howto.account.linkedActive'));
+            setButtonColor(btn, 0x0d4422);
+            btn.disableInteractive();
+          } else if (result === 'failed') {
+            linkStatusTxt.setColor('#ff9999');
+            linkStatusTxt.setText(
+              cloudStatus.lastLinkErrorCode === 'auth/unauthorized-domain'
+                ? t('title.googleUnauthorized')
+                : t('howto.account.googleFail'),
+            );
+          }
         }, 16).setDepth(4);
       this._contentGroup.add(btn);
     } else {

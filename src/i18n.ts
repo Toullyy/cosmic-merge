@@ -269,6 +269,7 @@ const D: Record<Lang, Record<string, string>> = {
     'title.googleLinked': '✅ Google synced',
     'title.googleGoing':  '↗ Going to Google...',
     'title.googleFail':   '❌ Failed, try again',
+    'title.googleUnauthorized': '❌ Domain not authorized',
     // Daily login / spin
     'daily.loginTitle':   '🎁  Daily Login Reward',
     'daily.streakDays':   'Streak  {n}  days',
@@ -570,6 +571,7 @@ const D: Record<Lang, Record<string, string>> = {
     'title.googleLinked': '✅ Google ซิงค์แล้ว',
     'title.googleGoing':  '↗ กำลังไป Google...',
     'title.googleFail':   '❌ ไม่สำเร็จ ลองอีกครั้ง',
+    'title.googleUnauthorized': '❌ โดเมนนี้ยังไม่ได้รับอนุญาต',
     // Daily login / spin
     'daily.loginTitle':   '🎁  รางวัลเข้าสู่ระบบประจำวัน',
     'daily.streakDays':   'ต่อเนื่อง  {n}  วัน',
