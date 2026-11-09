@@ -1,5 +1,5 @@
 ﻿import Phaser from 'phaser';
-import { Game, FONT, store, sfx, getNewAchievements, recordQuestProgress, localDateKey, checkAndApplyShopLevelUp, calcShopLevel } from '../utils';
+import { Game, FONT, store, sfx, getNewAchievements, recordQuestProgress, localDateKey, checkAndApplyShopLevelUp, calcShopLevel, applySellSideEffects } from '../utils';
 import { SPECIES, HABITATS, TANK_COST, TANK_CAPACITY, MAX_TANKS, getLevelName, AD_COINS_REWARD, AD_COOLDOWN_MS, checkAndUpdateVisitor, VISITOR_DURATION_MS, TRAITS, ACHIEVEMENTS, DAILY_REWARDS, ensureQuestsFresh, calcSellPrice } from '../data';
 import { t, currentLang, setLang } from '../i18n';
 import type { Achievement } from '../data';
@@ -411,6 +411,8 @@ export class Hub extends Phaser.Scene {
 
   private _updateShopBadge() {
     const shopLv = calcShopLevel(Game.state!.stats.sold);
+    if (shopLv === this._lastShownShopLv) return;
+    this._lastShownShopLv = shopLv;
     const isMilestone = shopLv % 5 === 0;
     this._shopLvBg.clear();
     this._shopLvBg.fillStyle(isMilestone ? 0xFFAA00 : 0x5522AA, 1);
@@ -1456,7 +1458,7 @@ export class Hub extends Phaser.Scene {
     const btnZone = this.add.zone(cx, btnY + 23, 240, 46).setInteractive();
     btnZone.on('pointerover',  () => { btnG.clear(); btnG.fillStyle(0x6622EE, 1); btnG.fillRoundedRect(cx - 120, btnY, 240, 46, 23); btnG.lineStyle(2, 0xCC88FF, 1); btnG.strokeRoundedRect(cx - 120, btnY, 240, 46, 23); });
     btnZone.on('pointerout',   () => { btnG.clear(); btnG.fillStyle(0x4411BB, 1); btnG.fillRoundedRect(cx - 120, btnY, 240, 46, 23); btnG.lineStyle(2, 0xAA66FF, 1); btnG.strokeRoundedRect(cx - 120, btnY, 240, 46, 23); });
-    btnZone.on('pointerdown',  () => { popup.destroy(); this._showDailyAdBadge(reward); });
+    btnZone.on('pointerdown',  () => { popup.destroy(); if (!isReview) this._showDailyAdBadge(reward); });
     popup.add(btnZone);
 
     // x2 ad button
@@ -1566,18 +1568,9 @@ export class Hub extends Phaser.Scene {
         state.stats.sold++;
         state.stats.totalEarned += price;
         state.stats.visitorSales = (state.stats.visitorSales ?? 0) + 1;
-        if (!state.habitatMilestones) state.habitatMilestones = { dirt: 0, grass: 0, aquatic: 0 };
-        state.habitatMilestones[mon.habitatType]++;
-        const milestoneCount = state.habitatMilestones[mon.habitatType];
-        if (milestoneCount === 5 || milestoneCount === 10 || milestoneCount === 20) {
-          const pct = milestoneCount >= 20 ? 30 : milestoneCount >= 10 ? 20 : 10;
-          showToast(this, '🏅 ' + t('toast.habitatBonus', { pct }), '#FFD700');
-        }
-        if (!state.speciesSold) state.speciesSold = {};
-        state.speciesSold[mon.speciesId] = (state.speciesSold[mon.speciesId] ?? 0) + 1;
-        if (state.speciesSold[mon.speciesId] === 3) {
-          showToast(this, '🏆 ' + t('toast.speciesMaster', { name: SPECIES[mon.speciesId].name }), '#FFDD44');
-        }
+        const { milestonePct, mastered } = applySellSideEffects(state, mon.habitatType, mon.speciesId);
+        if (milestonePct) showToast(this, '🏅 ' + t('toast.habitatBonus', { pct: milestonePct }), '#FFD700');
+        if (mastered)     showToast(this, '🏆 ' + t('toast.speciesMaster', { name: SPECIES[mon.speciesId].name }), '#FFDD44');
         recordQuestProgress('sell');
         checkAndApplyShopLevelUp(state);
         state.visitorSpeciesId = undefined;
@@ -1888,13 +1881,12 @@ export class Hub extends Phaser.Scene {
     }
     if (this._dexDot) this._updateDexDot(W / 2, 100, btnY, bh, hasNew);
     this._updateShopBadge();
-    // Show level-up modal if a sell triggered one (may come from HabitatRoom)
+    // Show level-up modal if a visitor sell triggered one (HabitatRoom clears this flag and handles inline)
     const pendingLv = Game.state!.pendingShopLvPopup;
     if (pendingLv) {
       Game.state!.pendingShopLvPopup = undefined;
       store.setJSON('mps_state', Game.state);
-      const lv = pendingLv;
-      this.time.delayedCall(300, () => this._showShopLevelUpPopup(lv));
+      this.time.delayedCall(300, () => this._showShopLevelUpPopup(pendingLv.level, pendingLv.coins, pendingLv.diamonds, pendingLv.crystals));
     }
     this._updateQuestBtn();
     this._updateVisitorBanner();
@@ -2433,12 +2425,9 @@ export class Hub extends Phaser.Scene {
     }
   }
 
-  private _showShopLevelUpPopup(newLevel: number) {
+  private _showShopLevelUpPopup(newLevel: number, coins: number, diamonds: number, crystals: number) {
     const W = this.scale.width, H = this.scale.height;
     const isMilestone = newLevel % 5 === 0;
-    const coins = newLevel * 30;
-    const diamonds = newLevel % 5 === 0 ? 2 : 0;
-    const crystals = newLevel % 10 === 0 ? 1 : 0;
 
     const popup = this.add.container(0, 0).setDepth(58);
     const overlay = this.add.graphics();

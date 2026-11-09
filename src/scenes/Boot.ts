@@ -90,6 +90,9 @@ export class Boot extends Phaser.Scene {
       // Retroactive: existing players just sync level, no reward
       if (Game.state.shopLevel === undefined)
         Game.state.shopLevel = calcShopLevel(Game.state.stats.sold);
+      // Clear old number-format pendingShopLvPopup from pre-migration saves
+      if (typeof Game.state.pendingShopLvPopup === 'number')
+        Game.state.pendingShopLvPopup = undefined;
       // monsters: init evolved flag
       Game.state.monsters.forEach(m => {
         if (m.evolved === undefined) m.evolved = false;

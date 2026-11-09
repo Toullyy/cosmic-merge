@@ -1,5 +1,5 @@
 ﻿import Phaser from 'phaser';
-import { Game, FONT, store, sfx, recordQuestProgress, reconcileOfflineTime, checkAndApplyShopLevelUp } from '../utils';
+import { Game, FONT, store, sfx, recordQuestProgress, reconcileOfflineTime, checkAndApplyShopLevelUp, applySellSideEffects } from '../utils';
 import { t } from '../i18n';
 import { SPECIES, HABITATS, FOOD_TYPES, TOY_TYPES, CLEAN_TOOLS, XP_TABLE, getLevelName, randomBuyer, randomListingDuration, TRAITS, BOWL_EAT_RATE, DECAY, getDecayMult, DECORATIONS, calcSellPrice, calcSellBreakdown, FREE_CARE_COOLDOWN_MS } from '../data';
 import { makeMonsterTexture, getVariantModifiers, lighten, darken } from '../MonsterRenderer';
@@ -2147,39 +2147,28 @@ export class HabitatRoom extends Phaser.Scene {
       state.listings = state.listings.filter(l => l.id !== listing.id);
       state.stats.sold++;
       state.stats.totalEarned += price;
-      // habitat milestone tracking
-      const hab = this._monster.habitatType as 'dirt' | 'grass' | 'aquatic';
-      if (!state.habitatMilestones) state.habitatMilestones = { dirt: 0, grass: 0, aquatic: 0 };
-      state.habitatMilestones[hab]++;
-      const milestoneCount = state.habitatMilestones[hab];
-      if (milestoneCount === 5 || milestoneCount === 10 || milestoneCount === 20) {
-        const pct = milestoneCount >= 20 ? 30 : milestoneCount >= 10 ? 20 : 10;
-        showToast(this, '🏅 ' + t('toast.habitatBonus', { pct }), '#FFD700');
-      }
-      // species mastery tracking
-      if (!state.speciesSold) state.speciesSold = {};
-      const sid = this._monster.speciesId;
-      state.speciesSold[sid] = (state.speciesSold[sid] ?? 0) + 1;
-      if (state.speciesSold[sid] === 3) {
-        showToast(this, '🏆 ' + t('toast.speciesMaster', { name: this._sp.name }), '#FFDD44');
-      }
+      const { milestonePct, mastered } = applySellSideEffects(state, this._monster.habitatType, this._monster.speciesId);
+      if (milestonePct) showToast(this, '🏅 ' + t('toast.habitatBonus', { pct: milestonePct }), '#FFD700');
+      if (mastered)     showToast(this, '🏆 ' + t('toast.speciesMaster', { name: this._sp.name }), '#FFDD44');
       recordQuestProgress('sell');
       const lvUp = checkAndApplyShopLevelUp(state);
+      // HabitatRoom shows level-up inline; clear the flag so Hub won't double-show the modal
+      if (lvUp) state.pendingShopLvPopup = undefined;
       store.setJSON('mps_state', state);
       sfx.sell();
       this._spawnParticles(W/2, H/2 - 80, 0xFFD700, 26);
       showFloat(this, W/2, H/2 - 120, '+' + price + ' 💰', '#ffd700');
       if (lvUp) {
         const hasExtra = lvUp.diamondsAwarded > 0 || lvUp.moonCrystalsAwarded > 0;
-        const rewardKey = hasExtra ? 'shopLv.rewardDiam' : 'shopLv.reward';
         showToast(this, t('shopLv.levelUp', { n: lvUp.newLevel }), '#FFD700');
+        // Crystal float fires first (at t+0) so it's visible before the 950ms scene transition
+        if (lvUp.moonCrystalsAwarded) showFloat(this, W/2, H/2 - 100, t('shopLv.rewardCrystal'), '#CCAAFF');
         this.time.delayedCall(300, () =>
           showFloat(this, W/2, H/2 - 60,
             hasExtra
               ? t('shopLv.rewardDiam', { coins: lvUp.coinsAwarded, d: lvUp.diamondsAwarded })
-              : t(rewardKey, { coins: lvUp.coinsAwarded }),
+              : t('shopLv.reward', { coins: lvUp.coinsAwarded }),
             '#FFD700'));
-        if (lvUp.moonCrystalsAwarded) this.time.delayedCall(600, () => showFloat(this, W/2, H/2 - 100, t('shopLv.rewardCrystal'), '#CCAAFF'));
       }
       this.time.delayedCall(950, () => this.scene.start('Hub'));
     };

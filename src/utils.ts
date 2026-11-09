@@ -1,4 +1,4 @@
-import type { GameState, Quest } from './types';
+import type { GameState, Quest, HabitatType } from './types';
 import { ACHIEVEMENTS, DECAY, BOWL_EAT_RATE, TRAITS, getDecayMult } from './data';
 import type { Achievement } from './data';
 import { scheduleSaveToCloud } from './cloudSync';
@@ -128,8 +128,28 @@ export function checkAndApplyShopLevelUp(state: GameState): ShopLevelUpResult | 
   state.coins += coins;
   if (diamonds)  state.diamonds      = (state.diamonds      ?? 0) + diamonds;
   if (crystals)  state.moonCrystals  = (state.moonCrystals  ?? 0) + crystals;
-  state.pendingShopLvPopup = newLv;
+  state.pendingShopLvPopup = { level: newLv, coins, diamonds, crystals };
   return { newLevel: newLv, coinsAwarded: coins, diamondsAwarded: diamonds, moonCrystalsAwarded: crystals };
+}
+
+export interface SellSideEffectsResult {
+  milestonePct?: number;
+  mastered?: boolean;
+}
+
+export function applySellSideEffects(state: GameState, habitatType: HabitatType, speciesId: number): SellSideEffectsResult {
+  if (!state.habitatMilestones) state.habitatMilestones = { dirt: 0, grass: 0, aquatic: 0 };
+  state.habitatMilestones[habitatType]++;
+  const mc = state.habitatMilestones[habitatType];
+  const milestonePct = (mc === 5 || mc === 10 || mc === 20)
+    ? (mc >= 20 ? 30 : mc >= 10 ? 20 : 10)
+    : undefined;
+
+  if (!state.speciesSold) state.speciesSold = {};
+  state.speciesSold[speciesId] = (state.speciesSold[speciesId] ?? 0) + 1;
+  const mastered = state.speciesSold[speciesId] === 3;
+
+  return { milestonePct, mastered };
 }
 
 export function getNewAchievements(state: GameState): Achievement[] {

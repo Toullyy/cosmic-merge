@@ -129,7 +129,7 @@ export interface GameState {
   weeklyQuests?: Quest[];
   weeklyQuestResetAt?: number;
   shopLevel?: number;
-  pendingShopLvPopup?: number;
+  pendingShopLvPopup?: { level: number; coins: number; diamonds: number; crystals: number };
 }
 
 export interface PublicMonster {
