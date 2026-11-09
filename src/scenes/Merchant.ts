@@ -37,7 +37,8 @@ export class Merchant extends Phaser.Scene {
       fontFamily: FONT, fontSize: '13px', color: '#9988BB', align: 'center',
     }).setOrigin(0.5).setDepth(5);
 
-    this._filter = 'dirt';
+    const _sceneData = this.scene.settings.data as { launchHatchEggId?: string; openTab?: string } | undefined;
+    this._filter = _sceneData?.openTab ?? 'dirt';
     this._filterGroup = this.add.group();
     this._buildFilterTabs(W);
     this._gridGroup = this.add.group();
@@ -587,7 +588,7 @@ export class Merchant extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(4));
 
     const items = [
-      { btnKey: 'gems.btn.hatch', descKey: 'gems.desc.hatch', cost: 5, icon: '⚡', action: () => this._gemHatch() },
+      { btnKey: 'gems.btn.hatch', descKey: 'gems.desc.hatch', cost: 2, icon: '⚡', action: () => this._gemHatch() },
       { btnKey: 'gems.btn.boost', descKey: 'gems.desc.boost', cost: 3, icon: '💊', action: () => this._gemBoost() },
       { btnKey: 'gems.btn.reroll', descKey: 'gems.desc.reroll', cost: 2, icon: '🔄', action: () => this._gemReroll() },
       { btnKey: 'gems.btn.lucky', descKey: 'gems.desc.lucky', cost: 8, icon: '🌟', action: () => this._gemLuckyEgg() },

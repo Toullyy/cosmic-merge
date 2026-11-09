@@ -1189,6 +1189,28 @@ export class HabitatRoom extends Phaser.Scene {
       stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5).setDepth(20);
 
+    // Mastery progress: X/3 → +15% sell bonus for this species
+    const masteryNextPct = masteryCount >= 3 ? '+15%' : (masteryCount >= 0 ? '+15%' : '');
+    this.add.text(W - 72, 92,
+      masteryCount < 3
+        ? `🏆 ${masteryCount}/3 ${t('label.mastery')} → +15%`
+        : `🏆 +15% ${t('label.mastery')}`, {
+      fontFamily: FONT, fontSize: '11px', color: masteryCount >= 3 ? '#FFD700' : '#FFCC66',
+      stroke: '#000000', strokeThickness: 2,
+    }).setOrigin(0.5).setDepth(20);
+
+    // Habitat milestone progress
+    const nextMilestone = milestoneCount < 5 ? 5 : milestoneCount < 10 ? 10 : milestoneCount < 20 ? 20 : 0;
+    const curMilestonePct = milestoneCount >= 20 ? 30 : milestoneCount >= 10 ? 20 : milestoneCount >= 5 ? 10 : 0;
+    const nextMilestonePct = nextMilestone > 0 ? (curMilestonePct + 10) : 30;
+    this.add.text(W - 72, 107,
+      nextMilestone > 0
+        ? `🏅 ${milestoneCount}/${nextMilestone} ${t('label.habitatBonus')} → +${nextMilestonePct}%`
+        : `🏅 +30% ${t('label.habitatBonus')}`, {
+      fontFamily: FONT, fontSize: '11px', color: milestoneCount >= 5 ? '#66CCFF' : '#AADDFF',
+      stroke: '#000000', strokeThickness: 2,
+    }).setOrigin(0.5).setDepth(20);
+
     this._coinTxt = this.add.text(56, 70, '💰 ' + Game.state!.coins, {
       fontFamily: FONT, fontSize: '13px', color: '#FFD700',
       stroke: '#000000', strokeThickness: 2,

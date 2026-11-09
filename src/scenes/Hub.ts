@@ -26,7 +26,7 @@ export class Hub extends Phaser.Scene {
   private _unlockPopupActive = false;
   private _eggTimer: Phaser.Time.TimerEvent | null = null;
   private _displayGroup!: Phaser.GameObjects.Group;
-  private _tabBtns: Record<string, { bg: Phaser.GameObjects.Graphics; txt: Phaser.GameObjects.Text }> = {};
+  private _tabBtns: Record<string, { bg: Phaser.GameObjects.Graphics; txt: Phaser.GameObjects.Text; milTxt: Phaser.GameObjects.Text }> = {};
   private _coinTxt!: Phaser.GameObjects.Text;
   private _bgGraphics!: Phaser.GameObjects.Graphics;
   private _bobTweens: Phaser.Tweens.Tween[] = [];
@@ -45,6 +45,7 @@ export class Hub extends Phaser.Scene {
   private _bloomTimers: Phaser.Time.TimerEvent[] = [];
   private _bannerTweens: Phaser.Tweens.Tween[] = [];
   private _hatchPrompted = new Set<string>();
+  private _featuredAnnouncedId = -1;
   private _shopLvBg!: Phaser.GameObjects.Graphics;
   private _shopLvTxt!: Phaser.GameObjects.Text;
   private _lastShownShopLv = 0;
@@ -363,8 +364,14 @@ export class Hub extends Phaser.Scene {
       stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0.5, 0.5).setDepth(11);
 
+    // Tap diamond box → open Merchant gems tab
+    this.add.zone(242, 34, 120, 52).setDepth(14).setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => {
+        Ads.maybeInterstitial(() => this.scene.start('Merchant', { openTab: 'gems' }));
+      });
+
     // Free-coins ad button (sits between diamond box and sound icon)
-    this._adBtn = makeButton(this, 370, 34, 108, 40, this._adBtnLabel(), 0x1EA040, () => {
+    this._adBtn = makeButton(this, 362, 34, 96, 40, this._adBtnLabel(), 0x1EA040, () => {
       this._handleAdCoins();
     }, 12).setDepth(11);
     this.time.addEvent({
@@ -551,11 +558,14 @@ export class Hub extends Phaser.Scene {
       const tabBg = this.add.graphics().setDepth(5);
       this._drawTab(tabBg, x, 122, tabW, 60, isActive, unlocked, type);
       const lbl = unlocked ? labels[type] : (labels[type] + ' 🔒');
-      const tabTxt = this.add.text(x + tabW/2, 148, lbl, {
+      const tabTxt = this.add.text(x + tabW/2, unlocked ? 141 : 148, lbl, {
         fontFamily: FONT, fontSize: '17px', fontStyle: isActive ? 'bold' : 'normal',
         color: isActive ? '#FFFFFF' : (unlocked ? '#E8D8C8' : '#BBAA99'),
       }).setOrigin(0.5).setDepth(6);
-      this._tabBtns[type] = { bg: tabBg, txt: tabTxt };
+      const milTxt = this.add.text(x + tabW/2, 165, '', {
+        fontFamily: FONT, fontSize: '11px', color: '#FFD700', align: 'center',
+      }).setOrigin(0.5).setDepth(6);
+      this._tabBtns[type] = { bg: tabBg, txt: tabTxt, milTxt };
       const zone = this.add.zone(x + tabW/2, 152, tabW - 4, 56).setInteractive().setDepth(7);
       zone.on('pointerdown', () => {
         if (!Game.state!.habitats[type].unlocked) { this._tryUnlockHabitat(type); return; }
@@ -628,15 +638,23 @@ export class Hub extends Phaser.Scene {
       this._drawTab(btn.bg, x, 122, tabW, 60, isActive, unlocked, type);
       if (!unlocked) {
         const cost = HABITATS[type].unlockCost;
+        btn.txt.setY(148);
         btn.txt.setStyle({ fontSize: '13px', color: '#A09088', fontStyle: 'normal', align: 'center' });
         btn.txt.setText(labels[type] + '\n🔒 ' + cost + ' 🪙');
+        btn.milTxt.setText('');
       } else {
+        const mCount = (Game.state!.habitatMilestones?.[type as 'dirt' | 'grass' | 'aquatic'] ?? 0);
+        const nextThresh = mCount < 5 ? 5 : mCount < 10 ? 10 : mCount < 20 ? 20 : 0;
+        btn.txt.setY(141);
         btn.txt.setStyle({
           fontSize: '17px',
           color: isActive ? '#FFFFFF' : '#E8D8C8',
           fontStyle: isActive ? 'bold' : 'normal',
         });
         btn.txt.setText(labels[type]);
+        const milLabel = nextThresh > 0 ? (mCount + '/' + nextThresh + ' ⭐') : '+30% ⭐⭐';
+        btn.milTxt.setText(milLabel);
+        btn.milTxt.setColor(isActive ? '#FFD700' : '#CCBB88');
       }
     });
   }
@@ -937,82 +955,131 @@ export class Hub extends Phaser.Scene {
     this._visitorBanner.removeAll(true);
     const state = Game.state!;
     const W = this.scale.width;
+    const H = this.scale.height;
     const now = Date.now();
 
     const isRushHour = !!(state.rushHourUntil && now < state.rushHourUntil);
+    const hasVisitor = !!(state.visitorSpeciesId && state.visitorExpiresAt && now < state.visitorExpiresAt);
+    const isBannerActive = hasVisitor || isRushHour;
 
-    if (state.visitorSpeciesId && state.visitorExpiresAt && now < state.visitorExpiresAt) {
-      // ── Visitor banner (with optional Rush Hour highlight) ──────────────────
-      const sp = SPECIES[state.visitorSpeciesId];
-      const remaining = Math.max(0, state.visitorExpiresAt - now);
-      const mins = Math.ceil(remaining / 60000);
-      const hasMon = state.monsters.some(m => m.speciesId === state.visitorSpeciesId);
-      const totalMult = this._effectiveVisitorMult(state);
-
-      const bg = this.add.graphics();
-      if (isRushHour) {
-        bg.fillStyle(0x7A1500, 0.97);
-        bg.fillRoundedRect(8, 0, W - 16, 32, 10);
-        bg.lineStyle(2, 0xFF6600, 1);
-        bg.strokeRoundedRect(8, 0, W - 16, 32, 10);
-      } else {
-        bg.fillStyle(0x5A3800, 0.95);
-        bg.fillRoundedRect(8, 0, W - 16, 32, 10);
-        bg.lineStyle(2, 0xFFCC00, 0.9);
-        bg.strokeRoundedRect(8, 0, W - 16, 32, 10);
-      }
-      this._visitorBanner.add(bg);
-
-      const prefix = isRushHour ? '⚡ Rush Hour! ' : '';
-      const bannerMsg = prefix + t('visitor.banner', { name: sp.name, mult: totalMult, mins })
-        + (hasMon ? '' : ' ' + t('visitor.bannerNone'));
-      this._visitorBanner.add(this.add.text(W / 2, 16, bannerMsg, {
-        fontFamily: FONT, fontSize: '13px', color: isRushHour ? '#FF9944' : (hasMon ? '#FFE066' : '#BB9944'), fontStyle: 'bold',
-      }).setOrigin(0.5));
-
-      if (isRushHour) {
-        const pulse = this.add.graphics();
-        pulse.lineStyle(2, 0xFF4400, 0.6);
-        pulse.strokeRoundedRect(8, 0, W - 16, 32, 10);
-        this._visitorBanner.add(pulse);
-        this._bannerTweens.push(this.tweens.add({ targets: pulse, alpha: 0.1, duration: 500, ease: 'Sine.InOut', yoyo: true, repeat: -1 }));
-      }
-
-      const zone = this.add.zone(W / 2, 16, W - 16, 32).setInteractive();
-      zone.on('pointerdown', () => this._showVisitorPopup());
-      this._visitorBanner.add(zone);
-      return;
-    }
-
-    // ── Standalone Rush Hour banner (no visitor yet) ────────────────────────
-    if (isRushHour) {
-      const rushMinsLeft = Math.ceil(((state.rushHourUntil ?? 0) - now) / 60000);
-      const bg = this.add.graphics();
-      bg.fillStyle(0x7A1500, 0.97);
-      bg.fillRoundedRect(8, 0, W - 16, 32, 10);
-      bg.lineStyle(2, 0xFF6600, 1);
-      bg.strokeRoundedRect(8, 0, W - 16, 32, 10);
-      this._visitorBanner.add(bg);
-      this._visitorBanner.add(this.add.text(W / 2, 16, t('visitor.rushHourBanner', { mins: rushMinsLeft }), {
-        fontFamily: FONT, fontSize: '13px', color: '#FF9944', fontStyle: 'bold',
-      }).setOrigin(0.5));
-      const pulse = this.add.graphics();
-      pulse.lineStyle(2, 0xFF4400, 0.6);
-      pulse.strokeRoundedRect(8, 0, W - 16, 32, 10);
-      this._visitorBanner.add(pulse);
-      this._bannerTweens.push(this.tweens.add({ targets: pulse, alpha: 0.1, duration: 500, ease: 'Sine.InOut', yoyo: true, repeat: -1 }));
-      const zone = this.add.zone(W / 2, 16, W - 16, 32).setInteractive();
-      zone.on('pointerdown', () => this._showVisitorPopup());
-      this._visitorBanner.add(zone);
-      return;
-    }
-
-    // ── Quest chip (shown when no visitor) ────────────────────────────────────
+    // Pre-compute quest state so we can stack them when a banner is active
     const quests = state.quests ?? [];
     const weekly = state.weeklyQuests ?? [];
     const unclaimed = [...quests, ...weekly].filter(q => q.completed && !q.claimed);
     const active = quests.find(q => !q.completed) ?? weekly.find(q => !q.completed);
+    const activeIsWeekly = !quests.find(q => !q.completed) && !!weekly.find(q => !q.completed);
+    const hasQuestContent = unclaimed.length > 0 || !!active;
 
+    // When banner + quest both active: raise container to make room for mini quest row
+    const stacking = isBannerActive && hasQuestContent;
+    this._visitorBanner.setY(stacking ? H - 168 : H - 160);
+
+    if (isBannerActive) {
+      // ── Mini quest row (shown above visitor/rush banner when stacking) ───────
+      if (stacking) {
+        const mH = 28;
+        const mqBg = this.add.graphics();
+        if (unclaimed.length > 0) {
+          mqBg.fillStyle(0x0A2808, 0.92);
+          mqBg.fillRoundedRect(8, 0, W - 16, mH, 8);
+          mqBg.lineStyle(1.5, 0x44CC22, 0.75);
+          mqBg.strokeRoundedRect(8, 0, W - 16, mH, 8);
+          this._visitorBanner.add(mqBg);
+          this._visitorBanner.add(this.add.text(W / 2, mH / 2, '✅ ' + t('quest.chipClaim', { n: unclaimed.length, s: unclaimed.length > 1 ? 's' : '' }), {
+            fontFamily: FONT, fontSize: '12px', color: '#88FF66', fontStyle: 'bold',
+          }).setOrigin(0.5));
+        } else if (active) {
+          const prog = Math.min(active.progress, active.target);
+          const pct = prog / active.target;
+          mqBg.fillStyle(0x0A0618, 0.92);
+          mqBg.fillRoundedRect(8, 0, W - 16, mH, 8);
+          mqBg.lineStyle(1.5, 0x7755BB, 0.75);
+          mqBg.strokeRoundedRect(8, 0, W - 16, mH, 8);
+          this._visitorBanner.add(mqBg);
+          const barG = this.add.graphics();
+          const barX = 14, barY = mH - 7, barW = W - 100, barH = 4;
+          barG.fillStyle(0x1A0D30, 1); barG.fillRoundedRect(barX, barY, barW, barH, 2);
+          barG.fillStyle(0xAA88FF, 1); barG.fillRoundedRect(barX, barY, Math.max(5, barW * pct), barH, 2);
+          this._visitorBanner.add(barG);
+          this._visitorBanner.add(this.add.text(14, mH / 2 - 1, '🎯 ' + active.label, {
+            fontFamily: FONT, fontSize: '11px', color: '#CCB8FF',
+          }).setOrigin(0, 0.5));
+          this._visitorBanner.add(this.add.text(W - 20, mH / 2, '+' + active.coinReward + '💰 ›', {
+            fontFamily: FONT, fontSize: '11px', color: '#FFD700',
+          }).setOrigin(1, 0.5));
+        }
+        const mqZone = this.add.zone(W / 2, mH / 2, W - 16, mH).setInteractive();
+        mqZone.on('pointerdown', () => this._showQuestsPanel());
+        this._visitorBanner.add(mqZone);
+      }
+
+      // ── Visitor / Rush Hour banner ─────────────────────────────────────────
+      const yOff = stacking ? 32 : 0;
+
+      if (hasVisitor) {
+        const sp = SPECIES[state.visitorSpeciesId!];
+        const remaining = Math.max(0, state.visitorExpiresAt! - now);
+        const mins = Math.ceil(remaining / 60000);
+        const hasMon = state.monsters.some(m => m.speciesId === state.visitorSpeciesId);
+        const totalMult = this._effectiveVisitorMult(state);
+
+        const bg = this.add.graphics();
+        if (isRushHour) {
+          bg.fillStyle(0x7A1500, 0.97);
+          bg.fillRoundedRect(8, yOff, W - 16, 32, 10);
+          bg.lineStyle(2, 0xFF6600, 1);
+          bg.strokeRoundedRect(8, yOff, W - 16, 32, 10);
+        } else {
+          bg.fillStyle(0x5A3800, 0.95);
+          bg.fillRoundedRect(8, yOff, W - 16, 32, 10);
+          bg.lineStyle(2, 0xFFCC00, 0.9);
+          bg.strokeRoundedRect(8, yOff, W - 16, 32, 10);
+        }
+        this._visitorBanner.add(bg);
+
+        const prefix = isRushHour ? '⚡ Rush Hour! ' : '';
+        const bannerMsg = prefix + t('visitor.banner', { name: sp.name, mult: totalMult, mins })
+          + (hasMon ? '' : ' ' + t('visitor.bannerNone'));
+        this._visitorBanner.add(this.add.text(W / 2, yOff + 16, bannerMsg, {
+          fontFamily: FONT, fontSize: '13px', color: isRushHour ? '#FF9944' : (hasMon ? '#FFE066' : '#BB9944'), fontStyle: 'bold',
+        }).setOrigin(0.5));
+
+        if (isRushHour) {
+          const pulse = this.add.graphics();
+          pulse.lineStyle(2, 0xFF4400, 0.6);
+          pulse.strokeRoundedRect(8, yOff, W - 16, 32, 10);
+          this._visitorBanner.add(pulse);
+          this._bannerTweens.push(this.tweens.add({ targets: pulse, alpha: 0.1, duration: 500, ease: 'Sine.InOut', yoyo: true, repeat: -1 }));
+        }
+
+        const zone = this.add.zone(W / 2, yOff + 16, W - 16, 32).setInteractive();
+        zone.on('pointerdown', () => this._showVisitorPopup());
+        this._visitorBanner.add(zone);
+      } else {
+        // Standalone Rush Hour (no visitor yet)
+        const rushMinsLeft = Math.ceil(((state.rushHourUntil ?? 0) - now) / 60000);
+        const bg = this.add.graphics();
+        bg.fillStyle(0x7A1500, 0.97);
+        bg.fillRoundedRect(8, yOff, W - 16, 32, 10);
+        bg.lineStyle(2, 0xFF6600, 1);
+        bg.strokeRoundedRect(8, yOff, W - 16, 32, 10);
+        this._visitorBanner.add(bg);
+        this._visitorBanner.add(this.add.text(W / 2, yOff + 16, t('visitor.rushHourBanner', { mins: rushMinsLeft }), {
+          fontFamily: FONT, fontSize: '13px', color: '#FF9944', fontStyle: 'bold',
+        }).setOrigin(0.5));
+        const pulse = this.add.graphics();
+        pulse.lineStyle(2, 0xFF4400, 0.6);
+        pulse.strokeRoundedRect(8, yOff, W - 16, 32, 10);
+        this._visitorBanner.add(pulse);
+        this._bannerTweens.push(this.tweens.add({ targets: pulse, alpha: 0.1, duration: 500, ease: 'Sine.InOut', yoyo: true, repeat: -1 }));
+        const zone = this.add.zone(W / 2, yOff + 16, W - 16, 32).setInteractive();
+        zone.on('pointerdown', () => this._showVisitorPopup());
+        this._visitorBanner.add(zone);
+      }
+      return;
+    }
+
+    // ── Quest chip (shown when no visitor/rush hour) ───────────────────────────
     if (unclaimed.length > 0) {
       const bg = this.add.graphics();
       bg.fillStyle(0x1A4010, 0.95);
@@ -1029,9 +1096,9 @@ export class Hub extends Phaser.Scene {
     } else if (active) {
       const chipH = 44;
       const bg = this.add.graphics();
-      bg.fillStyle(0x0E0620, 0.94);
+      bg.fillStyle(activeIsWeekly ? 0x120828 : 0x0E0620, 0.94);
       bg.fillRoundedRect(8, 0, W - 16, chipH, 10);
-      bg.lineStyle(1.5, 0x7755BB, 0.80);
+      bg.lineStyle(1.5, activeIsWeekly ? 0xCC88FF : 0x7755BB, 0.80);
       bg.strokeRoundedRect(8, 0, W - 16, chipH, 10);
       this._visitorBanner.add(bg);
 
@@ -1039,18 +1106,22 @@ export class Hub extends Phaser.Scene {
       const pct = prog / active.target;
       const barX = 14, barY = chipH - 10, barW = W - 100, barH = 5;
       const barG = this.add.graphics();
-      barG.fillStyle(0x2A1650, 1); barG.fillRoundedRect(barX, barY, barW, barH, 2.5);
-      barG.fillStyle(0xBB99FF, 1); barG.fillRoundedRect(barX, barY, Math.max(6, barW * pct), barH, 2.5);
+      barG.fillStyle(activeIsWeekly ? 0x3A1660 : 0x2A1650, 1); barG.fillRoundedRect(barX, barY, barW, barH, 2.5);
+      barG.fillStyle(activeIsWeekly ? 0xEEAAFF : 0xBB99FF, 1); barG.fillRoundedRect(barX, barY, Math.max(6, barW * pct), barH, 2.5);
       this._visitorBanner.add(barG);
 
-      this._visitorBanner.add(this.add.text(14, chipH / 2 - 6, '🎯 ' + active.label, {
-        fontFamily: FONT, fontSize: '12px', color: '#DDD0FF', fontStyle: 'bold',
+      this._visitorBanner.add(this.add.text(14, chipH / 2 - 6, (activeIsWeekly ? '📅' : '🎯') + ' ' + active.label, {
+        fontFamily: FONT, fontSize: '12px', color: activeIsWeekly ? '#FFCCFF' : '#DDD0FF', fontStyle: 'bold',
       }).setOrigin(0, 0.5));
       this._visitorBanner.add(this.add.text(14, chipH / 2 + 8, prog + ' / ' + active.target, {
-        fontFamily: FONT, fontSize: '11px', color: '#AA99DD',
+        fontFamily: FONT, fontSize: '11px', color: activeIsWeekly ? '#CC99EE' : '#AA99DD',
       }).setOrigin(0, 0.5));
-      this._visitorBanner.add(this.add.text(W - 22, chipH / 2, '+' + active.coinReward + '💰  ›', {
-        fontFamily: FONT, fontSize: '13px', color: '#FFD700', fontStyle: 'bold',
+      // Weekly quests may have diamond/crystal rewards — show them
+      const rewardParts: string[] = ['+' + active.coinReward + '💰'];
+      if (activeIsWeekly && (active as any).diamondReward) rewardParts.push('+' + (active as any).diamondReward + '💎');
+      if (activeIsWeekly && (active as any).crystalReward) rewardParts.push('+' + (active as any).crystalReward + '🌙');
+      this._visitorBanner.add(this.add.text(W - 22, chipH / 2, rewardParts.join('  ') + '  ›', {
+        fontFamily: FONT, fontSize: activeIsWeekly ? '11px' : '13px', color: '#FFD700', fontStyle: 'bold',
       }).setOrigin(1, 0.5));
 
       const zone = this.add.zone(W / 2, chipH / 2, W - 16, chipH).setInteractive();
@@ -1323,7 +1394,7 @@ export class Hub extends Phaser.Scene {
     if (Game.state!.dailyAdClaimedDate === today) return;
     if (this._dailyAdBadge) { this._dailyAdBadge.destroy(); this._dailyAdBadge = null; }
     const W = this.scale.width;
-    const badge = this.add.container(W - 70, 72).setDepth(12);
+    const badge = this.add.container(W - 70, 99).setDepth(12);
     const bg = this.add.graphics();
     bg.fillStyle(0x117733, 1);
     bg.fillRoundedRect(-58, -16, 116, 32, 16);
@@ -1439,6 +1510,14 @@ export class Hub extends Phaser.Scene {
     if (streak % DAILY_REWARDS.length === 0) {
       popup.add(this.add.text(cx, rewardY + 76, t('daily.weekBonus'), {
         fontFamily: FONT, fontSize: '13px', color: '#FF99CC',
+      }).setOrigin(0.5));
+    }
+
+    // Best streak record
+    const longestStreak = Game.state!.longestStreak ?? streak;
+    if (longestStreak > 1) {
+      popup.add(this.add.text(cx, py + panelH - 126, t('daily.bestStreak', { n: longestStreak }), {
+        fontFamily: FONT, fontSize: '12px', color: '#BB88CC',
       }).setOrigin(0.5));
     }
 
@@ -1888,7 +1967,28 @@ export class Hub extends Phaser.Scene {
       store.setJSON('mps_state', Game.state);
       this.time.delayedCall(300, () => this._showShopLevelUpPopup(pendingLv.level, pendingLv.coins, pendingLv.diamonds, pendingLv.crystals));
     }
+    this._updateCoinDisplay();
     this._updateQuestBtn();
+    this._updateTabs();
+
+    // Announce featured species once per session
+    const featId = Game.state!.featuredSpeciesId;
+    if (featId !== undefined && (Game.state!.featuredUntil ?? 0) > Date.now() && featId !== this._featuredAnnouncedId) {
+      this._featuredAnnouncedId = featId;
+      const featSp = SPECIES[featId];
+      if (featSp) this.time.delayedCall(1800, () => showToast(this, t('toast.featured', { name: featSp.name }), '#FFD700'));
+    }
+
+    // Detect if visitor banner + quest chip need to stack (adjusts card grid)
+    const _now = Date.now();
+    const _state = Game.state!;
+    const _isBannerActive = !!(_state.visitorExpiresAt && _state.visitorExpiresAt > _now)
+      || !!(_state.rushHourUntil && _state.rushHourUntil > _now);
+    const _allQuests = [...(_state.quests ?? []), ...(_state.weeklyQuests ?? [])];
+    const _hasQuestContent = _allQuests.some(q => !q.completed) || _allQuests.some(q => q.completed && !q.claimed);
+    const hasStackedBanner = _isBannerActive && _hasQuestContent;
+    const hasAnyBanner = _isBannerActive || _hasQuestContent;
+
     this._updateVisitorBanner();
     this._updateEggTimerStrip();
 
@@ -1904,7 +2004,7 @@ export class Hub extends Phaser.Scene {
       this._displayGroup.add(shopBtn);
     }
 
-    const slots = this._getSlotPositions(W);
+    const slots = this._getSlotPositions(W, hasStackedBanner, hasAnyBanner);
     let idx = 0;
     monsters.forEach(mon => { if (idx < slots.length) { this._drawTerrarium(slots[idx].x, slots[idx].y, mon); idx++; } });
     eggs.forEach(egg => { if (idx < slots.length) { this._drawEggTerrarium(slots[idx].x, slots[idx].y, egg); idx++; } });
@@ -2024,12 +2124,15 @@ export class Hub extends Phaser.Scene {
     this._displayGroup.add(zone);
   }
 
-  private _getSlotPositions(W: number) {
+  private _getSlotPositions(W: number, hasStackedBanner: boolean = false, hasAnyBanner: boolean = false) {
     const H = this.scale.height;
     const col1 = W / 4, col2 = W * 3 / 4;
     const startY = 288;
-    // Keep row-3 card bottom above the nav bar (center H-54, height 52 → top H-80)
-    const maxCY3 = H - 80 - 98 - 8;
+    // Quest chip / visitor banner sits at H-160 (h=44). Row-3 card bottom must clear it.
+    // hasStackedBanner (visitor+quest): container shifts to H-168, needs offset 90
+    // hasAnyBanner (quest or visitor only): chip top at H-160, card center max = H-264, offset 78
+    const bannerOffset = hasStackedBanner ? 90 : (hasAnyBanner ? 78 : 0);
+    const maxCY3 = H - 186 - bannerOffset;
     const spacing = Math.min(210, Math.floor((maxCY3 - startY) / 2));
     return [
       { x: col1, y: startY },           { x: col2, y: startY },
@@ -2413,7 +2516,17 @@ export class Hub extends Phaser.Scene {
       this.tweens.killTweensOf(this._coinTxt);
       this.tweens.add({ targets: this._coinTxt, scaleX: 1.28, scaleY: 1.28, duration: 110, ease: 'Back.Out', yoyo: true });
     }
-    if (this._diamondTxt) this._diamondTxt.setText('💎 ' + (Game.state!.diamonds ?? 0));
+    if (this._diamondTxt) {
+      const diamonds = Game.state!.diamonds ?? 0;
+      const crystals = Game.state!.moonCrystals ?? 0;
+      if (crystals > 0) {
+        this._diamondTxt.setFontSize('16px');
+        this._diamondTxt.setText('💎 ' + diamonds + '\n🌙 ' + crystals);
+      } else {
+        this._diamondTxt.setFontSize('22px');
+        this._diamondTxt.setText('💎 ' + diamonds);
+      }
+    }
   }
 
   updateCoins() { this._updateCoinDisplay(); }

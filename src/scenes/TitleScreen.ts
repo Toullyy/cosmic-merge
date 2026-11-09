@@ -19,6 +19,10 @@ export class TitleScreen extends Phaser.Scene {
   create() {
     const W = this.scale.width, H = this.scale.height;
 
+    if (new URLSearchParams(window.location.search).get('skipTitle') === '1') {
+      this.scene.start('Hub'); return;
+    }
+
     this._drawBackground(W, H);
     this._drawDecorations(W, H);
     this._drawTitleBoard(W, H);

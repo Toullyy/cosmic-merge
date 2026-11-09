@@ -151,7 +151,7 @@ const D: Record<Lang, Record<string, string>> = {
     'gems.desc.boost':    'Fully restore all monsters\' stats',
     'gems.desc.reroll':   'Refresh the merchant stock now',
     'gems.desc.lucky':    'Guaranteed golden monster egg',
-    'gems.btn.hatch':     '⚡ Quick Hatch  5💎',
+    'gems.btn.hatch':     '⚡ Quick Hatch  2💎',
     'gems.btn.boost':     '💊 Boost Stats  3💎',
     'gems.btn.reroll':    '🔄 Re-roll Stock  2💎',
     'gems.btn.lucky':     '🌟 Lucky Egg  8💎',
@@ -217,6 +217,10 @@ const D: Record<Lang, Record<string, string>> = {
     'shopLv.reward':       '+{coins}💰',
     'shopLv.rewardDiam':   '+{coins}💰  +{d}💎',
     'shopLv.rewardCrystal':'🌙 Moon Crystal +1',
+    'toast.featured':       '⭐ {name}  2× sell price this week!',
+    'daily.bestStreak':    'Best: {n} days 🏆',
+    'label.mastery':       'mastery',
+    'label.habitatBonus':  'habitat',
     // Hub — featured species
     'hub.featured2x':      '2× price!',
     // Hub — listing overlay
@@ -527,6 +531,10 @@ const D: Record<Lang, Record<string, string>> = {
     'shopLv.reward':       '+{coins}💰',
     'shopLv.rewardDiam':   '+{coins}💰  +{d}💎',
     'shopLv.rewardCrystal':'🌙 มูนคริสตัล +1',
+    'toast.featured':       '⭐ {name}  ราคาขาย 2× สัปดาห์นี้!',
+    'daily.bestStreak':    'สูงสุด: {n} วัน 🏆',
+    'label.mastery':       'สายพันธุ์',
+    'label.habitatBonus':  'แหล่งอาศัย',
     // Hub — featured species
     'hub.featured2x':      'ราคา 2×!',
     // Hub — listing overlay
