@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { Game, store, getNewAchievements, reconcileOfflineTime, calcShopLevel } from '../utils';
 import type { GameState } from '../types';
-import { newState, generateMerchantStock, MERCHANT_REFRESH_MS, TANK_CAPACITY, randomBuyer, VISITOR_INTERVAL_MS, checkAndUpdateVisitor, ensureQuestsFresh, TRAITS } from '../data';
+import { newState, generateMerchantStock, MERCHANT_REFRESH_MS, TANK_CAPACITY, randomBuyer, VISITOR_INTERVAL_MS, checkAndUpdateVisitor, ensureQuestsFresh, TRAITS, SPECIES } from '../data';
 import { preloadMonsterTexture } from '../MonsterRenderer';
 import { initCloudAuth, loadFromCloud, scheduleSaveToCloud } from '../cloudSync';
 import { auth } from '../firebase';
@@ -114,6 +114,10 @@ export class Boot extends Phaser.Scene {
         else if (_h < 20) Game.state.rushHourNextAt = _today8pm.getTime();
         else { const _tmrNoon = new Date(_todayNoon); _tmrNoon.setDate(_tmrNoon.getDate() + 1); Game.state.rushHourNextAt = _tmrNoon.getTime(); }
       }
+      // trait collector scheduling (once per week, 24h window)
+      if (!Game.state.traitCollectorNextAt) {
+        Game.state.traitCollectorNextAt = Date.now() + 2 * 24 * 3600000; // first appearance 2 days after install
+      }
       // deduplicate monsters by id (fix for users who got duplicates from double-tap bug)
       const seenIds = new Set<string>();
       Game.state.monsters = Game.state.monsters.filter(m => {
@@ -123,10 +127,22 @@ export class Boot extends Phaser.Scene {
       });
       reconcileOfflineTime(Game.state);
       if (awayMs >= 5 * 60 * 1000) {
+        // Offline catch-up gift: if away 4+ hours and have monsters, one monster saved some coins
+        let giftCoins: number | undefined;
+        let giftMonsterName: string | undefined;
+        if (awayMs >= 4 * 3600000 && Game.state.monsters.length > 0) {
+          const donor = Game.state.monsters[Math.floor(Math.random() * Game.state.monsters.length)];
+          giftCoins = 20 + Math.floor(Math.random() * 31); // 20–50 coins
+          Game.state.coins += giftCoins;
+          store.setJSON('mps_state', Game.state);
+          giftMonsterName = donor.nickname ?? (TRAITS.find(t => t.id === donor.trait)?.emoji ?? '🐾') + ' ' + SPECIES[donor.speciesId].name;
+        }
         Game.offlineSummary = {
           elapsedMs: awayMs,
           readyEggs: Game.state.eggs.filter(e => e.hatchEndAt <= Date.now()).length,
           visitorWaiting: !!Game.state.visitorExpiresAt && Game.state.visitorExpiresAt > Date.now(),
+          giftCoins,
+          giftMonsterName,
         };
       }
       // retroactive achievement check (silent — no popups, just awards diamonds for past play)

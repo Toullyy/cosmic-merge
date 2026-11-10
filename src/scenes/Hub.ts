@@ -124,7 +124,8 @@ export class Hub extends Phaser.Scene {
     const W = this.scale.width, H = this.scale.height;
     const hasEggs = summary.readyEggs > 0;
     const hasVisitor = summary.visitorWaiting;
-    const lines = 1 + (hasEggs ? 1 : 0) + (hasVisitor ? 1 : 0);
+    const hasGift = !!(summary.giftCoins && summary.giftMonsterName);
+    const lines = 1 + (hasEggs ? 1 : 0) + (hasVisitor ? 1 : 0) + (hasGift ? 1 : 0);
     const panelH = 170 + lines * 36;
     const top = H / 2 - panelH / 2;
 
@@ -149,6 +150,7 @@ export class Hub extends Phaser.Scene {
     const rows: string[] = [t('welcome.away', { time: this._formatAway(summary.elapsedMs) })];
     if (hasEggs) rows.push(t('welcome.readyEggs', { n: summary.readyEggs }));
     if (hasVisitor) rows.push(t('welcome.visitor'));
+    if (summary.giftCoins && summary.giftMonsterName) rows.push(t('welcome.gift', { name: summary.giftMonsterName, coins: summary.giftCoins }));
 
     rows.forEach((row, i) => {
       popup.add(this.add.text(W / 2, top + 82 + i * 36, row, {
@@ -960,7 +962,8 @@ export class Hub extends Phaser.Scene {
 
     const isRushHour = !!(state.rushHourUntil && now < state.rushHourUntil);
     const hasVisitor = !!(state.visitorSpeciesId && state.visitorExpiresAt && now < state.visitorExpiresAt);
-    const isBannerActive = hasVisitor || isRushHour;
+    const hasTraitCollector = !!(state.traitCollectorTrait && state.traitCollectorUntil && now < state.traitCollectorUntil);
+    const isBannerActive = hasVisitor || isRushHour || hasTraitCollector;
 
     // Pre-compute quest state so we can stack them when a banner is active
     const quests = state.quests ?? [];
@@ -1056,7 +1059,7 @@ export class Hub extends Phaser.Scene {
         const zone = this.add.zone(W / 2, yOff + 16, W - 16, 32).setInteractive();
         zone.on('pointerdown', () => this._showVisitorPopup());
         this._visitorBanner.add(zone);
-      } else {
+      } else if (isRushHour) {
         // Standalone Rush Hour (no visitor yet)
         const rushMinsLeft = Math.ceil(((state.rushHourUntil ?? 0) - now) / 60000);
         const bg = this.add.graphics();
@@ -1075,6 +1078,25 @@ export class Hub extends Phaser.Scene {
         this._bannerTweens.push(this.tweens.add({ targets: pulse, alpha: 0.1, duration: 500, ease: 'Sine.InOut', yoyo: true, repeat: -1 }));
         const zone = this.add.zone(W / 2, yOff + 16, W - 16, 32).setInteractive();
         zone.on('pointerdown', () => this._showVisitorPopup());
+        this._visitorBanner.add(zone);
+      } else if (hasTraitCollector) {
+        // Trait Collector banner (teal, no visitor or rush hour)
+        const tcTrait = TRAITS.find(tr => tr.id === state.traitCollectorTrait);
+        const tcMult = state.traitCollectorMult ?? 1.8;
+        const tcMins = Math.ceil(((state.traitCollectorUntil ?? 0) - now) / 60000);
+        const tcHasMon = state.monsters.some(m => m.trait === state.traitCollectorTrait);
+        const bg = this.add.graphics();
+        bg.fillStyle(0x003A3A, 0.97);
+        bg.fillRoundedRect(8, yOff, W - 16, 32, 10);
+        bg.lineStyle(2, 0x44FFCC, 0.9);
+        bg.strokeRoundedRect(8, yOff, W - 16, 32, 10);
+        this._visitorBanner.add(bg);
+        const tcMsg = t('collector.banner', { trait: tcTrait ? tcTrait.emoji + ' ' + tcTrait.id : '?', mult: tcMult, mins: tcMins });
+        this._visitorBanner.add(this.add.text(W / 2, yOff + 16, tcMsg, {
+          fontFamily: FONT, fontSize: '13px', color: tcHasMon ? '#66FFDD' : '#44AAAA', fontStyle: 'bold',
+        }).setOrigin(0.5));
+        const zone = this.add.zone(W / 2, yOff + 16, W - 16, 32).setInteractive();
+        zone.on('pointerdown', () => this._showTraitCollectorPopup());
         this._visitorBanner.add(zone);
       }
       return;
@@ -1150,6 +1172,22 @@ export class Hub extends Phaser.Scene {
     }
   }
 
+  private _tickTraitCollector(state: GameState): void {
+    const now = Date.now();
+    if (state.traitCollectorUntil && now >= state.traitCollectorUntil) {
+      state.traitCollectorTrait = undefined;
+      state.traitCollectorUntil = undefined;
+      state.traitCollectorNextAt = now + 7 * 24 * 3600000; // next window in 7 days
+    }
+    if (!state.traitCollectorUntil && state.traitCollectorNextAt && now >= state.traitCollectorNextAt) {
+      const idx = Math.floor(Math.random() * TRAITS.length);
+      state.traitCollectorTrait = TRAITS[idx].id;
+      state.traitCollectorMult = 1.8;
+      state.traitCollectorUntil = now + 24 * 3600000; // 24h window
+      state.traitCollectorNextAt = now + 7 * 24 * 3600000;
+    }
+  }
+
   private _startVisitorTimer() {
     if (this._visitorTimer) this._visitorTimer.remove();
     this._visitorTimer = this.time.addEvent({
@@ -1157,6 +1195,7 @@ export class Hub extends Phaser.Scene {
         const state = Game.state!;
         checkAndUpdateVisitor(state);
         this._tickRushHour(state);
+        this._tickTraitCollector(state);
         this._updateVisitorBanner();
         store.setJSON('mps_state', state);
       },
@@ -1689,6 +1728,93 @@ export class Hub extends Phaser.Scene {
     overlay.on('pointerdown', close);
   }
 
+  private _showTraitCollectorPopup() {
+    const state = Game.state!;
+    if (!state.traitCollectorTrait || !state.traitCollectorUntil) return;
+    const W = this.scale.width, H = this.scale.height;
+    const tcTrait = TRAITS.find(tr => tr.id === state.traitCollectorTrait);
+    const mult = state.traitCollectorMult ?? 1.8;
+    const remaining = Math.max(0, state.traitCollectorUntil - Date.now());
+    const mins = Math.ceil(remaining / 60000);
+    const candidates = state.monsters
+      .filter(m => m.trait === state.traitCollectorTrait)
+      .sort((a, b) => calcSellPrice(state, b) - calcSellPrice(state, a));
+
+    const popup = this.add.container(0, 0).setDepth(50);
+    const overlay = this.add.graphics();
+    overlay.fillStyle(0x000000, 0.65); overlay.fillRect(0, 0, W, H);
+    popup.add(overlay);
+
+    const panH = 320;
+    const panY = H / 2 - panH / 2;
+    const panel = this.add.graphics();
+    panel.fillStyle(0x001A1A, 1);
+    panel.fillRoundedRect(W/2 - 170, panY, 340, panH, 16);
+    panel.lineStyle(2, 0x44FFCC, 0.8);
+    panel.strokeRoundedRect(W/2 - 170, panY, 340, panH, 16);
+    popup.add(panel);
+
+    popup.add(this.add.text(W/2, panY + 32, t('collector.title'), { fontFamily: FONT, fontSize: '20px', fontStyle: 'bold', color: '#66FFDD' }).setOrigin(0.5));
+    popup.add(this.add.text(W/2, panY + 60, t('collector.wants', { trait: tcTrait ? tcTrait.emoji + ' ' + tcTrait.id : '?', mult }), { fontFamily: FONT, fontSize: '14px', color: '#ffffff' }).setOrigin(0.5));
+    popup.add(this.add.text(W/2, panY + 82, t('visitor.expires', { mins }), { fontFamily: FONT, fontSize: '12px', color: '#AACCCC' }).setOrigin(0.5));
+
+    const close = () => popup.destroy();
+
+    if (candidates.length === 0) {
+      popup.add(this.add.text(W/2, H/2 - 10, t('collector.noMonster', { trait: tcTrait?.id ?? '?' }), { fontFamily: FONT, fontSize: '13px', color: '#66AAAA', align: 'center', wordWrap: { width: 280 } }).setOrigin(0.5));
+      popup.add(makeButton(this, W/2, H/2 + 60, 120, 38, t('btn.close'), 0x0A2222, close, 13));
+    } else {
+      let sel = 0;
+      const priceFor = (m: Monster) => Math.max(1, Math.round(calcSellPrice(state, m) * mult));
+      const selTxt = this.add.text(W/2, H/2 - 46, '', { fontFamily: FONT, fontSize: '13px', color: '#DDE8FF', align: 'center' }).setOrigin(0.5);
+      const offerTxt = this.add.text(W/2, H/2 - 24, '', { fontFamily: FONT, fontSize: '16px', color: '#66FFDD', fontStyle: 'bold' }).setOrigin(0.5);
+      popup.add([selTxt, offerTxt]);
+
+      const sellBtn = makeButton(this, W/2, H/2 + 36, 260, 48, '', 0x0A5A44, () => {
+        const mon = candidates[sel];
+        const price = priceFor(mon);
+        state.monsters = state.monsters.filter(m => m.id !== mon.id);
+        state.listings = state.listings.filter(l => l.monsterId !== mon.id);
+        state.coins += price;
+        state.stats.sold++;
+        state.stats.totalEarned = (state.stats.totalEarned ?? 0) + price;
+        const { milestonePct, mastered } = applySellSideEffects(state, mon.habitatType, mon.speciesId);
+        if (milestonePct) showToast(this, '🏅 ' + t('toast.habitatBonus', { pct: milestonePct }), '#FFD700');
+        if (mastered)     showToast(this, '🏆 ' + t('toast.speciesMaster', { name: SPECIES[mon.speciesId].name }), '#FFDD44');
+        recordQuestProgress('sell');
+        checkAndApplyShopLevelUp(state);
+        store.setJSON('mps_state', state);
+        this._updateCoinDisplay();
+        this.refreshAll();
+        showFloat(this, W/2, H/2, '+' + price + ' 💰', '#66FFDD');
+        close();
+      }, 13);
+      popup.add(sellBtn);
+
+      const refreshOffer = () => {
+        const m = candidates[sel];
+        const price = priceFor(m);
+        const sp = SPECIES[m.speciesId];
+        selTxt.setText(candidates.length > 1 ? ('◀  ' + (m.nickname ?? sp.name) + '  ▶') : (m.nickname ?? sp.name));
+        offerTxt.setText(t('collector.offer', { price, mult: Math.round(mult * 10) / 10 }));
+        setButtonLabel(sellBtn, t('collector.sell', { name: m.nickname ?? sp.name, price }));
+      };
+      refreshOffer();
+
+      if (candidates.length > 1) {
+        const cycle = (dir: number) => { sel = (sel + dir + candidates.length) % candidates.length; refreshOffer(); };
+        popup.add(makeButton(this, W/2 - 138, H/2 - 46, 34, 28, '◀', 0x0A3030, () => cycle(-1), 12));
+        popup.add(makeButton(this, W/2 + 138, H/2 - 46, 34, 28, '▶', 0x0A3030, () => cycle(1), 12));
+      }
+      popup.add(makeButton(this, W/2, H/2 + 96, 120, 32, t('btn.close'), 0x0A2222, close, 12));
+    }
+
+    overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, W, H), Phaser.Geom.Rectangle.Contains);
+    overlay.on('pointerdown', close);
+    popup.setAlpha(0); popup.setScale(0.88);
+    this.tweens.add({ targets: popup, alpha: 1, scaleX: 1, scaleY: 1, duration: 220, ease: 'Back.Out' });
+  }
+
   private _showQuestsPanel() {
     const state = Game.state!;
     const daily   = state.quests ?? [];
@@ -1981,10 +2107,12 @@ export class Hub extends Phaser.Scene {
     }
 
     // Detect if visitor banner + quest chip need to stack (adjusts card grid)
+    this._tickTraitCollector(Game.state!);
     const _now = Date.now();
     const _state = Game.state!;
     const _isBannerActive = !!(_state.visitorSpeciesId && _state.visitorExpiresAt && _state.visitorExpiresAt > _now)
-      || !!(_state.rushHourUntil && _state.rushHourUntil > _now);
+      || !!(_state.rushHourUntil && _state.rushHourUntil > _now)
+      || !!(_state.traitCollectorTrait && _state.traitCollectorUntil && _state.traitCollectorUntil > _now);
     const _allQuests = [...(_state.quests ?? []), ...(_state.weeklyQuests ?? [])];
     const _hasQuestContent = _allQuests.some(q => !q.completed) || _allQuests.some(q => q.completed && !q.claimed);
     const hasStackedBanner = _isBannerActive && _hasQuestContent;

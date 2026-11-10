@@ -284,6 +284,7 @@ export class HatchScene extends Phaser.Scene {
     const egg = Game.state!.eggs.find(e => e.id === eggId);
     if (!egg) { this.scene.stop(); return; }
     const mon = newMonster(egg.speciesId, egg.variantIndex, egg.source);
+    if (egg.inheritedTrait) mon.trait = egg.inheritedTrait;
     const monMods = getVariantModifiers(mon.variantIndex);
     const isNewSpecies = !Game.state!.stats.discovered.includes(mon.speciesId);
     const goldenList = Game.state!.stats.goldenDiscovered ?? [];

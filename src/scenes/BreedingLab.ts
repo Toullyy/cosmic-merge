@@ -22,6 +22,7 @@ export class BreedingLab extends Phaser.Scene {
   private _slotB!: Slot;
   private _listGroup!: Phaser.GameObjects.Group;
   private _breedBtn!: Phaser.GameObjects.Container;
+  private _inheritHintTxt: Phaser.GameObjects.Text | null = null;
   private _listPage: number = 0;
 
   constructor() { super({ key: 'BreedingLab' }); }
@@ -280,12 +281,21 @@ export class BreedingLab extends Phaser.Scene {
     this._buildMonsterList(this.scale.width, this.scale.height);
     const ready = !!(this._selectedA && this._selectedB);
     this._breedBtn.setAlpha(ready ? 1 : 0.38);
+    this._inheritHintTxt?.destroy();
+    this._inheritHintTxt = null;
     if (ready) {
       const spA = SPECIES[this._selectedA!.speciesId], spB = SPECIES[this._selectedB!.speciesId];
       const cost = Math.round(Math.max(spA.price, spB.price) * 0.3);
       setButtonLabel(this._breedBtn, t('btn.breed') + '\n💰 ' + cost);
       this.tweens.killTweensOf(this._breedBtn);
       this.tweens.add({ targets: this._breedBtn, scaleX: 1.05, scaleY: 1.05, duration: 600, ease: 'Sine.InOut', yoyo: true, repeat: -1 });
+      // Show inheritance hint
+      const W = this.scale.width, H = this.scale.height;
+      const tA = this._selectedA!.trait, tB = this._selectedB!.trait;
+      const hintStr = '🧬 40% inherit · ' + (tA ?? '?') + ' × ' + (tB ?? '?');
+      this._inheritHintTxt = this.add.text(W / 2, H - 100, hintStr, {
+        fontFamily: FONT, fontSize: '12px', color: '#CC99FF', stroke: '#000000', strokeThickness: 1,
+      }).setOrigin(0.5).setAlpha(0.9);
     } else {
       setButtonLabel(this._breedBtn, t('btn.breed'));
       this.tweens.killTweensOf(this._breedBtn);
@@ -411,10 +421,16 @@ export class BreedingLab extends Phaser.Scene {
 
         const egg = newEgg(childSpeciesId, childVi, 'breeding', [a.id, b.id]);
         egg.hatchEndAt = Date.now() + finalHours * 3600000;
+        // 40% chance to inherit a parent's trait
+        if (Math.random() < 0.40) {
+          const donor = Math.random() < 0.5 ? a : b;
+          if (donor.trait) egg.inheritedTrait = donor.trait;
+        }
         Game.state!.eggs.push(egg);
         store.setJSON('mps_state', Game.state);
         sfx.buy();
-        showToast(this, '✨ ' + t('toast.breedStarted', { h: Math.ceil(finalHours) }), '#aaffaa');
+        const inheritMsg = egg.inheritedTrait ? ' 🧬' : '';
+        showToast(this, '✨ ' + t('toast.breedStarted', { h: Math.ceil(finalHours) }) + inheritMsg, '#aaffaa');
       } else {
         // Refund 50% of cost on failure
         const refund = Math.round(breedCost * 0.5);

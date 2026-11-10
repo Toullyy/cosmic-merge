@@ -41,6 +41,7 @@ export interface Egg {
   hatchEndAt: number;
   source: string;
   parentIds: string[];
+  inheritedTrait?: string;
 }
 
 export interface HabitatState {
@@ -126,6 +127,10 @@ export interface GameState {
   featuredUntil?: number;
   rushHourUntil?: number;
   rushHourNextAt?: number;
+  traitCollectorTrait?: string;
+  traitCollectorUntil?: number;
+  traitCollectorNextAt?: number;
+  traitCollectorMult?: number;
   weeklyQuests?: Quest[];
   weeklyQuestResetAt?: number;
   shopLevel?: number;

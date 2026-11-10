@@ -33,6 +33,8 @@ export interface OfflineSummary {
   elapsedMs: number;
   readyEggs: number;
   visitorWaiting: boolean;
+  giftCoins?: number;
+  giftMonsterName?: string;
 }
 
 export const Game: {
