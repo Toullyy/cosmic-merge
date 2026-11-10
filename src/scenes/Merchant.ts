@@ -983,59 +983,50 @@ export class Merchant extends Phaser.Scene {
       return;
     }
 
+    // Layout: one row per monster with 3 inline accessory buttons.
+    // Max 8 monsters × 80px = 640px starting at y=220 → fits within 960px.
     const startY = 220;
-    const rowH = 68;
+    const rowH = 80;
 
-    ACCESSORIES.forEach((acc, ai) => {
-      const cy = startY + ai * (monsters.length * rowH + 54);
+    // Legend row
+    this._gridGroup.add(this.add.text(W - 162, 214, ACCESSORIES.map(a => a.emoji + ' ' + a.cost + '💰').join('  '), {
+      fontFamily: FONT, fontSize: '10px', color: '#BBAACC',
+    }).setDepth(5));
 
-      // Accessory header
-      const headerBg = this.add.graphics().setDepth(4);
-      headerBg.fillStyle(0x2A1810, 1);
-      headerBg.fillRoundedRect(10, cy, W - 20, 36, 8);
-      headerBg.lineStyle(1.5, 0xFFBB66, 0.6);
-      headerBg.strokeRoundedRect(10, cy, W - 20, 36, 8);
-      this._gridGroup.add(headerBg);
-      this._gridGroup.add(this.add.text(W / 2, cy + 18, acc.emoji + ' ' + acc.name + '  –  ' + acc.desc + '  ·  ' + acc.cost + '💰', {
-        fontFamily: FONT, fontSize: '13px', fontStyle: 'bold', color: '#FFD700',
-      }).setOrigin(0.5).setDepth(5));
+    monsters.forEach((mon, mi) => {
+      const rowY = startY + mi * rowH;
+      const sp = SPECIES[mon.speciesId];
+      const curAcc = ACCESSORIES.find(a => a.id === mon.accessoryId);
 
-      // Per-monster rows
-      monsters.forEach((mon, mi) => {
-        const rowY = cy + 44 + mi * rowH;
-        const sp = SPECIES[mon.speciesId];
+      const rowBg = this.add.graphics().setDepth(4);
+      rowBg.fillStyle(0x140830, 1);
+      rowBg.fillRoundedRect(10, rowY, W - 20, rowH - 6, 8);
+      rowBg.lineStyle(1, curAcc ? 0x44FF88 : 0x3A1668, 0.5);
+      rowBg.strokeRoundedRect(10, rowY, W - 20, rowH - 6, 8);
+      this._gridGroup.add(rowBg);
+
+      const name = mon.nickname ?? sp.name;
+      this._gridGroup.add(this.add.text(16, rowY + 10, name + '  Lv' + mon.level, {
+        fontFamily: FONT, fontSize: '13px', fontStyle: 'bold', color: '#FFFFFF',
+      }).setDepth(5));
+      const subLabel = sp.name + (curAcc ? '  ' + curAcc.emoji + ' ' + curAcc.name : '  —');
+      this._gridGroup.add(this.add.text(16, rowY + 30, subLabel, {
+        fontFamily: FONT, fontSize: '11px', color: curAcc ? '#88FFCC' : '#8877AA',
+      }).setDepth(5));
+
+      // 3 emoji buttons: ribbon / crown / sparkle
+      ACCESSORIES.forEach((acc, ai) => {
         const isEquipped = mon.accessoryId === acc.id;
         const canAfford = state.coins >= acc.cost;
-
-        const rowBg = this.add.graphics().setDepth(4);
-        rowBg.fillStyle(isEquipped ? 0x1A3010 : 0x140830, 1);
-        rowBg.fillRoundedRect(14, rowY, W - 28, rowH - 4, 8);
-        rowBg.lineStyle(1, isEquipped ? 0x44FF88 : 0x3A1668, 0.6);
-        rowBg.strokeRoundedRect(14, rowY, W - 28, rowH - 4, 8);
-        this._gridGroup.add(rowBg);
-
-        const name = mon.nickname ?? sp.name;
-        this._gridGroup.add(this.add.text(60, rowY + 14, name + '  Lv' + mon.level, {
-          fontFamily: FONT, fontSize: '13px', fontStyle: 'bold', color: '#FFFFFF',
-        }).setDepth(5));
-        this._gridGroup.add(this.add.text(60, rowY + 34, sp.name, {
-          fontFamily: FONT, fontSize: '11px', color: '#8877AA',
-        }).setDepth(5));
-
-        const btnLabel = isEquipped ? t('access.equipped') : t('access.equip');
+        const bx = W - 155 + ai * 54;
         const btnColor = isEquipped ? 0x286020 : (canAfford ? 0x5A3010 : 0x332244);
-        const btn = makeButton(this, W - 70, rowY + rowH / 2 - 2, 100, 32, btnLabel, btnColor, () => {
+        const btn = makeButton(this, bx, rowY + rowH / 2 - 6, 50, 34, acc.emoji, btnColor, () => {
           if (isEquipped) {
             mon.accessoryId = undefined;
             store.setJSON('mps_state', state);
             showToast(this, acc.emoji + ' ' + t('access.remove'), '#BBAACC');
           } else {
-            if (!canAfford) { showToast(this, '💰 Need ' + acc.cost + ' coins!', '#FF9999'); return; }
-            // Remove any existing accessory first (no refund)
-            if (mon.accessoryId) {
-              const oldAcc = ACCESSORIES.find(a => a.id === mon.accessoryId);
-              if (oldAcc) showToast(this, oldAcc.emoji + ' removed', '#BBAACC');
-            }
+            if (!canAfford) { showToast(this, '💰 Need ' + acc.cost + '!', '#FF9999'); return; }
             mon.accessoryId = acc.id;
             state.coins -= acc.cost;
             store.setJSON('mps_state', state);
@@ -1044,8 +1035,13 @@ export class Merchant extends Phaser.Scene {
           }
           this._gridGroup.clear(true, true);
           this._buildAccessGrid(W, H);
-        }, 11);
+        }, 16);
         this._gridGroup.add(btn);
+        if (isEquipped) {
+          this._gridGroup.add(this.add.text(bx, rowY + rowH - 15, '✓', {
+            fontFamily: FONT, fontSize: '10px', color: '#44FF88',
+          }).setOrigin(0.5).setDepth(5));
+        }
       });
     });
   }

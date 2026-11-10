@@ -416,9 +416,10 @@ export class PokedexScene extends Phaser.Scene {
         row.strokeRoundedRect(10, cy, W - 20, rowH - 4, 10);
       }
 
-      // Monster sprite
+      // Monster sprite — include rank index in key to avoid collision when
+      // the same species+variant appears more than once in the Hall of Fame.
       const dummyMon: Monster = {
-        id: 'leg_' + entry.speciesId + '_' + entry.variantIndex,
+        id: 'leg_' + i + '_' + entry.speciesId + '_' + entry.variantIndex,
         speciesId: entry.speciesId, variantIndex: entry.variantIndex,
         habitatType: sp.habitat, level: entry.level, xp: 0,
         happiness: 100, hunger: 100, cleanliness: 100, lastCaredAt: 0, source: 'legend',

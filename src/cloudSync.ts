@@ -39,10 +39,12 @@ function _clearLinkPending(): void {
   try { localStorage.removeItem(LINK_PENDING_KEY); } catch { /* ignore */ }
 }
 
-function _notifyLinkResult(ok: boolean, code: string | null = null): void {
+function _notifyLinkResult(ok: boolean, code: string | null = null, fromRedirect = false): void {
   cloudStatus.lastLinkErrorCode = ok ? null : code;
-  // Store so TitleScreen can read it even if the event fired before the scene created
-  cloudStatus.pendingLinkResult = { ok, code };
+  // Only persist for redirect flows — popup results are handled synchronously
+  // in the same TitleScreen session via the event listener, so storing them
+  // would cause the stale result to replay on the next TitleScreen.create().
+  if (fromRedirect) cloudStatus.pendingLinkResult = { ok, code };
   if (code === 'auth/unauthorized-domain') {
     console.error(`Google sign-in needs "${location.hostname}" in Firebase Console → Authentication → Settings → Authorized domains.`);
   }
@@ -140,7 +142,7 @@ async function _runInitCloudAuth(): Promise<void> {
       cloudStatus.isAnonymous = user.isAnonymous;
       cloudStatus.enabled = true;
       _clearLinkPending();
-      if (!user.isAnonymous) _notifyLinkResult(true);
+      if (!user.isAnonymous) _notifyLinkResult(true, null, true);
       return;
     }
 
@@ -152,10 +154,10 @@ async function _runInitCloudAuth(): Promise<void> {
         cloudStatus.uid = auth.currentUser.uid;
         cloudStatus.isAnonymous = false;
         cloudStatus.enabled = true;
-        _notifyLinkResult(true);
+        _notifyLinkResult(true, null, true);
         return;
       }
-      _notifyLinkResult(false);
+      _notifyLinkResult(false, null, true);
     }
 
     if (!auth.currentUser) {
@@ -178,7 +180,7 @@ async function _runInitCloudAuth(): Promise<void> {
         return;
       } catch { /* fall through */ }
     }
-    if (hadPendingLink) _notifyLinkResult(false, code || 'auth/redirect-failed');
+    if (hadPendingLink) _notifyLinkResult(false, code || 'auth/redirect-failed', true);
     // cloudStatus.enabled already set above if a cached session existed
   }
 }
