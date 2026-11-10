@@ -1744,6 +1744,9 @@ export class Hub extends Phaser.Scene {
         checkAndApplyShopLevelUp(state);
         state.visitorSpeciesId = undefined;
         state.visitorExpiresAt = undefined;
+        state.visitorIsRequest = false;
+        state.visitorMinLevel = undefined;
+        state.visitorRequiredTrait = undefined;
         store.setJSON('mps_state', state);
         sfx.sell();
         showToast(this, t('toast.soldFor', { price }), '#aaffaa');

@@ -1042,6 +1042,7 @@ export class Merchant extends Phaser.Scene {
             showToast(this, acc.emoji + ' ' + acc.name + ' equipped!', '#FFD700');
             sfx.buy();
           }
+          this._gridGroup.clear(true, true);
           this._buildAccessGrid(W, H);
         }, 11);
         this._gridGroup.add(btn);
