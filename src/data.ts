@@ -18,6 +18,8 @@ export interface Achievement {
   emoji: string;
   desc: string;
   diamonds: number;
+  coins?: number;
+  crystals?: number;
   check: (state: GameState) => boolean;
 }
 
@@ -141,6 +143,7 @@ export interface SellBreakdown {
   milestoneMult: number;
   masteryMult: number;
   featuredMult: number;
+  accessoryMult: number;
   final: number;
 }
 
@@ -158,10 +161,12 @@ export function calcSellBreakdown(state: GameState, m: Monster): SellBreakdown {
   const masteryCount = state.speciesSold?.[m.speciesId] ?? 0;
   const masteryMult = masteryCount >= 3 ? 1.15 : 1;
   const featuredMult = (state.featuredSpeciesId === m.speciesId && (state.featuredUntil ?? 0) > Date.now()) ? 2 : 1;
-  const final = Math.max(10, Math.round(sp.price * levelMult * happinessMult * marketMult * goldenMult * traitMult * evolvedMult * milestoneMult * masteryMult * featuredMult));
+  const accessoryBonus = ACCESSORIES.find(a => a.id === m.accessoryId)?.sellBonus ?? 0;
+  const accessoryMult = 1 + accessoryBonus;
+  const final = Math.max(10, Math.round(sp.price * levelMult * happinessMult * marketMult * goldenMult * traitMult * evolvedMult * milestoneMult * masteryMult * featuredMult * accessoryMult));
   return {
     base: sp.price, levelMult, happinessMult, marketMult, goldenMult,
-    traitMult, evolvedMult, milestoneMult, masteryMult, featuredMult, final,
+    traitMult, evolvedMult, milestoneMult, masteryMult, featuredMult, accessoryMult, final,
   };
 }
 
@@ -218,9 +223,11 @@ export function checkAndUpdateVisitor(state: GameState): void {
   if (state.visitorExpiresAt && now >= state.visitorExpiresAt) {
     state.visitorSpeciesId = undefined;
     state.visitorExpiresAt = undefined;
+    state.visitorSellStreak = 0;
   }
   if (!state.visitorExpiresAt && state.visitorNextAt && now >= state.visitorNextAt) {
     generateVisitor(state);
+    state.visitorSellStreak = 0;
   }
 }
 
@@ -318,6 +325,22 @@ export function getDecayMult(state: GameState, habitat: HabitatType): number {
   return Math.max(0.70, 1 - owned.length * 0.10);
 }
 
+// ── ACCESSORIES ───────────────────────────────────────────────────────────────
+export interface AccessoryItem {
+  id: string;
+  name: string;
+  emoji: string;
+  cost: number;
+  desc: string;
+  sellBonus: number; // extra sell price multiplier, e.g. 0.05 = +5%
+}
+
+export const ACCESSORIES: AccessoryItem[] = [
+  { id: 'ribbon',   name: 'Ribbon',        emoji: '🎀', cost: 200, desc: '+5% sell price',  sellBonus: 0.05 },
+  { id: 'crown',    name: 'Crown',         emoji: '👑', cost: 500, desc: '+10% sell price', sellBonus: 0.10 },
+  { id: 'sparkle',  name: 'Sparkle Halo',  emoji: '✨', cost: 800, desc: '+15% sell price', sellBonus: 0.15 },
+];
+
 // ── TRAITS ────────────────────────────────────────────────────────────────────
 export const TRAITS: Trait[] = [
   { id:'greedy',   name:'Greedy',   emoji:'🍖', desc:'Hungry; +5 XP/feed',          decayMod:{ hunger: 1.30 }, xpMod: 5 },
@@ -336,7 +359,10 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id:'sell_10',      name:'Merchant',          emoji:'🏪', desc:'Sell 10 monsters',            diamonds:3, check: s => s.stats.sold >= 10 },
   { id:'first_golden', name:'Golden Touch',      emoji:'🌟', desc:'Discover a golden monster',   diamonds:3, check: s => (s.stats.goldenDiscovered?.length ?? 0) >= 1 },
   { id:'species_5',    name:'Explorer',          emoji:'🔭', desc:'Discover 5 species',          diamonds:2, check: s => s.stats.discovered.length >= 5 },
+  { id:'dex_10',       name:'Researcher',        emoji:'🔬', desc:'Discover 10 species',         diamonds:1, coins: 50,  check: s => s.stats.discovered.length >= 10 },
   { id:'species_15',   name:'Collector',         emoji:'📚', desc:'Discover 15 species',         diamonds:4, check: s => s.stats.discovered.length >= 15 },
+  { id:'dex_20',       name:'Monster Scholar',   emoji:'🎓', desc:'Discover 20 species',         diamonds:1, crystals: 1, check: s => s.stats.discovered.length >= 20 },
+  { id:'dex_all',      name:'Pokedex Master',    emoji:'🌌', desc:'Discover all 25 species',     diamonds:5, check: s => s.stats.discovered.length >= 25 },
   { id:'all_habitats', name:'Habitat Master',    emoji:'🌍', desc:'Unlock all 3 habitats',       diamonds:3, check: s => (['dirt','grass','aquatic'] as HabitatType[]).every(h => s.habitats[h].unlocked) },
   { id:'coins_5000',   name:'Wealthy',           emoji:'💎', desc:'Earn 5,000 coins total',      diamonds:2, check: s => s.stats.totalEarned >= 5000 },
   { id:'level_5',      name:'Veteran',           emoji:'💪', desc:'Raise a monster to level 5',  diamonds:2, check: s => s.monsters.some(m => m.level >= 5) },

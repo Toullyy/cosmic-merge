@@ -159,7 +159,11 @@ export function getNewAchievements(state: GameState): Achievement[] {
   const newOnes = ACHIEVEMENTS.filter(a => !existing.has(a.id) && a.check(state));
   if (newOnes.length > 0) {
     state.achievements = [...(state.achievements ?? []), ...newOnes.map(a => a.id)];
-    newOnes.forEach(a => { state.diamonds = (state.diamonds ?? 0) + a.diamonds; });
+    newOnes.forEach(a => {
+      state.diamonds = (state.diamonds ?? 0) + a.diamonds;
+      if (a.coins) state.coins += a.coins;
+      if (a.crystals) state.moonCrystals = (state.moonCrystals ?? 0) + a.crystals;
+    });
     store.setJSON('mps_state', state);
   }
   return newOnes;

@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { Game, FONT, store, sfx } from '../utils';
 import { t } from '../i18n';
-import { CATALOG, HABITATS, newEgg, SPECIES, generateMerchantStock, MERCHANT_REFRESH_MS, TANK_CAPACITY, DECORATIONS, TOY_TYPES } from '../data';
+import { CATALOG, HABITATS, newEgg, SPECIES, generateMerchantStock, MERCHANT_REFRESH_MS, TANK_CAPACITY, DECORATIONS, TOY_TYPES, ACCESSORIES } from '../data';
 import type { Monster } from '../types';
 import { shiftHue, darken, lighten } from '../MonsterRenderer';
 import { makeButton } from '../ui/Button';
@@ -262,13 +262,13 @@ export class Merchant extends Phaser.Scene {
   }
 
   private _buildFilterTabs(W: number) {
-    const filters = ['dirt', 'grass', 'aquatic', 'decor', 'toys', 'gems'];
+    const filters = ['dirt', 'grass', 'aquatic', 'decor', 'toys', 'gems', 'access'];
     const labels: Record<string, string> = {
       dirt: t('tab.dirt'), grass: t('tab.grass'),
       aquatic: t('tab.aquatic'), decor: t('tab.decor'), toys: t('tab.toys'),
-      gems: t('tab.gems'),
+      gems: t('tab.gems'), access: t('tab.access'),
     };
-    const tabW = (W - 20) / 6;
+    const tabW = (W - 20) / 7;
     filters.forEach((f, i) => {
       const x = 10 + tabW * i;
       const g = this.add.graphics().setDepth(4);
@@ -292,10 +292,10 @@ export class Merchant extends Phaser.Scene {
 
   private _updateFilterTabs() {
     const W = this.scale.width;
-    const filters = ['dirt', 'grass', 'aquatic', 'decor', 'toys', 'gems'];
+    const filters = ['dirt', 'grass', 'aquatic', 'decor', 'toys', 'gems', 'access'];
     const tabW = (W - 20) / filters.length;
-    const activeCol: Record<string, number> = { dirt: 0x7A3808, grass: 0x286020, aquatic: 0x0E5A90, decor: 0x702808, toys: 0x4A1878, gems: 0x1A4070 };
-    const glowCol: Record<string, number>   = { dirt: 0xFFAA44, grass: 0x66DD33, aquatic: 0x44CCFF, decor: 0xFFAA22, toys: 0xCC88FF, gems: 0x88CCFF };
+    const activeCol: Record<string, number> = { dirt: 0x7A3808, grass: 0x286020, aquatic: 0x0E5A90, decor: 0x702808, toys: 0x4A1878, gems: 0x1A4070, access: 0x703018 };
+    const glowCol: Record<string, number>   = { dirt: 0xFFAA44, grass: 0x66DD33, aquatic: 0x44CCFF, decor: 0xFFAA22, toys: 0xCC88FF, gems: 0x88CCFF, access: 0xFFBB66 };
 
     this._filterGroup.getChildren().forEach(child => {
       const key = (child as any)._filterKey;
@@ -335,7 +335,7 @@ export class Merchant extends Phaser.Scene {
   private _buildGrid(W: number, H: number) {
     this._closeToyPicker();
     this._gridGroup.clear(true, true);
-    this._refreshTxt.setVisible(this._filter !== 'toys' && this._filter !== 'gems');
+    this._refreshTxt.setVisible(this._filter !== 'toys' && this._filter !== 'gems' && this._filter !== 'access');
 
     if (this._filter === 'toys') {
       this._buildToyGrid(W, H);
@@ -347,6 +347,10 @@ export class Merchant extends Phaser.Scene {
     }
     if (this._filter === 'gems') {
       this._buildGemsGrid(W, H);
+      return;
+    }
+    if (this._filter === 'access') {
+      this._buildAccessGrid(W, H);
       return;
     }
 
@@ -959,5 +963,89 @@ export class Merchant extends Phaser.Scene {
     showToast(this, toyName + ' given to ' + spName + '!', '#aaffaa');
     this._closeToyPicker();
     this._buildGrid(this.scale.width, this.scale.height);
+  }
+
+  private _buildAccessGrid(W: number, H: number) {
+    const state = Game.state!;
+    const monsters = state.monsters;
+
+    this._gridGroup.add(this.add.text(W / 2, 172, t('access.title'), {
+      fontFamily: FONT, fontSize: '18px', fontStyle: 'bold', color: '#FFD700',
+    }).setOrigin(0.5).setDepth(5));
+    this._gridGroup.add(this.add.text(W / 2, 198, t('access.desc'), {
+      fontFamily: FONT, fontSize: '12px', color: '#BBAACC',
+    }).setOrigin(0.5).setDepth(5));
+
+    if (monsters.length === 0) {
+      this._gridGroup.add(this.add.text(W / 2, H / 2, t('access.noMonster'), {
+        fontFamily: FONT, fontSize: '14px', color: '#9988BB',
+      }).setOrigin(0.5).setDepth(5));
+      return;
+    }
+
+    const startY = 220;
+    const rowH = 68;
+
+    ACCESSORIES.forEach((acc, ai) => {
+      const cy = startY + ai * (monsters.length * rowH + 54);
+
+      // Accessory header
+      const headerBg = this.add.graphics().setDepth(4);
+      headerBg.fillStyle(0x2A1810, 1);
+      headerBg.fillRoundedRect(10, cy, W - 20, 36, 8);
+      headerBg.lineStyle(1.5, 0xFFBB66, 0.6);
+      headerBg.strokeRoundedRect(10, cy, W - 20, 36, 8);
+      this._gridGroup.add(headerBg);
+      this._gridGroup.add(this.add.text(W / 2, cy + 18, acc.emoji + ' ' + acc.name + '  –  ' + acc.desc + '  ·  ' + acc.cost + '💰', {
+        fontFamily: FONT, fontSize: '13px', fontStyle: 'bold', color: '#FFD700',
+      }).setOrigin(0.5).setDepth(5));
+
+      // Per-monster rows
+      monsters.forEach((mon, mi) => {
+        const rowY = cy + 44 + mi * rowH;
+        const sp = SPECIES[mon.speciesId];
+        const isEquipped = mon.accessoryId === acc.id;
+        const canAfford = state.coins >= acc.cost;
+
+        const rowBg = this.add.graphics().setDepth(4);
+        rowBg.fillStyle(isEquipped ? 0x1A3010 : 0x140830, 1);
+        rowBg.fillRoundedRect(14, rowY, W - 28, rowH - 4, 8);
+        rowBg.lineStyle(1, isEquipped ? 0x44FF88 : 0x3A1668, 0.6);
+        rowBg.strokeRoundedRect(14, rowY, W - 28, rowH - 4, 8);
+        this._gridGroup.add(rowBg);
+
+        const name = mon.nickname ?? sp.name;
+        this._gridGroup.add(this.add.text(60, rowY + 14, name + '  Lv' + mon.level, {
+          fontFamily: FONT, fontSize: '13px', fontStyle: 'bold', color: '#FFFFFF',
+        }).setDepth(5));
+        this._gridGroup.add(this.add.text(60, rowY + 34, sp.name, {
+          fontFamily: FONT, fontSize: '11px', color: '#8877AA',
+        }).setDepth(5));
+
+        const btnLabel = isEquipped ? t('access.equipped') : t('access.equip');
+        const btnColor = isEquipped ? 0x286020 : (canAfford ? 0x5A3010 : 0x332244);
+        const btn = makeButton(this, W - 70, rowY + rowH / 2 - 2, 100, 32, btnLabel, btnColor, () => {
+          if (isEquipped) {
+            mon.accessoryId = undefined;
+            store.setJSON('mps_state', state);
+            showToast(this, acc.emoji + ' ' + t('access.remove'), '#BBAACC');
+          } else {
+            if (!canAfford) { showToast(this, '💰 Need ' + acc.cost + ' coins!', '#FF9999'); return; }
+            // Remove any existing accessory first (no refund)
+            if (mon.accessoryId) {
+              const oldAcc = ACCESSORIES.find(a => a.id === mon.accessoryId);
+              if (oldAcc) showToast(this, oldAcc.emoji + ' removed', '#BBAACC');
+            }
+            mon.accessoryId = acc.id;
+            state.coins -= acc.cost;
+            store.setJSON('mps_state', state);
+            showToast(this, acc.emoji + ' ' + acc.name + ' equipped!', '#FFD700');
+            sfx.buy();
+          }
+          this._buildAccessGrid(W, H);
+        }, 11);
+        this._gridGroup.add(btn);
+      });
+    });
   }
 }

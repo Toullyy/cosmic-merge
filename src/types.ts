@@ -31,6 +31,18 @@ export interface Monster {
   bowl?: { foodId: string; remaining: number; maxAmount: number; color: number } | null;
   evolved?: boolean;
   evolvedAt?: number;
+  accessoryId?: string;
+}
+
+export interface HallOfFameEntry {
+  speciesId: number;
+  variantIndex: number;
+  nickname?: string;
+  level: number;
+  trait?: string;
+  evolved?: boolean;
+  salePrice: number;
+  soldAt: number;
 }
 
 export interface Egg {
@@ -135,6 +147,8 @@ export interface GameState {
   weeklyQuestResetAt?: number;
   shopLevel?: number;
   pendingShopLvPopup?: { level: number; coins: number; diamonds: number; crystals: number };
+  hallOfFame?: HallOfFameEntry[];
+  visitorSellStreak?: number;
 }
 
 export interface PublicMonster {

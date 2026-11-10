@@ -1,6 +1,6 @@
 ﻿import Phaser from 'phaser';
 import { Game, FONT, store, sfx, getNewAchievements, recordQuestProgress, localDateKey, checkAndApplyShopLevelUp, calcShopLevel, applySellSideEffects } from '../utils';
-import { SPECIES, HABITATS, TANK_COST, TANK_CAPACITY, MAX_TANKS, getLevelName, AD_COINS_REWARD, AD_COOLDOWN_MS, checkAndUpdateVisitor, VISITOR_DURATION_MS, TRAITS, ACHIEVEMENTS, DAILY_REWARDS, ensureQuestsFresh, calcSellPrice } from '../data';
+import { SPECIES, HABITATS, TANK_COST, TANK_CAPACITY, MAX_TANKS, getLevelName, AD_COINS_REWARD, AD_COOLDOWN_MS, checkAndUpdateVisitor, VISITOR_DURATION_MS, TRAITS, ACHIEVEMENTS, DAILY_REWARDS, ensureQuestsFresh, calcSellPrice, ACCESSORIES } from '../data';
 import { t, currentLang, setLang } from '../i18n';
 import type { Achievement } from '../data';
 import { makeMonsterTexture, getVariantModifiers, shiftHue, darken, lighten } from '../MonsterRenderer';
@@ -1680,16 +1680,28 @@ export class Hub extends Phaser.Scene {
 
       const sellBtn = makeButton(this, W/2, H/2 + 42, 260, 48, '', 0x2A7A18, () => {
         const mon = candidates[sel];
-        const price = priceFor(mon);
+        // Combo sell streak
+        state.visitorSellStreak = (state.visitorSellStreak ?? 0) + 1;
+        const streak = state.visitorSellStreak;
+        const streakBonus = streak >= 5 ? 0.30 : streak >= 4 ? 0.20 : streak >= 3 ? 0.10 : 0;
+        const basePrice = priceFor(mon);
+        const price = streakBonus > 0 ? Math.round(basePrice * (1 + streakBonus)) : basePrice;
         state.monsters = state.monsters.filter(m => m.id !== mon.id);
         state.listings = state.listings.filter(l => l.monsterId !== mon.id);
         state.coins += price;
         state.stats.sold++;
         state.stats.totalEarned += price;
         state.stats.visitorSales = (state.stats.visitorSales ?? 0) + 1;
+        // Hall of Fame: record if level 7+
+        if (mon.level >= 7) {
+          if (!state.hallOfFame) state.hallOfFame = [];
+          state.hallOfFame.push({ speciesId: mon.speciesId, variantIndex: mon.variantIndex, nickname: mon.nickname, level: mon.level, trait: mon.trait, evolved: mon.evolved, salePrice: price, soldAt: Date.now() });
+          if (state.hallOfFame.length > 50) state.hallOfFame.sort((a, b) => b.salePrice - a.salePrice).splice(50);
+        }
         const { milestonePct, mastered } = applySellSideEffects(state, mon.habitatType, mon.speciesId);
         if (milestonePct) showToast(this, '🏅 ' + t('toast.habitatBonus', { pct: milestonePct }), '#FFD700');
         if (mastered)     showToast(this, '🏆 ' + t('toast.speciesMaster', { name: SPECIES[mon.speciesId].name }), '#FFDD44');
+        if (streakBonus > 0) showToast(this, t('toast.streakBonus', { streak, pct: Math.round(streakBonus * 100) }), '#FF9944');
         recordQuestProgress('sell');
         checkAndApplyShopLevelUp(state);
         state.visitorSpeciesId = undefined;
@@ -2374,6 +2386,16 @@ export class Hub extends Phaser.Scene {
     this._bobTweens.push(this.tweens.add({
       targets: img, y: img.y - 5, duration: 1100 + Math.random()*400, ease: 'Sine.InOut', yoyo: true, repeat: -1,
     }));
+    // Accessory overlay
+    if (mon.accessoryId) {
+      const accEmoji = ACCESSORIES.find(a => a.id === mon.accessoryId)?.emoji ?? '';
+      if (accEmoji) {
+        const accTxt = this.add.text(cx + 32, vpCY - 36, accEmoji, {
+          fontFamily: FONT, fontSize: '18px',
+        }).setOrigin(0.5).setDepth(24);
+        this._displayGroup.add(accTxt);
+      }
+    }
     const bs = img.scaleX;
     this.time.delayedCall(Math.random() * 2000, () => {
       if (!img.active) return;

@@ -153,6 +153,22 @@ const D: Record<Lang, Record<string, string>> = {
     'tab.decor':          '🎨 Decor',
     'tab.toys':           '🧸 Toys',
     'tab.gems':           '💎 Gems',
+    'tab.access':         '🎀 Style',
+    // Accessories
+    'access.title':       '🎀 Accessories',
+    'access.desc':        'Equip your monster to boost sell price.',
+    'access.equip':       'Equip',
+    'access.remove':      'Remove',
+    'access.equipped':    '✓ Equipped',
+    'access.noMonster':   'No monsters owned',
+    // Combo Streak
+    'toast.streakBonus':  '🔥 Combo ×{streak}! +{pct}% bonus!',
+    // Hall of Fame
+    'legend.tab':         '🏆 Legends',
+    'legend.empty':       'Sell a level 7+ monster to add it here.',
+    'legend.sold':        'Sold for {price}💰',
+    // Achievement coin/crystal rewards
+    'achievement.reward': '+{coins}💰',
     // Diamond shop
     'gems.title':         '💎 Diamond Shop',
     'gems.desc.hatch':    'Instantly hatch any ready egg',
@@ -475,6 +491,22 @@ const D: Record<Lang, Record<string, string>> = {
     'tab.decor':          '🎨 ตกแต่ง',
     'tab.toys':           '🧸 ของเล่น',
     'tab.gems':           '💎 เพชร',
+    'tab.access':         '🎀 สไตล์',
+    // Accessories
+    'access.title':       '🎀 เครื่องประดับ',
+    'access.desc':        'ใส่ให้มอนสเตอร์เพื่อเพิ่มราคาขาย',
+    'access.equip':       'ใส่',
+    'access.remove':      'ถอด',
+    'access.equipped':    '✓ ใส่อยู่',
+    'access.noMonster':   'ยังไม่มีมอนสเตอร์',
+    // Combo Streak
+    'toast.streakBonus':  '🔥 คอมโบ ×{streak}! +{pct}% โบนัส!',
+    // Hall of Fame
+    'legend.tab':         '🏆 ตำนาน',
+    'legend.empty':       'ขายมอนสเตอร์เลเวล 7+ เพื่อเพิ่มที่นี่',
+    'legend.sold':        'ขายได้ {price}💰',
+    // Achievement coin/crystal rewards
+    'achievement.reward': '+{coins}💰',
     // Diamond shop
     'gems.title':         '💎 ร้านเพชร',
     'gems.desc.hatch':    'ฟักไข่ทันทีโดยไม่ต้องรอ',

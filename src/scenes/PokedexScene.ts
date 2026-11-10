@@ -1,22 +1,22 @@
 import Phaser from 'phaser';
 import { Game, FONT, store } from '../utils';
 import { t } from '../i18n';
-import { SPECIES, calcSellPrice } from '../data';
+import { SPECIES, TRAITS, calcSellPrice } from '../data';
 import { makeMonsterTexture, preloadMonsterTexture } from '../MonsterRenderer';
 import { makeButton } from '../ui/Button';
 import type { HabitatType, Monster, Species } from '../types';
 
-type FilterType = 'all' | HabitatType;
+type FilterType = 'all' | HabitatType | 'legends';
 
-const FILTERS: FilterType[] = ['all', 'dirt', 'grass', 'aquatic'];
-const FILTER_LABELS: Record<FilterType, string> = {
-  all: '✨ All', dirt: '⛰ Dirt', grass: '🌿 Grass', aquatic: '🌊 Aqua',
+const FILTERS: FilterType[] = ['all', 'dirt', 'grass', 'aquatic', 'legends'];
+const FILTER_LABELS: Record<string, string> = {
+  all: '✨ All', dirt: '⛰ Dirt', grass: '🌿 Grass', aquatic: '🌊 Aqua', legends: '🏆',
 };
 const HABITAT_COLORS: Record<string, number> = {
-  dirt: 0xFFAA44, grass: 0x55DD44, aquatic: 0x44CCFF, all: 0xAA88FF,
+  dirt: 0xFFAA44, grass: 0x55DD44, aquatic: 0x44CCFF, all: 0xAA88FF, legends: 0xFFD700,
 };
 const HABITAT_DARK: Record<string, number> = {
-  dirt: 0x3A1800, grass: 0x0A2208, aquatic: 0x041828, all: 0x1A0838,
+  dirt: 0x3A1800, grass: 0x0A2208, aquatic: 0x041828, all: 0x1A0838, legends: 0x2A1800,
 };
 
 export class PokedexScene extends Phaser.Scene {
@@ -39,6 +39,11 @@ export class PokedexScene extends Phaser.Scene {
     this._buildBg(W, H);
     this._buildHeader(W);
     this._buildTabs(W);
+
+    if (this._filter === 'legends') {
+      this._buildLegendsView(W, H);
+      return;
+    }
 
     // Preload all species (discovered for normal display, undiscovered for silhouettes)
     const preloads = SPECIES.map(sp => {
@@ -380,5 +385,69 @@ export class PokedexScene extends Phaser.Scene {
     });
 
     popup.add(makeButton(this, W / 2, py + panH - 20, 110, 34, t('btn.close'), 0x1A0838, () => popup.destroy(), 13));
+  }
+
+  private _buildLegendsView(W: number, H: number) {
+    const entries = (Game.state!.hallOfFame ?? []).slice().sort((a, b) => b.salePrice - a.salePrice);
+
+    if (entries.length === 0) {
+      this.add.text(W / 2, H / 2 - 20, '🏆', { fontFamily: FONT, fontSize: '48px' }).setOrigin(0.5).setDepth(5);
+      this.add.text(W / 2, H / 2 + 44, t('legend.empty'), {
+        fontFamily: FONT, fontSize: '14px', color: '#9988BB', align: 'center',
+        wordWrap: { width: 300 },
+      }).setOrigin(0.5).setDepth(5);
+      return;
+    }
+
+    const startY = 112;
+    const rowH = 72;
+    entries.forEach((entry, i) => {
+      const cy = startY + i * rowH;
+      const sp = SPECIES[entry.speciesId] ?? SPECIES[0];
+      const habCol = HABITAT_COLORS[sp.habitat] ?? 0xFFD700;
+
+      const row = this.add.graphics().setDepth(3);
+      row.fillStyle(0x1A0C20, 1);
+      row.fillRoundedRect(10, cy, W - 20, rowH - 4, 10);
+      row.lineStyle(1.5, habCol, 0.5);
+      row.strokeRoundedRect(10, cy, W - 20, rowH - 4, 10);
+      if (i === 0) {
+        row.lineStyle(2, 0xFFD700, 0.9);
+        row.strokeRoundedRect(10, cy, W - 20, rowH - 4, 10);
+      }
+
+      // Monster sprite
+      const dummyMon: Monster = {
+        id: 'leg_' + entry.speciesId + '_' + entry.variantIndex,
+        speciesId: entry.speciesId, variantIndex: entry.variantIndex,
+        habitatType: sp.habitat, level: entry.level, xp: 0,
+        happiness: 100, hunger: 100, cleanliness: 100, lastCaredAt: 0, source: 'legend',
+        trait: entry.trait, evolved: entry.evolved,
+      };
+      const texKey = makeMonsterTexture(this, dummyMon);
+      this.add.image(50, cy + rowH / 2 - 2, texKey).setDisplaySize(52, 52).setDepth(4);
+
+      // Rank badge
+      const rankColor = i === 0 ? '#FFD700' : i === 1 ? '#CCCCCC' : i === 2 ? '#CC8844' : '#9988BB';
+      this.add.text(14, cy + 6, '#' + (i + 1), {
+        fontFamily: FONT, fontSize: '10px', fontStyle: 'bold', color: rankColor,
+      }).setDepth(5);
+
+      // Name + level
+      const name = entry.nickname ?? sp.name;
+      const traitEmoji = TRAITS.find(tr => tr.id === entry.trait)?.emoji ?? '';
+      const evolvedBadge = entry.evolved ? ' ⭐' : '';
+      this.add.text(80, cy + 10, name + evolvedBadge + (traitEmoji ? ' ' + traitEmoji : ''), {
+        fontFamily: FONT, fontSize: '13px', fontStyle: 'bold', color: '#FFFFFF',
+      }).setDepth(4);
+      this.add.text(80, cy + 30, 'Lv' + entry.level + '  ' + t('legend.sold', { price: entry.salePrice }), {
+        fontFamily: FONT, fontSize: '11px', color: '#FFD700',
+      }).setDepth(4);
+
+      const dateStr = new Date(entry.soldAt).toLocaleDateString();
+      this.add.text(W - 20, cy + 10, dateStr, {
+        fontFamily: FONT, fontSize: '10px', color: '#8877AA',
+      }).setOrigin(1, 0).setDepth(4);
+    });
   }
 }

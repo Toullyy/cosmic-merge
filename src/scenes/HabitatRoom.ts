@@ -2169,6 +2169,12 @@ export class HabitatRoom extends Phaser.Scene {
       state.listings = state.listings.filter(l => l.id !== listing.id);
       state.stats.sold++;
       state.stats.totalEarned += price;
+      // Hall of Fame: record if level 7+
+      if (this._monster.level >= 7) {
+        if (!state.hallOfFame) state.hallOfFame = [];
+        state.hallOfFame.push({ speciesId: this._monster.speciesId, variantIndex: this._monster.variantIndex, nickname: this._monster.nickname, level: this._monster.level, trait: this._monster.trait, evolved: this._monster.evolved, salePrice: price, soldAt: Date.now() });
+        if (state.hallOfFame.length > 50) state.hallOfFame.sort((a, b) => b.salePrice - a.salePrice).splice(50);
+      }
       const { milestonePct, mastered } = applySellSideEffects(state, this._monster.habitatType, this._monster.speciesId);
       if (milestonePct) showToast(this, '🏅 ' + t('toast.habitatBonus', { pct: milestonePct }), '#FFD700');
       if (mastered)     showToast(this, '🏆 ' + t('toast.speciesMaster', { name: this._sp.name }), '#FFDD44');
