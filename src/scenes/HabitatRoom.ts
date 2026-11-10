@@ -1347,7 +1347,7 @@ export class HabitatRoom extends Phaser.Scene {
             actualHungerAdded = food.hungerGain;
             this._monster.bowl = { foodId: food.id, remaining: food.hungerGain, maxAmount: food.hungerGain, color: bowlColor };
           }
-          // Hunger rises gradually as the monster eats — not instantly when food is placed
+          this._monster.hunger = Math.min(100, this._monster.hunger + actualHungerAdded);
           this._monster.happiness = Math.min(100, this._monster.happiness + food.happinessGain);
           this._monster.lastCaredAt = Date.now();
           const feedXpBonus = TRAITS.find(t => t.id === this._monster.trait)?.xpMod ?? 0;
