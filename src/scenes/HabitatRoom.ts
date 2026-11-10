@@ -700,7 +700,8 @@ export class HabitatRoom extends Phaser.Scene {
         const decayMult = getDecayMult(Game.state!, this._monster.habitatType);
         const trait = TRAITS.find(tr => tr.id === this._monster.trait);
         const nuMod = (trait?.decayMod?.hunger ?? 1) * decayMult;
-        this._monster.hunger = Math.max(0, Math.min(100, this._monster.hunger + ate + DECAY.hunger * deltaHours * nuMod));
+        // hunger was already granted on food placement; only apply decay here (ate is bowl-visual only)
+        this._monster.hunger = Math.max(0, Math.min(100, this._monster.hunger + DECAY.hunger * deltaHours * nuMod));
         if (this._monster.bowl.remaining < 0.01) this._monster.bowl = null;
         store.setJSON('mps_state', Game.state);
         this._drawBowl();
@@ -1190,7 +1191,6 @@ export class HabitatRoom extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(20);
 
     // Mastery progress: X/3 → +15% sell bonus for this species
-    const masteryNextPct = masteryCount >= 3 ? '+15%' : (masteryCount >= 0 ? '+15%' : '');
     this.add.text(W - 72, 92,
       masteryCount < 3
         ? `🏆 ${masteryCount}/3 ${t('label.mastery')} → +15%`

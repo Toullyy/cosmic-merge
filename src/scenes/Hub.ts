@@ -978,8 +978,8 @@ export class Hub extends Phaser.Scene {
       // ── Mini quest row (shown above visitor/rush banner when stacking) ───────
       if (stacking) {
         const mH = 28;
-        const mqBg = this.add.graphics();
         if (unclaimed.length > 0) {
+          const mqBg = this.add.graphics();
           mqBg.fillStyle(0x0A2808, 0.92);
           mqBg.fillRoundedRect(8, 0, W - 16, mH, 8);
           mqBg.lineStyle(1.5, 0x44CC22, 0.75);
@@ -989,6 +989,7 @@ export class Hub extends Phaser.Scene {
             fontFamily: FONT, fontSize: '12px', color: '#88FF66', fontStyle: 'bold',
           }).setOrigin(0.5));
         } else if (active) {
+          const mqBg = this.add.graphics();
           const prog = Math.min(active.progress, active.target);
           const pct = prog / active.target;
           mqBg.fillStyle(0x0A0618, 0.92);
@@ -1982,7 +1983,7 @@ export class Hub extends Phaser.Scene {
     // Detect if visitor banner + quest chip need to stack (adjusts card grid)
     const _now = Date.now();
     const _state = Game.state!;
-    const _isBannerActive = !!(_state.visitorExpiresAt && _state.visitorExpiresAt > _now)
+    const _isBannerActive = !!(_state.visitorSpeciesId && _state.visitorExpiresAt && _state.visitorExpiresAt > _now)
       || !!(_state.rushHourUntil && _state.rushHourUntil > _now);
     const _allQuests = [...(_state.quests ?? []), ...(_state.weeklyQuests ?? [])];
     const _hasQuestContent = _allQuests.some(q => !q.completed) || _allQuests.some(q => q.completed && !q.claimed);
