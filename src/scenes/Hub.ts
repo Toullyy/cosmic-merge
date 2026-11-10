@@ -52,6 +52,7 @@ export class Hub extends Phaser.Scene {
   private _welcomeActive = false;
   private _hatchPromptActive = false;
   private _instantOfferActive = false;
+  private _prevReadyListings = new Set<string>();
 
   constructor() { super({ key: 'Hub' }); }
 
@@ -1972,6 +1973,12 @@ export class Hub extends Phaser.Scene {
               if (diamonds > 0) state.diamonds = (state.diamonds ?? 0) + diamonds;
               if (crystals > 0) state.moonCrystals = (state.moonCrystals ?? 0) + crystals;
               state.stats.questsCompleted = (state.stats.questsCompleted ?? 0) + 1;
+              // Every 5th daily quest claimed awards a Moon Crystal
+              const qc = state.stats.questsCompleted;
+              if (!isWeekly && qc % 5 === 0) {
+                state.moonCrystals = (state.moonCrystals ?? 0) + 1;
+                this.time.delayedCall(700, () => showToast(this, '🌙 +1 Moon Crystal (Quest ×' + qc + ')!', '#CCAAFF'));
+              }
               store.setJSON('mps_state', state);
               sfx.buy();
               if (crystals > 0) {
@@ -2691,6 +2698,44 @@ export class Hub extends Phaser.Scene {
     });
     this._updateEggStripTimerLabels();
     this._checkReadyBreedingEggs();
+    this._checkListingReady(now);
+  }
+
+  private _checkListingReady(now: number) {
+    const state = Game.state!;
+    state.listings.forEach(l => {
+      const isReady = now >= l.readyAt;
+      if (isReady && !this._prevReadyListings.has(l.id)) {
+        this._prevReadyListings.add(l.id);
+        this._celebrateListingReady(l.price, l.buyerName);
+      }
+    });
+    // Remove entries for sold/removed listings
+    this._prevReadyListings.forEach(id => {
+      if (!state.listings.some(l => l.id === id)) this._prevReadyListings.delete(id);
+    });
+  }
+
+  private _celebrateListingReady(price: number, buyerName?: string) {
+    const W = this.scale.width;
+    const coinHudX = 92, coinHudY = 34;
+    for (let i = 0; i < 8; i++) {
+      const sx = W / 2 + (Math.random() - 0.5) * 180;
+      const sy = 350 + (Math.random() - 0.5) * 160;
+      const c = this.add.graphics().setDepth(100);
+      c.fillStyle(0xFFD700, 1); c.fillCircle(0, 0, 7);
+      c.lineStyle(1.5, 0xFFEE88, 0.8); c.strokeCircle(0, 0, 7);
+      c.setPosition(sx, sy);
+      this.tweens.add({
+        targets: c, x: coinHudX, y: coinHudY, alpha: 0, scaleX: 0.3, scaleY: 0.3,
+        duration: 500, delay: i * 70, ease: 'Cubic.In',
+        onComplete: () => { try { c.destroy(); } catch { /**/ } },
+      });
+    }
+    sfx.sell?.();
+    const msg = buyerName ? buyerName + ' arrived! +' + price + '💰' : '💰 Buyer arrived! +' + price;
+    showToast(this, msg, '#aaffaa');
+    this._updateCoinDisplay();
   }
 
   private _updateEggStripTimerLabels() {

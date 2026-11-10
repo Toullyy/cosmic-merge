@@ -270,11 +270,11 @@ export function checkAndUpdateVisitor(state: GameState): void {
 // ── DAILY QUESTS ─────────────────────────────────────────────────────────────
 interface QuestDef { type: Quest['type']; targets: number[]; coins: number[]; diamonds?: number[]; crystals?: number[]; makeLbl: (n: number) => string; }
 const QUEST_DEFS: QuestDef[] = [
-  { type: 'feed',  targets: [3, 5, 8], coins: [20, 35, 55], makeLbl: n => t('quest.feed',  { n: String(n) }) },
-  { type: 'play',  targets: [2, 4, 6], coins: [25, 40, 65], makeLbl: n => t('quest.play',  { n: String(n) }) },
-  { type: 'clean', targets: [2, 4, 6], coins: [20, 35, 55], makeLbl: n => t('quest.clean', { n: String(n) }) },
-  { type: 'sell',  targets: [1, 2, 3], coins: [30, 55, 90], makeLbl: n => t('quest.sell',  { n: String(n) }) },
-  { type: 'hatch', targets: [1, 2],    coins: [40, 80],      makeLbl: n => t('quest.hatch', { n: String(n), s: '' }) },
+  { type: 'feed',  targets: [3, 5, 8], coins: [20, 35, 55], diamonds: [0, 0, 1], makeLbl: n => t('quest.feed',  { n: String(n) }) },
+  { type: 'play',  targets: [2, 4, 6], coins: [25, 40, 65], diamonds: [0, 0, 1], makeLbl: n => t('quest.play',  { n: String(n) }) },
+  { type: 'clean', targets: [2, 4, 6], coins: [20, 35, 55], diamonds: [0, 0, 1], makeLbl: n => t('quest.clean', { n: String(n) }) },
+  { type: 'sell',  targets: [1, 2, 3], coins: [30, 55, 90], diamonds: [0, 1, 2], makeLbl: n => t('quest.sell',  { n: String(n) }) },
+  { type: 'hatch', targets: [1, 2],    coins: [40, 80],      diamonds: [0, 1],   makeLbl: n => t('quest.hatch', { n: String(n), s: '' }) },
 ];
 
 const WEEKLY_QUEST_DEFS: QuestDef[] = [
@@ -297,6 +297,7 @@ export function generateDailyQuests(): Quest[] {
       completed: false,
       claimed: false,
       coinReward: def.coins[ti],
+      diamondReward: def.diamonds?.[ti] ?? 0,
       label: def.makeLbl(def.targets[ti]),
     };
   });
