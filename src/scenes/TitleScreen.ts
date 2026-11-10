@@ -605,6 +605,14 @@ export class TitleScreen extends Phaser.Scene {
     });
     if (!cloudStatus.isAnonymous) setLinked();
 
+    // If Boot finished a redirect link before this scene was created the event
+    // was already dispatched and lost — read the stored result instead.
+    if (cloudStatus.pendingLinkResult) {
+      const { ok, code } = cloudStatus.pendingLinkResult;
+      cloudStatus.pendingLinkResult = null;
+      if (ok) setLinked(); else setFailed(code);
+    }
+
     // Boot may finish the redirect result after this scene is created — listen
     // for the explicit success/failure event instead of relying on the initial
     // auth-state snapshot alone.

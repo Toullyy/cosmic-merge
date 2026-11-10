@@ -3,7 +3,7 @@ import { Game, store, getNewAchievements, reconcileOfflineTime, calcShopLevel } 
 import type { GameState } from '../types';
 import { newState, generateMerchantStock, MERCHANT_REFRESH_MS, TANK_CAPACITY, randomBuyer, VISITOR_INTERVAL_MS, checkAndUpdateVisitor, ensureQuestsFresh, TRAITS, SPECIES } from '../data';
 import { preloadMonsterTexture } from '../MonsterRenderer';
-import { initCloudAuth, loadFromCloud, scheduleSaveToCloud } from '../cloudSync';
+import { initCloudAuth, loadFromCloud, scheduleSaveToCloud, abortCloudSave } from '../cloudSync';
 import { auth } from '../firebase';
 import { scheduleIdleNotifications, clearScheduledNotifications } from '../notifications';
 
@@ -184,6 +184,7 @@ export class Boot extends Phaser.Scene {
         Date.now() - bootTime < 30000
       ) {
         // Cloud has a newer save (e.g. from another device)
+        abortCloudSave(); // cancel any pending save of the stale local state
         const cloudAwayMs = cloud.state.lastTickAt ? Math.max(0, Date.now() - cloud.state.lastTickAt) : 0;
         Game.state = cloud.state;
         reconcileOfflineTime(Game.state);

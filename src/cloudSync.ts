@@ -18,6 +18,9 @@ export const cloudStatus = {
   synced: false,
   enabled: false,
   lastLinkErrorCode: null as string | null,
+  // Stores the result of a redirect-based link so TitleScreen can read it
+  // even if the event was dispatched before the scene was created.
+  pendingLinkResult: null as { ok: boolean; code?: string | null } | null,
 };
 
 export type LinkResult = 'linked' | 'redirecting' | 'failed';
@@ -38,6 +41,8 @@ function _clearLinkPending(): void {
 
 function _notifyLinkResult(ok: boolean, code: string | null = null): void {
   cloudStatus.lastLinkErrorCode = ok ? null : code;
+  // Store so TitleScreen can read it even if the event fired before the scene created
+  cloudStatus.pendingLinkResult = { ok, code };
   if (code === 'auth/unauthorized-domain') {
     console.error(`Google sign-in needs "${location.hostname}" in Firebase Console → Authentication → Settings → Authorized domains.`);
   }
@@ -58,6 +63,11 @@ function _preferRedirect(): boolean {
 }
 
 let _saveTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** Cancel any pending debounced save (call when cloud state overwrites local state). */
+export function abortCloudSave(): void {
+  if (_saveTimer) { clearTimeout(_saveTimer); _saveTimer = null; }
+}
 
 // Debounce: saves at most once per 30 seconds to stay within Firestore free-tier quota
 export function scheduleSaveToCloud(state: GameState): void {
