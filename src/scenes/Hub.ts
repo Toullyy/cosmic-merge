@@ -1638,47 +1638,85 @@ export class Hub extends Phaser.Scene {
     const W = this.scale.width, H = this.scale.height;
     const sp = SPECIES[state.visitorSpeciesId];
     const mult = this._effectiveVisitorMult(state);
-    const candidates = state.monsters
-      .filter(m => m.speciesId === state.visitorSpeciesId)
-      .sort((a, b) => calcSellPrice(state, b) - calcSellPrice(state, a));
+    const isRequest = !!state.visitorIsRequest;
+    const minLevel = state.visitorMinLevel ?? 1;
+    const reqTrait = state.visitorRequiredTrait;
+    const traitDef = reqTrait ? TRAITS.find(tr => tr.id === reqTrait) : undefined;
+
+    // For special requests, filter by level + trait requirements
+    const allCandidates = state.monsters.filter(m => m.speciesId === state.visitorSpeciesId);
+    const candidates = (isRequest
+      ? allCandidates.filter(m => m.level >= minLevel && (!reqTrait || m.trait === reqTrait))
+      : allCandidates
+    ).sort((a, b) => calcSellPrice(state, b) - calcSellPrice(state, a));
     const remaining = Math.max(0, state.visitorExpiresAt - Date.now());
     const mins = Math.ceil(remaining / 60000);
 
+    const panelH = isRequest ? 300 : 260;
     const popup = this.add.container(0, 0).setDepth(50);
     const overlay = this.add.graphics();
     overlay.fillStyle(0x000000, 0.65); overlay.fillRect(0, 0, W, H);
     popup.add(overlay);
     const panel = this.add.graphics();
-    panel.fillStyle(0x1A0C08, 1);
-    panel.fillRoundedRect(W/2 - 160, H/2 - 130, 320, 260, 16);
-    panel.lineStyle(2, 0xFFCC00, 0.9);
-    panel.strokeRoundedRect(W/2 - 160, H/2 - 130, 320, 260, 16);
+    const borderCol = isRequest ? 0xFF9900 : 0xFFCC00;
+    panel.fillStyle(isRequest ? 0x1A0C00 : 0x1A0C08, 1);
+    panel.fillRoundedRect(W/2 - 160, H/2 - panelH/2, 320, panelH, 16);
+    panel.lineStyle(2, borderCol, 0.9);
+    panel.strokeRoundedRect(W/2 - 160, H/2 - panelH/2, 320, panelH, 16);
     popup.add(panel);
 
-    popup.add(this.add.text(W/2, H/2 - 108, t('visitor.title'), { fontFamily: FONT, fontSize: '20px', fontStyle: 'bold', color: '#FFE066' }).setOrigin(0.5));
-    popup.add(this.add.text(W/2, H/2 - 80, t('visitor.wants', { name: sp.name }), { fontFamily: FONT, fontSize: '16px', color: '#ffffff' }).setOrigin(0.5));
+    const titleY = H/2 - panelH/2 + 22;
+    const title = isRequest ? t('visitor.requestTitle') : t('visitor.title');
+    popup.add(this.add.text(W/2, titleY, title, { fontFamily: FONT, fontSize: '20px', fontStyle: 'bold', color: isRequest ? '#FF9900' : '#FFE066' }).setOrigin(0.5));
+
+    // Wants line
+    const wantsY = titleY + 28;
+    popup.add(this.add.text(W/2, wantsY, t('visitor.wants', { name: sp.name }), { fontFamily: FONT, fontSize: '16px', color: '#ffffff' }).setOrigin(0.5));
+
+    // Request requirements row
+    if (isRequest) {
+      let reqStr = 'Lv≥' + minLevel;
+      if (traitDef) reqStr += '  ' + traitDef.emoji + ' ' + traitDef.name;
+      popup.add(this.add.text(W/2, wantsY + 24, reqStr, { fontFamily: FONT, fontSize: '13px', color: '#FFCC88', fontStyle: 'bold' }).setOrigin(0.5));
+    }
 
     const close = () => popup.destroy();
     const priceFor = (m: Monster) => Math.max(1, Math.round(calcSellPrice(state, m) * mult));
+    const bodyTopY = H/2 - panelH/2 + (isRequest ? 100 : 80);
 
     if (candidates.length === 0) {
-      popup.add(this.add.text(W/2, H/2 - 30, t('visitor.noMonster', { name: sp.name }), { fontFamily: FONT, fontSize: '14px', color: '#BB9944' }).setOrigin(0.5));
-      popup.add(this.add.text(W/2, H/2 - 6, t('visitor.expires', { mins }), { fontFamily: FONT, fontSize: '13px', color: '#BBBBCC' }).setOrigin(0.5));
-      popup.add(makeButton(this, W/2, H/2 + 60, 120, 38, t('btn.close'), 0x2a1560, close, 13));
+      const noMonMsg = isRequest ? t('visitor.noMatch', { name: sp.name, level: minLevel }) : t('visitor.noMonster', { name: sp.name });
+      popup.add(this.add.text(W/2, bodyTopY + 10, noMonMsg, { fontFamily: FONT, fontSize: '13px', color: '#BB9944', wordWrap: { width: 280 }, align: 'center' }).setOrigin(0.5));
+      popup.add(this.add.text(W/2, bodyTopY + 46, t('visitor.expires', { mins }), { fontFamily: FONT, fontSize: '13px', color: '#BBBBCC' }).setOrigin(0.5));
+      if (isRequest) {
+        // Skip request: downgrade to regular visit (remove requirements)
+        popup.add(makeButton(this, W/2, bodyTopY + 90, 240, 38, t('visitor.skipRequest'), 0x553300, () => {
+          state.visitorIsRequest = false;
+          state.visitorMinLevel = undefined;
+          state.visitorRequiredTrait = undefined;
+          state.visitorPriceMult = Math.round((1.5 + Math.random()) * 10) / 10;
+          store.setJSON('mps_state', state);
+          close();
+          this._showVisitorPopup();
+        }, 12));
+        popup.add(makeButton(this, W/2, bodyTopY + 136, 120, 32, t('btn.close'), 0x2a1560, close, 12));
+      } else {
+        popup.add(makeButton(this, W/2, bodyTopY + 90, 120, 38, t('btn.close'), 0x2a1560, close, 13));
+      }
     } else {
       let sel = 0;
-      const selTxt = this.add.text(W/2, H/2 - 52, '', {
+      const selTxt = this.add.text(W/2, bodyTopY, '', {
         fontFamily: FONT, fontSize: '13px', color: '#DDCCFF',
       }).setOrigin(0.5);
-      const offerTxt = this.add.text(W/2, H/2 - 28, '', {
-        fontFamily: FONT, fontSize: '16px', color: '#FFD700', fontStyle: 'bold',
+      const offerTxt = this.add.text(W/2, bodyTopY + 24, '', {
+        fontFamily: FONT, fontSize: '16px', color: isRequest ? '#FF9900' : '#FFD700', fontStyle: 'bold',
       }).setOrigin(0.5);
-      const expiresTxt = this.add.text(W/2, H/2 - 4, t('visitor.expires', { mins }), {
+      const expiresTxt = this.add.text(W/2, bodyTopY + 48, t('visitor.expires', { mins }), {
         fontFamily: FONT, fontSize: '13px', color: '#BBBBCC',
       }).setOrigin(0.5);
       popup.add([selTxt, offerTxt, expiresTxt]);
 
-      const sellBtn = makeButton(this, W/2, H/2 + 42, 260, 48, '', 0x2A7A18, () => {
+      const sellBtn = makeButton(this, W/2, bodyTopY + 94, 260, 48, '', 0x2A7A18, () => {
         const mon = candidates[sel];
         // Combo sell streak
         state.visitorSellStreak = (state.visitorSellStreak ?? 0) + 1;
@@ -1729,11 +1767,11 @@ export class Hub extends Phaser.Scene {
 
       if (candidates.length > 1) {
         const cycle = (dir: number) => { sel = (sel + dir + candidates.length) % candidates.length; refreshOffer(); };
-        popup.add(makeButton(this, W/2 - 138, H/2 - 52, 34, 28, '◀', 0x3A2050, () => cycle(-1), 12));
-        popup.add(makeButton(this, W/2 + 138, H/2 - 52, 34, 28, '▶', 0x3A2050, () => cycle(1), 12));
+        popup.add(makeButton(this, W/2 - 138, bodyTopY, 34, 28, '◀', 0x3A2050, () => cycle(-1), 12));
+        popup.add(makeButton(this, W/2 + 138, bodyTopY, 34, 28, '▶', 0x3A2050, () => cycle(1), 12));
       }
 
-      popup.add(makeButton(this, W/2, H/2 + 96, 120, 32, t('btn.close'), 0x2a1560, close, 12));
+      popup.add(makeButton(this, W/2, bodyTopY + 148, 120, 32, t('btn.close'), 0x2a1560, close, 12));
     }
 
     overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, W, H), Phaser.Geom.Rectangle.Contains);

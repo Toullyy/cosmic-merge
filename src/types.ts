@@ -149,6 +149,9 @@ export interface GameState {
   pendingShopLvPopup?: { level: number; coins: number; diamonds: number; crystals: number };
   hallOfFame?: HallOfFameEntry[];
   visitorSellStreak?: number;
+  visitorMinLevel?: number;
+  visitorRequiredTrait?: string;
+  visitorIsRequest?: boolean;
 }
 
 export interface PublicMonster {

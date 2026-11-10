@@ -1,7 +1,7 @@
 ﻿import Phaser from 'phaser';
 import { Game, FONT, store, sfx, recordQuestProgress, reconcileOfflineTime, checkAndApplyShopLevelUp, applySellSideEffects } from '../utils';
 import { t } from '../i18n';
-import { SPECIES, HABITATS, FOOD_TYPES, TOY_TYPES, CLEAN_TOOLS, XP_TABLE, getLevelName, randomBuyer, randomListingDuration, TRAITS, BOWL_EAT_RATE, DECAY, getDecayMult, DECORATIONS, calcSellPrice, calcSellBreakdown, FREE_CARE_COOLDOWN_MS } from '../data';
+import { SPECIES, HABITATS, FOOD_TYPES, TOY_TYPES, CLEAN_TOOLS, XP_TABLE, getLevelName, randomBuyer, randomListingDuration, TRAITS, BOWL_EAT_RATE, DECAY, getDecayMult, DECORATIONS, calcSellPrice, calcSellBreakdown, FREE_CARE_COOLDOWN_MS, SPECIES_PREFS, PREF_HAPPINESS_BONUS, PREF_XP_MULT } from '../data';
 import { makeMonsterTexture, getVariantModifiers, lighten, darken } from '../MonsterRenderer';
 import { makeButton, setButtonLabel, setButtonColor } from '../ui/Button';
 import { showToast, showFloat } from '../ui/Toast';
@@ -1328,7 +1328,9 @@ export class HabitatRoom extends Phaser.Scene {
       const by = fpY + 28 + row * (btnH + 10) + btnH / 2;
       const canAfford = Game.state!.coins >= food.cost;
       const stars = '★'.repeat(food.tier);
-      const lbl = food.name + ' ' + stars + '\n🍖+' + food.hungerGain + '  💛+' + food.happinessGain + '\n💰' + food.cost;
+      const foodPref = SPECIES_PREFS[this._monster.speciesId];
+      const isFavFood = foodPref?.food === food.id;
+      const lbl = (isFavFood ? '🌟 ' : '') + food.name + ' ' + stars + '\n🍖+' + food.hungerGain + '  💛+' + food.happinessGain + (isFavFood ? '+' + PREF_HAPPINESS_BONUS : '') + '\n💰' + food.cost;
       const tierColors = [0x2A4A18, 0x2A4A28, 0x3A3010];
       const fbtn = makeButton(this, bx, by, btnW - 2, btnH, lbl,
         canAfford ? tierColors[food.tier - 1] : 0x1A1A2A, () => {
@@ -1348,10 +1350,15 @@ export class HabitatRoom extends Phaser.Scene {
             this._monster.bowl = { foodId: food.id, remaining: food.hungerGain, maxAmount: food.hungerGain, color: bowlColor };
           }
           this._monster.hunger = Math.min(100, this._monster.hunger + actualHungerAdded);
-          this._monster.happiness = Math.min(100, this._monster.happiness + food.happinessGain);
+          const pref = SPECIES_PREFS[this._monster.speciesId];
+          const feedPrefMatch = pref?.food === food.id;
+          const happBonus = feedPrefMatch ? PREF_HAPPINESS_BONUS : 0;
+          this._monster.happiness = Math.min(100, this._monster.happiness + food.happinessGain + happBonus);
           this._monster.lastCaredAt = Date.now();
           const feedXpBonus = TRAITS.find(t => t.id === this._monster.trait)?.xpMod ?? 0;
-          this._gainXP(10 + food.tier * 3 + feedXpBonus);
+          const baseXp = 10 + food.tier * 3 + feedXpBonus;
+          this._gainXP(feedPrefMatch ? Math.round(baseXp * PREF_XP_MULT) : baseXp);
+          if (feedPrefMatch) showFloat(this, this._monImg.x, this._monImg.y - 60, t('care.lovesIt'), '#FFD700');
           recordQuestProgress('feed');
           store.setJSON('mps_state', Game.state);
           sfx.feed();
@@ -1450,20 +1457,28 @@ export class HabitatRoom extends Phaser.Scene {
         const bx = fpX + 12 + i * (btnW + 4) + btnW / 2;
         const by = fpY + 27 + btnH / 2;
         const canAfford = Game.state!.coins >= toy.cost;
-        const lbl = toy.name + ' ' + '★'.repeat(toy.tier) + '\n+' + toy.happinessGain + '💛\n' + toy.cost + '💰';
+        const toyPrefCheck = SPECIES_PREFS[this._monster.speciesId];
+        const isFavToy = toyPrefCheck?.toy === toy.id;
+        const lbl = (isFavToy ? '🌟 ' : '') + toy.name + ' ' + '★'.repeat(toy.tier) + '\n+' + (toy.happinessGain + (isFavToy ? PREF_HAPPINESS_BONUS : 0)) + '💛\n' + toy.cost + '💰';
         const fbtn = makeButton(this, bx, by, btnW - 2, btnH, lbl,
           canAfford ? 0x6030A0 : 0x2A1A40, () => {
             if (Game.state!.coins < toy.cost) { showToast(this, t('toast.notEnoughCoins'), '#ff9999'); return; }
             Game.state!.coins -= toy.cost;
             this._monster.ownedToy = toy.id;
-            this._monster.happiness = Math.min(100, this._monster.happiness + toy.happinessGain);
+            const toyPref = SPECIES_PREFS[this._monster.speciesId];
+            const toyPrefMatch = toyPref?.toy === toy.id;
+            const toyHappBonus = toyPrefMatch ? PREF_HAPPINESS_BONUS : 0;
+            this._monster.happiness = Math.min(100, this._monster.happiness + toy.happinessGain + toyHappBonus);
             this._monster.lastCaredAt = Date.now();
-            this._gainXP(8 + toy.tier * 3);
+            const toyBaseXp = 8 + toy.tier * 3;
+            this._gainXP(toyPrefMatch ? Math.round(toyBaseXp * PREF_XP_MULT) : toyBaseXp);
             recordQuestProgress('play');
             store.setJSON('mps_state', Game.state);
             sfx.pet();
             this._playPetAnim(toy.id);
-            showFloat(this, this._monImg.x, this._monImg.y - 85, '+' + toy.happinessGain + '💛', '#ffdd55');
+            const toyHapTxt = '+' + (toy.happinessGain + toyHappBonus) + '💛' + (toyPrefMatch ? ' 🌟' : '');
+            showFloat(this, this._monImg.x, this._monImg.y - 85, toyHapTxt, toyPrefMatch ? '#FFD700' : '#ffdd55');
+            if (toyPrefMatch) showFloat(this, this._monImg.x, this._monImg.y - 110, t('care.lovesIt'), '#FFD700');
             this._refreshStats();
             this._bounceBar('happiness');
             this._updateCoinDisplay();

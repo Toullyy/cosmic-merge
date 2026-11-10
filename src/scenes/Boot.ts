@@ -120,6 +120,7 @@ export class Boot extends Phaser.Scene {
       }
       if (!Game.state.hallOfFame) Game.state.hallOfFame = [];
       if (Game.state.visitorSellStreak === undefined) Game.state.visitorSellStreak = 0;
+      if (Game.state.visitorIsRequest === undefined) Game.state.visitorIsRequest = false;
       // deduplicate monsters by id (fix for users who got duplicates from double-tap bug)
       const seenIds = new Set<string>();
       Game.state.monsters = Game.state.monsters.filter(m => {

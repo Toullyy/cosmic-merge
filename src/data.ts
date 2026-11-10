@@ -79,6 +79,28 @@ export const CLEAN_TOOLS: CleanTool[] = [
   { id:'bath',  name:'Bath Kit', tier:3, cleanGain:55, cost:20 },
 ];
 
+// Care preferences: preferred food + toy per species (bonus happiness/XP when matched)
+export const SPECIES_PREFS: Record<number, { food: string; toy: string }> = {
+  0:  { food:'berry',  toy:'yarn'  }, // Blobbit
+  1:  { food:'pellet', toy:'stick' }, // Dustmole
+  2:  { food:'pellet', toy:'gem'   }, // Craglet
+  3:  { food:'pasta',  toy:'stick' }, // Murkworm
+  4:  { food:'feast',  toy:'gem'   }, // Stoneback
+  5:  { food:'berry',  toy:'yarn'  }, // Leafwhip
+  6:  { food:'gummy',  toy:'yarn'  }, // Sproutkin
+  7:  { food:'berry',  toy:'gem'   }, // Thornpup
+  8:  { food:'pasta',  toy:'stick' }, // Fernfang
+  9:  { food:'feast',  toy:'gem'   }, // Mosshulk
+  10: { food:'gummy',  toy:'yarn'  }, // Aquabit
+  11: { food:'berry',  toy:'stick' }, // Finling
+  12: { food:'cake',   toy:'yarn'  }, // Coralwing
+  13: { food:'pasta',  toy:'gem'   }, // Depthcrawl
+  14: { food:'feast',  toy:'stick' }, // Tidegiant
+};
+// Preference bonus: +10 happiness + 50% XP when preferred food/toy is used
+export const PREF_HAPPINESS_BONUS = 10;
+export const PREF_XP_MULT = 1.5;
+
 export const DECAY = { happiness: -2, hunger: -5, cleanliness: -3 };
 export const BOWL_EAT_RATE = 8; // hunger units per hour monster eats from bowl
 // Shared cooldown for the free (owned toy/tool) play & clean actions so they
@@ -213,9 +235,23 @@ export function generateVisitor(state: GameState): void {
   }
   const speciesId = uniqueSpecies[Math.floor(Math.random() * uniqueSpecies.length)];
   state.visitorSpeciesId = speciesId;
-  state.visitorPriceMult = Math.round((1.5 + Math.random()) * 10) / 10;
   state.visitorExpiresAt = Date.now() + VISITOR_DURATION_MS;
   state.visitorNextAt = state.visitorExpiresAt + VISITOR_INTERVAL_MS;
+
+  // 40% chance: special request with min level + optional trait (always satisfiable)
+  const matchingMonsters = state.monsters.filter(m => m.speciesId === speciesId);
+  if (Math.random() < 0.4 && matchingMonsters.length > 0) {
+    const target = matchingMonsters[Math.floor(Math.random() * matchingMonsters.length)];
+    state.visitorIsRequest = true;
+    state.visitorMinLevel = target.level;
+    state.visitorRequiredTrait = Math.random() < 0.5 && target.trait ? target.trait : undefined;
+    state.visitorPriceMult = Math.round((2.0 + Math.random()) * 10) / 10;
+  } else {
+    state.visitorIsRequest = false;
+    state.visitorMinLevel = undefined;
+    state.visitorRequiredTrait = undefined;
+    state.visitorPriceMult = Math.round((1.5 + Math.random()) * 10) / 10;
+  }
 }
 
 export function checkAndUpdateVisitor(state: GameState): void {
