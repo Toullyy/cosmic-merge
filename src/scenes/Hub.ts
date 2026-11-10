@@ -2175,8 +2175,23 @@ export class Hub extends Phaser.Scene {
     this._displayGroup.add(namePlateG);
 
     const displayName = mon.nickname ?? sp.name;
-    this._displayGroup.add(this.add.text(cx, cy + CH/2 - nameH / 2, displayName, {
-      fontFamily: FONT, fontSize: '15px', fontStyle: 'bold', color: '#FFFFFF',
+    const _st = Game.state!;
+    const _now2 = Date.now();
+    const _hasVisitor = !!((_st.visitorSpeciesId === mon.speciesId) && _st.visitorExpiresAt && _st.visitorExpiresAt > _now2);
+    const _isRushHour = !!(_st.rushHourUntil && _now2 < _st.rushHourUntil);
+    const _vMult = _hasVisitor ? ((_st.visitorPriceMult ?? 2) * (_isRushHour ? 2 : 1)) : 1;
+    const _basePrice = calcSellPrice(_st, mon);
+    const _displayPrice = _hasVisitor ? Math.max(1, Math.round(_basePrice * _vMult)) : _basePrice;
+    const _priceColor = _hasVisitor ? (_isRushHour ? '#FF8844' : '#FFD700') : '#99BBAA';
+    const _priceLbl = (_hasVisitor ? '🔥 ' : '') + '💰' + _displayPrice;
+
+    // Name on upper half of nameplate, price on lower half
+    this._displayGroup.add(this.add.text(cx, cy + CH/2 - nameH + 13, displayName, {
+      fontFamily: FONT, fontSize: '14px', fontStyle: 'bold', color: '#FFFFFF',
+      stroke: '#000000', strokeThickness: 1,
+    }).setOrigin(0.5).setDepth(23));
+    this._displayGroup.add(this.add.text(cx, cy + CH/2 - nameH + 28, _priceLbl, {
+      fontFamily: FONT, fontSize: '11px', color: _priceColor,
       stroke: '#000000', strokeThickness: 1,
     }).setOrigin(0.5).setDepth(23));
 
